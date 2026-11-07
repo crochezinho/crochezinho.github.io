@@ -14,8 +14,10 @@ npm run build   # build de produção em dist/
 
 ## Publicar
 
-Cada push na `main` publica no GitHub Pages pelo workflow `.github/workflows/deploy.yml`.
+Cada push na `main` publica em **https://crochezinho.github.io/** pelo workflow `.github/workflows/deploy.yml`.
 No GitHub: Settings → Pages → Source: **GitHub Actions**.
+
+O repositório se chama `crochezinho.github.io`, por isso o site fica na raiz e `base` em `vite.config.ts` é `'/'`.
 
 ## Sincronizar entre aparelhos
 
@@ -23,7 +25,7 @@ No GitHub: Settings → Pages → Source: **GitHub Actions**.
 2. Crie um token em <https://github.com/settings/personal-access-tokens/new> (fine-grained):
    - Repository access: **Only select repositories** → `crochezinho-data`
    - Permissions → Repository → **Contents: Read and write**
-3. No app: Início → engrenagem → Sincronização → cole `seu-usuario/crochezinho-data` e o token → Conectar.
+3. No app: Início → engrenagem → Sincronização → cole `crochezinho/crochezinho-data` e o token → Conectar.
 4. Repita o passo 3 em cada aparelho (o token fica só no aparelho, nunca no arquivo de dados).
 
 ## Estrutura

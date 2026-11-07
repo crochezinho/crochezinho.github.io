@@ -9,7 +9,7 @@ Princípio: **simples e intuitivo**. Na dúvida, menos toques e menos opções.
 ## Plataforma
 
 - Vite + Preact + TypeScript + Dexie (IndexedDB) + vite-plugin-pwa.
-- Publicado no **GitHub Pages** (este repositório, público) via `.github/workflows/deploy.yml`.
+- Publicado no **GitHub Pages** em https://crochezinho.github.io/ (repositório público `crochezinho.github.io`) via `.github/workflows/deploy.yml`.
 - Sincronização entre aparelhos: o app grava um JSON num **repositório privado `crochezinho-data`**
   pela API do GitHub, com um token fine-grained (só leitura/escrita de conteúdo nesse repositório),
   colado uma vez em cada aparelho. O app funciona sem isso. Envia e busca ao abrir e ao sair;

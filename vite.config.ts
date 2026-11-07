@@ -3,7 +3,7 @@ import preact from '@preact/preset-vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import pacote from './package.json' with { type: 'json' };
 
-const base = '/crochezinho/';
+const base = '/';
 
 export default defineConfig({
   base,
