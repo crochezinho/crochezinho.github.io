@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;-webkit-font-smoothing:antialiased}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes scr{from{transform:translateY(10px)}to{transform:none}}
+@keyframes toastin{from{opacity:0;transform:translate(-50%,16px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+@keyframes sheetin{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@keyframes runpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+.scr-anim{animation:scr .32s cubic-bezier(.22,.7,.3,1)}
+input{font-family:Nunito,sans-serif}
+input::placeholder{color:#bda99c}
+::-webkit-scrollbar{width:0;height:0}
+</style>
+</helmet>
+
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(120% 120% at 50% 0%,#F1E4DA,#E6D5C8);padding:36px;font-family:Nunito,sans-serif">
+<div style="width:392px;height:812px;background:#26211d;border-radius:52px;padding:10px;box-shadow:0 40px 80px -24px rgba(80,58,48,.6),0 0 0 1px rgba(255,255,255,.04)">
+<div style="position:relative;width:100%;height:100%;border-radius:42px;overflow:hidden;display:flex;flex-direction:column;background:{{ screenBg }}">
+
+<div style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:128px;height:28px;background:#26211d;border-radius:0 0 17px 17px;z-index:30"></div>
+
+<div style="display:flex;justify-content:space-between;align-items:center;padding:15px 28px 4px;z-index:20;flex-shrink:0">
+<span style="font:700 14px Nunito;color:{{ sbColor }}">9:41</span>
+<span style="display:flex;gap:6px;align-items:center">
+<svg width="18" height="12" viewBox="0 0 17 11" fill="{{ sbColor }}"><rect x="0" y="6" width="3" height="5" rx="1"/><rect x="4.5" y="4" width="3" height="7" rx="1"/><rect x="9" y="2" width="3" height="9" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+<svg width="23" height="12" viewBox="0 0 24 12" fill="none" stroke="{{ sbColor }}" stroke-width="1.3"><rect x="1" y="1" width="19" height="10" rx="3"/><rect x="3" y="3" width="13" height="6" rx="1.5" fill="{{ sbColor }}" stroke="none"/><rect x="21.5" y="4" width="2" height="4" rx="1" fill="{{ sbColor }}" stroke="none"/></svg>
+</span>
+</div>
+
+<div style="flex:1;overflow-y:auto;position:relative;z-index:5">
+
+<sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+<div class="scr-anim" style="padding:14px 24px 24px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px">
+<div><div style="font:500 13px Nunito;color:#7a6657">{{ hoje }}</div><div style="font:600 27px Fredoka;color:#43352f">Oi, {{ nome }}</div></div>
+<div onClick="{{ goPerfil }}" style="cursor:pointer;width:50px;height:50px;border-radius:50%;overflow:hidden;background:{{ avatarBg }};display:flex;align-items:center;justify-content:center;flex-shrink:0" style-active="transform:scale(.94)"><sc-if value="{{ semFoto }}" hint-placeholder-val="{{ true }}"><svg width="50" height="50" viewBox="0 0 52 52"><circle cx="26" cy="26" r="17" fill="none" stroke="#C98B86" stroke-width="1.6"/><path d="M11 21c10 4 20 8 30 11M16 13c5 11 8 19 11 30" stroke="#C98B86" stroke-width="1.3" fill="none"/><circle cx="20.5" cy="27" r="2" fill="#43352f"/><circle cx="31.5" cy="27" r="2" fill="#43352f"/><path d="M21 32c2 2 6 2 8 0" stroke="#43352f" stroke-width="1.5" fill="none" stroke-linecap="round"/><circle cx="17" cy="30" r="2.2" fill="#E8A9A2" opacity=".7"/><circle cx="35" cy="30" r="2.2" fill="#E8A9A2" opacity=".7"/></svg></sc-if></div>
+</div>
+<div onClick="{{ openCrono }}" style="cursor:pointer;background:#C98B86;border-radius:30px;padding:20px 22px;color:#fff;position:relative;overflow:hidden;box-shadow:0 18px 30px -12px rgba(176,110,106,.65),inset 0 2px 0 rgba(255,255,255,.25);margin-bottom:18px" style-active="transform:scale(.985)">
+<div style="position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:#fff;opacity:.12"></div>
+<div style="font:700 11px Nunito;letter-spacing:.08em;opacity:.95;position:relative">EM ANDAMENTO</div>
+<div style="font:600 22px Fredoka;margin:4px 0 14px;position:relative">{{ cronoName }}</div>
+<div style="display:flex;justify-content:space-between;align-items:flex-end;position:relative"><div><div style="font:700 30px Nunito">{{ timeBig }}<span style="font-size:16px;opacity:.92;font-weight:600">:{{ timeSec }}</span></div><div style="font:500 13px Nunito;opacity:.9">{{ carreiras }} carreiras · {{ cronoAgulha }}</div></div><div style="width:52px;height:52px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 12px -4px rgba(120,70,66,.4)"><svg width="16" height="18" viewBox="0 0 16 18" fill="#C98B86"><path d="M2 2l12 7-12 7z"/></svg></div></div>
+</div>
+<div style="display:flex;gap:11px;margin-bottom:18px">
+<div onClick="{{ goNovelos }}" style="cursor:pointer;flex:1;background:#fff;border-radius:24px;padding:15px 12px;text-align:center;box-shadow:0 8px 16px -10px rgba(150,110,100,.4)" style-active="transform:scale(.97)"><div style="font:600 22px Fredoka;color:#C98B86">{{ totalNovelos }}</div><div style="font:600 12px Nunito;color:#7a6657">novelos</div></div>
+<div onClick="{{ goProjetos }}" style="cursor:pointer;flex:1;background:#fff;border-radius:24px;padding:15px 12px;text-align:center;box-shadow:0 8px 16px -10px rgba(150,110,100,.4)" style-active="transform:scale(.97)"><div style="font:600 22px Fredoka;color:#9E7B85">{{ totalProjetos }}</div><div style="font:600 12px Nunito;color:#7a6657">projetos</div></div>
+<div onClick="{{ goPerfil }}" style="cursor:pointer;flex:1;background:#fff;border-radius:24px;padding:15px 12px;text-align:center;box-shadow:0 8px 16px -10px rgba(150,110,100,.4)" style-active="transform:scale(.97)"><div style="font:600 22px Fredoka;color:#C18A3D">37h</div><div style="font:600 12px Nunito;color:#7a6657">no mês</div></div>
+</div>
+<sc-if value="{{ mostrarAlerta }}" hint-placeholder-val="{{ true }}">
+<div onClick="{{ goLista }}" style="cursor:pointer;display:flex;align-items:center;gap:12px;background:#FBEFD8;border-radius:24px;padding:14px 16px;margin-bottom:18px" style-active="transform:scale(.99)"><svg width="38" height="38" viewBox="0 0 38 38"><circle cx="19" cy="19" r="18" fill="#F6DDA0"/><circle cx="14" cy="19" r="1.6" fill="#9a6a2a"/><circle cx="24" cy="19" r="1.6" fill="#9a6a2a"/><path d="M15 22.5c1.5 1.5 5 1.5 6.5 0" stroke="#9a6a2a" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg><div style="flex:1"><div style="font:600 14px Nunito;color:#43352f">Rosa Chá acabando</div><div style="font:500 12px Nunito;color:#9c7a2f">1 novelo restante · repor</div></div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c79640" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>
+</sc-if>
+<div style="font:700 12px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:11px">Continuar projetos</div>
+<sc-if value="{{ semAtivos }}" hint-placeholder-val=""><div style="text-align:center;padding:28px 20px;background:#fff;border-radius:22px;box-shadow:0 8px 16px -12px rgba(150,110,100,.4)"><div style="font:600 15px Fredoka;color:#43352f">Nenhum projeto em andamento</div><div style="font:500 12px Nunito;color:#7a6657;margin-top:3px">Toque no + para começar.</div></div></sc-if><sc-for list="{{ projetosAtivos }}" as="p" hint-placeholder-count="2">
+<div onClick="{{ p.open }}" style="cursor:pointer;display:flex;align-items:center;gap:13px;background:#fff;border-radius:22px;padding:11px 13px;margin-bottom:10px;box-shadow:0 8px 16px -12px rgba(150,110,100,.4)" style-active="transform:scale(.99)"><div style="width:46px;height:46px;border-radius:15px;flex-shrink:0;background:{{ p.grad }}"></div><div style="flex:1"><div style="font:600 15px Fredoka;color:#43352f">{{ p.nome }}</div><div style="font:500 12px Nunito;color:#7a6657">{{ p.tipo }} · {{ p.tempo }}</div></div><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#b9a395" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isEstoque }}" hint-placeholder-val="{{ true }}">
+<div class="scr-anim" style="padding:14px 24px 24px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><div style="font:600 26px Fredoka;color:#43352f">Meus novelos</div><div style="display:flex;align-items:center;gap:9px"><div onClick="{{ goLista }}" style="cursor:pointer;position:relative;width:40px;height:40px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px -10px rgba(150,110,100,.4)" style-active="transform:scale(.92)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#C98B86" stroke-width="1.7"><path d="M6 8h12l-1 11a2 2 0 01-2 1.8H9a2 2 0 01-2-1.8z"/><path d="M9 8a3 3 0 016 0"/></svg><span style="position:absolute;top:-2px;right:-2px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#C98B86;color:#fff;font:700 10px Nunito;display:flex;align-items:center;justify-content:center">{{ basketCount }}</span></div><div style="font:700 13px Nunito;color:#a8645c;background:#F3DAD3;padding:7px 13px;border-radius:20px">{{ totalNovelos }}</div></div></div>
+<div style="display:flex;align-items:center;gap:10px;background:#fff;border-radius:20px;padding:13px 16px;margin-bottom:14px;box-shadow:0 6px 14px -10px rgba(150,110,100,.4)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#b9a395" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M16 16l4 4"/></svg><input value="{{ estoqueBusca }}" onInput="{{ setEstoqueBusca }}" placeholder="Buscar cor, marca, fibra..." style="flex:1;border:none;outline:none;background:transparent;font:500 13px Nunito;color:#43352f" /></div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:18px">
+<span onClick="{{ toggleLow }}" style="cursor:pointer;display:flex;align-items:center;gap:6px;font:600 13px Nunito;padding:8px 14px;border-radius:20px;background:{{ lowBg }};color:{{ lowCol }};box-shadow:0 4px 10px -8px rgba(150,110,100,.3)"><span style="width:7px;height:7px;border-radius:50%;background:{{ lowDot }}"></span>Só os que estão acabando</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:20px">
+<sc-for list="{{ novelosGrupos }}" as="b" hint-placeholder-count="2">
+<div>
+<div style="display:flex;align-items:center;gap:9px;margin-bottom:13px"><span style="font:600 18px Fredoka;color:#43352f">{{ b.marca }}</span><span style="font:700 11px Nunito;color:#a8645c;background:#F3DAD3;padding:4px 9px;border-radius:12px">{{ b.resumo }}</span><div style="flex:1;height:1px;background:#ece0d4"></div></div>
+<div style="display:flex;flex-direction:column;gap:16px">
+<sc-for list="{{ b.linhas }}" as="l" hint-placeholder-count="2">
+<div>
+<div style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:9px">{{ l.linha }}</div>
+<div style="display:flex;gap:11px;overflow-x:auto;padding-bottom:2px">
+<sc-for list="{{ l.items }}" as="n" hint-placeholder-count="3">
+<div onClick="{{ n.open }}" style="cursor:pointer;width:86px;flex-shrink:0" style-active="transform:scale(.96)"><div style="position:relative;height:56px;border-radius:16px;background:{{ n.grad }};box-shadow:0 6px 12px -8px rgba(150,110,100,.5)"><span style="position:absolute;top:6px;right:6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:{{ n.badgeBg }};color:{{ n.badgeCol }};font:700 10px Nunito;display:flex;align-items:center;justify-content:center">{{ n.qtd }}</span></div><div style="font:600 12px Nunito;color:#43352f;margin-top:7px">{{ n.cor }}</div><div style="font:500 11px Nunito;color:#7a6657">{{ n.gramLabel }}</div></div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+<sc-if value="{{ estoqueVazio }}" hint-placeholder-val="">
+<div style="text-align:center;padding:38px 24px;background:#fff;border-radius:24px;box-shadow:0 7px 16px -12px rgba(150,110,100,.45)"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#e0c3b8" stroke-width="1.5" style="margin-bottom:10px"><circle cx="12" cy="12" r="8"/><path d="M7 8c4 2 7 4 10 6"/></svg><div style="font:600 16px Fredoka;color:#43352f">Nada encontrado</div><div style="font:500 13px Nunito;color:#7a6657;margin-top:4px">Seu estoque está tranquilo por aqui.</div></div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isProjetos }}" hint-placeholder-val="{{ true }}">
+<div class="scr-anim" style="padding:14px 24px 24px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px"><div style="font:600 26px Fredoka;color:#43352f">Projetos</div><div style="font:500 13px Nunito;color:#7a6657">{{ totalProjetos }} no total</div></div>
+<div style="display:flex;flex-direction:column;gap:12px">
+<sc-if value="{{ projetosVazio }}" hint-placeholder-val=""><div style="text-align:center;padding:46px 24px;background:#fff;border-radius:24px;box-shadow:0 7px 16px -12px rgba(150,110,100,.45)"><div style="font:600 16px Fredoka;color:#43352f">Nenhum projeto ainda</div><div style="font:500 13px Nunito;color:#7a6657;margin-top:4px">Toque no + para criar o primeiro.</div></div></sc-if><sc-for list="{{ projetosView }}" as="p" hint-placeholder-count="3">
+<div onClick="{{ p.open }}" style="cursor:pointer;background:#fff;border-radius:24px;padding:14px;box-shadow:0 8px 18px -12px rgba(150,110,100,.45)" style-active="transform:scale(.99)">
+<div style="display:flex;align-items:center;gap:14px"><div style="width:58px;height:58px;border-radius:18px;flex-shrink:0;background:{{ p.grad }}"></div><div style="flex:1"><div style="display:flex;align-items:center;gap:8px"><div style="font:600 17px Fredoka;color:#43352f">{{ p.nome }}</div><span style="font:700 11px Nunito;background:{{ p.statusBg }};color:{{ p.statusCol }};padding:3px 9px;border-radius:11px">{{ p.status }}</span></div><div style="font:500 12px Nunito;color:#7a6657;margin-top:3px">{{ p.tipo }} · {{ p.agulha }} · {{ p.carreiras }} carreiras</div></div></div>
+<div style="display:flex;gap:0;margin-top:13px;border-top:1px solid #f3e8dd;padding-top:11px"><div style="flex:1;text-align:center"><div style="font:700 15px Nunito;color:#43352f">{{ p.tempo }}</div><div style="font:500 11px Nunito;color:#7a6657">tempo</div></div><div style="flex:1;text-align:center;border-left:1px solid #f3e8dd;border-right:1px solid #f3e8dd"><div style="font:700 15px Nunito;color:#43352f">{{ p.carreiras }}</div><div style="font:500 11px Nunito;color:#7a6657">carreiras</div></div><div style="flex:1;text-align:center"><div style="font:700 15px Nunito;color:#a8645c">{{ p.preco }}</div><div style="font:500 11px Nunito;color:#7a6657">preço</div></div></div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isPerfil }}" hint-placeholder-val="{{ true }}">
+<div class="scr-anim" style="padding:14px 24px 24px">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px"><div style="display:flex;align-items:center;gap:12px"><div onClick="{{ back }}" style="cursor:pointer;width:44px;height:44px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px -8px rgba(150,110,100,.5)" style-active="transform:scale(.92)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5A4D47" stroke-width="1.8"><path d="M15 5l-7 7 7 7"/></svg></div><div style="font:600 26px Fredoka;color:#43352f">Perfil</div></div><div onClick="{{ goEditarPerfil }}" style="cursor:pointer;width:44px;height:44px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px -8px rgba(150,110,100,.5)" style-active="transform:scale(.92)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#C98B86" stroke-width="1.8"><path d="M4 20h4l10-10-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></div></div>
+<div style="display:flex;flex-direction:column;align-items:center;background:#fff;border-radius:28px;padding:26px 20px;margin-bottom:18px;box-shadow:0 10px 24px -14px rgba(150,110,100,.45)">
+<div style="width:78px;height:78px;border-radius:50%;margin-bottom:12px;overflow:hidden;background:{{ avatarBg }};display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 8px 18px -10px rgba(150,90,86,.4)"><sc-if value="{{ semFoto }}" hint-placeholder-val="{{ true }}"><svg width="78" height="78" viewBox="0 0 52 52"><circle cx="26" cy="26" r="17" fill="none" stroke="#C98B86" stroke-width="1.6"/><path d="M11 21c10 4 20 8 30 11M16 13c5 11 8 19 11 30" stroke="#C98B86" stroke-width="1.3" fill="none"/><circle cx="20.5" cy="27" r="2" fill="#43352f"/><circle cx="31.5" cy="27" r="2" fill="#43352f"/><path d="M21 32c2 2 6 2 8 0" stroke="#43352f" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></sc-if></div>
+<div style="font:600 21px Fredoka;color:#43352f">{{ nome }}</div>
+<div style="font:500 13px Nunito;color:#7a6657">crocheteira desde {{ pDesde }}</div>
+<sc-if value="{{ temBio }}" hint-placeholder-val="{{ true }}"><div style="font:500 12px Nunito;color:#9a8678;text-align:center;margin-top:6px;padding:0 14px;line-height:1.45">{{ pBio }}</div></sc-if>
+<div style="display:flex;gap:0;margin-top:18px;width:100%;border-top:1px solid #f3e8dd;padding-top:16px"><div style="flex:1;text-align:center"><div style="font:600 20px Fredoka;color:#43352f">{{ totalProjetos }}</div><div style="font:500 11px Nunito;color:#7a6657">projetos</div></div><div style="flex:1;text-align:center;border-left:1px solid #f3e8dd;border-right:1px solid #f3e8dd"><div style="font:600 20px Fredoka;color:#43352f">{{ totalNovelos }}</div><div style="font:500 11px Nunito;color:#7a6657">novelos</div></div><div style="flex:1;text-align:center"><div style="font:600 20px Fredoka;color:#43352f">37h</div><div style="font:500 11px Nunito;color:#7a6657">no mês</div></div></div>
+</div>
+<div style="background:#fff;border-radius:24px;padding:4px 18px;margin-bottom:18px;box-shadow:0 8px 18px -14px rgba(150,110,100,.45)">
+<div onClick="{{ goConquistas }}" style="cursor:pointer;display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #f3e8dd" style-active="opacity:.6"><div style="width:40px;height:40px;border-radius:13px;flex-shrink:0;background:#FBEFD8;display:flex;align-items:center;justify-content:center"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#C18A3D" stroke-width="1.7"><path d="M7 4h10v4a5 5 0 01-10 0z"/><path d="M7 6H4v1a3 3 0 003 3M17 6h3v1a3 3 0 01-3 3"/><path d="M12 13v4M9 21h6M10 17h4"/></svg></div><div style="flex:1"><div style="font:600 14px Nunito;color:#43352f">Conquistas</div><div style="font:500 12px Nunito;color:#7a6657">8 medalhas · 12 dias seguidos</div></div><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#b9a395" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>
+<div onClick="{{ goRetro }}" style="cursor:pointer;display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #f3e8dd" style-active="opacity:.6"><div style="width:40px;height:40px;border-radius:13px;flex-shrink:0;background:#F3DAD3;display:flex;align-items:center;justify-content:center"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#C98B86" stroke-width="1.8" stroke-linecap="round"><path d="M5 20v-5M12 20V7M19 20v-9"/><path d="M3 20h18"/></svg></div><div style="flex:1"><div style="font:600 14px Nunito;color:#43352f">Retrospectiva</div><div style="font:500 12px Nunito;color:#7a6657">seu 2025 em pontos</div></div><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#b9a395" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>
+<div onClick="{{ goGanhos }}" style="cursor:pointer;display:flex;align-items:center;gap:14px;padding:14px 0" style-active="opacity:.6"><div style="width:40px;height:40px;border-radius:13px;flex-shrink:0;background:#E7EFE0;display:flex;align-items:center;justify-content:center"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#6f8a55" stroke-width="1.7"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10.5h18"/><circle cx="16.5" cy="14.5" r="1.4" fill="#6f8a55" stroke="none"/></svg></div><div style="flex:1"><div style="font:600 14px Nunito;color:#43352f">Ganhos</div><div style="font:500 12px Nunito;color:#7a6657">R$ 1.180 vendidos este mês</div></div><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#b9a395" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>
+</div>
+<div style="background:#fff;border-radius:24px;padding:4px 18px;box-shadow:0 8px 18px -14px rgba(150,110,100,.45)">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-bottom:1px solid #f3e8dd"><span style="font:500 14px Nunito;color:#43352f">Notificações</span><div onClick="{{ toggleNotif }}" style="cursor:pointer;width:46px;height:28px;border-radius:14px;position:relative;background:{{ notifBg }};transition:background .2s"><div style="position:absolute;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.15);transition:left .2s;left:{{ notifX }}"></div></div></div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0"><span style="font:500 14px Nunito;color:#43352f">Valor por hora</span><div style="display:flex;align-items:baseline;background:#F8EFE8;border-radius:12px;padding:0 10px"><span style="font:700 13px Nunito;color:#9a8678">R$&nbsp;</span><input value="{{ valorHoraInput }}" onInput="{{ setValorHora }}" inputmode="decimal" style="width:56px;border:none;outline:none;background:transparent;padding:8px 0;text-align:right;font:700 14px Nunito;color:#43352f" /></div></div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isEditarPerfil }}" hint-placeholder-val="">
+<div class="scr-anim" style="padding:14px 24px 24px">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px"><div onClick="{{ back }}" style="cursor:pointer;width:44px;height:44px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px -8px rgba(150,110,100,.5)" style-active="transform:scale(.92)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5A4D47" stroke-width="1.8"><path d="M15 5l-7 7 7 7"/></svg></div><div style="font:600 26px Fredoka;color:#43352f">Editar perfil</div></div>
+<div style="display:flex;flex-direction:column;align-items:center;margin-bottom:22px">
+<div style="position:relative;width:104px;height:104px;margin-bottom:10px"><div style="width:104px;height:104px;border-radius:50%;overflow:hidden;background:{{ peFotoPreview }};display:flex;align-items:center;justify-content:center;box-shadow:0 10px 22px -10px rgba(150,90,86,.45)"><sc-if value="{{ semPeFoto }}" hint-placeholder-val="{{ true }}"><svg width="104" height="104" viewBox="0 0 52 52"><circle cx="26" cy="26" r="17" fill="none" stroke="#C98B86" stroke-width="1.6"/><path d="M11 21c10 4 20 8 30 11M16 13c5 11 8 19 11 30" stroke="#C98B86" stroke-width="1.3" fill="none"/><circle cx="20.5" cy="27" r="2" fill="#43352f"/><circle cx="31.5" cy="27" r="2" fill="#43352f"/><path d="M21 32c2 2 6 2 8 0" stroke="#43352f" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></sc-if></div><label style="cursor:pointer;position:absolute;right:-2px;bottom:-2px;width:36px;height:36px;border-radius:50%;background:#C98B86;border:3px solid #F8EFE8;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 12px -4px rgba(176,110,106,.6)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9"><rect x="3" y="6" width="18" height="14" rx="2.5"/><circle cx="12" cy="13" r="3.2"/><path d="M8 6l1.5-2h5L16 6"/></svg><input type="file" accept="image/*" onChange="{{ pickPeFoto }}" style="display:none" /></label></div>
+<label style="cursor:pointer;font:600 13px Nunito;color:#a8645c">{{ peFotoLabel }}<input type="file" accept="image/*" onChange="{{ pickPeFoto }}" style="display:none" /></label>
+</div>
+<div style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:7px">Seu nome</div>
+<input value="{{ peNome }}" onInput="{{ setPeNome }}" placeholder="ex: Marina" style="width:100%;border:none;outline:none;background:#fff;border-radius:18px;padding:14px 16px;margin-bottom:14px;font:500 14px Nunito;color:#43352f;box-shadow:0 6px 14px -10px rgba(150,110,100,.4)" />
+<div style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:7px">Crocheteira desde</div>
+<input value="{{ peDesde }}" onInput="{{ setPeDesde }}" inputmode="numeric" placeholder="ex: 2021" style="width:100%;border:none;outline:none;background:#fff;border-radius:18px;padding:14px 16px;margin-bottom:14px;font:500 14px Nunito;color:#43352f;box-shadow:0 6px 14px -10px rgba(150,110,100,.4)" />
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px"><span style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678">Sobre você</span><span style="font:500 11px Nunito;color:#b9a395">opcional</span></div>
+<textarea value="{{ peBio }}" onInput="{{ setPeBio }}" placeholder="ex: Amigurumis feitos à mão, com muito carinho" rows="3" style="width:100%;border:none;outline:none;background:#fff;border-radius:18px;padding:14px 16px;margin-bottom:24px;font:500 14px Nunito;color:#43352f;box-shadow:0 6px 14px -10px rgba(150,110,100,.4);resize:none;line-height:1.5;font-family:Nunito,sans-serif"></textarea>
+<div onClick="{{ salvarPerfil }}" style="cursor:pointer;background:#C98B86;border-radius:24px;padding:16px;text-align:center;font:600 15px Fredoka;color:#fff;box-shadow:0 14px 24px -10px rgba(176,110,106,.6),inset 0 2px 0 rgba(255,255,255,.25)" style-active="transform:scale(.98)">Salvar perfil</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isConquistas }}" hint-placeholder-val="">
+<div class="scr-anim" style="padding:14px 22px 24px">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:18px"><div onClick="{{ back }}" style="cursor:pointer;width:44px;height:44px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px -8px rgba(150,110,100,.5)" style-active="transform:scale(.92)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5A4D47" stroke-width="1.8"><path d="M15 5l-7 7 7 7"/></svg></div><div style="font:600 26px Fredoka;color:#43352f">Conquistas</div></div>
+<div style="background:#C98B86;border-radius:28px;padding:20px 22px;color:#fff;position:relative;overflow:hidden;box-shadow:0 18px 30px -12px rgba(176,110,106,.6),inset 0 2px 0 rgba(255,255,255,.25);margin-bottom:20px">
+<div style="position:absolute;right:-28px;top:-30px;width:118px;height:118px;border-radius:50%;background:#fff;opacity:.12"></div>
+<div style="font:700 11px Nunito;letter-spacing:.08em;opacity:.95;position:relative">EM SEQUÊNCIA</div>
+<div style="display:flex;align-items:baseline;gap:8px;margin:3px 0 2px;position:relative"><div style="font:600 34px Fredoka">12 dias</div><div style="font:600 13px Nunito;opacity:.92">seguidos crochetando</div></div>
+<div style="font:500 12px Nunito;opacity:.85;margin-bottom:14px;position:relative">seu recorde foi 21 dias</div>
+<div style="display:flex;gap:7px;position:relative">
+<div style="flex:1;text-align:center"><div style="height:34px;border-radius:11px;background:rgba(255,255,255,.85)"></div><div style="font:600 10px Nunito;opacity:.8;margin-top:5px">S</div></div>
+<div style="flex:1;text-align:center"><div style="height:34px;border-radius:11px;background:rgba(255,255,255,.85)"></div><div style="font:600 10px Nunito;opacity:.8;margin-top:5px">T</div></div>
+<div style="flex:1;text-align:center"><div style="height:34px;border-radius:11px;background:rgba(255,255,255,.85)"></div><div style="font:600 10px Nunito;opacity:.8;margin-top:5px">Q</div></div>
+<div style="flex:1;text-align:center"><div style="height:34px;border-radius:11px;background:rgba(255,255,255,.85)"></div><div style="font:600 10px Nunito;opacity:.8;margin-top:5px">Q</div></div>
+<div style="flex:1;text-align:center"><div style="height:34px;border-radius:11px;background:rgba(255,255,255,.85)"></div><div style="font:600 10px Nunito;opacity:.8;margin-top:5px">S</div></div>
+<div style="flex:1;text-align:center"><div style="height:34px;border-radius:11px;background:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.5)"></div><div style="font:700 10px Nunito;margin-top:5px">S</div></div>
+<div style="flex:1;text-align:center"><div style="height:34px;border-radius:11px;background:rgba(255,255,255,.3);border:1.5px dashed rgba(255,255,255,.6)"></div><div style="font:600 10px Nunito;opacity:.8;margin-top:5px">D</div></div>
+</div>
+</div>
+<div style="font:700 12px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:10px">Próxima medalha</div>
+<div style="background:#fff;border-radius:22px;padding:14px 16px;margin-bottom:20px;box-shadow:0 8px 18px -14px rgba(150,110,100,.45);display:flex;align-items:center;gap:14px">
+<div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(140deg,#EBCB8E,#C18A3D);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 6px 14px -6px rgba(193,138,61,.6)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M12 3l2.6 5.3 5.8.9-4.2 4.1 1 5.8L12 16.9 6.8 19.2l1-5.8L3.6 9.2l5.8-.9z"/></svg></div>
+<div style="flex:1"><div style="font:600 15px Fredoka;color:#43352f">Maratonista</div><div style="font:500 11px Nunito;color:#7a6657;margin-bottom:7px">50h num único mês · faltam 13h</div><div style="height:8px;border-radius:4px;background:#F3DAD3;overflow:hidden"><div style="width:74%;height:100%;background:#C18A3D;border-radius:4px"></div></div></div>
+</div>
+<div style="font:700 12px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:14px">Suas medalhas · 8 de 14</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px 8px">
+<div style="text-align:center"><div style="width:64px;height:64px;margin:0 auto 8px;border-radius:50%;background:linear-gradient(140deg,#EBCB8E,#C18A3D);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 16px -8px rgba(193,138,61,.6)"><svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M12 2l2.9 6 6.6.6-5 4.3 1.5 6.5L12 16.9 5.9 19.4 7.4 12.9 2.4 8.6 9 8z"/></svg></div><div style="font:600 11px Nunito;color:#43352f;line-height:1.25">Primeira<br>venda</div></div>
+<div style="text-align:center"><div style="width:64px;height:64px;margin:0 auto 8px;border-radius:50%;background:linear-gradient(140deg,#E9B9B2,#C98B86);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 16px -8px rgba(176,110,106,.55)"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></div><div style="font:600 11px Nunito;color:#43352f;line-height:1.25">100 horas<br>de crochê</div></div>
+<div style="text-align:center"><div style="width:64px;height:64px;margin:0 auto 8px;border-radius:50%;background:linear-gradient(140deg,#B79AA2,#9E7B85);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 16px -8px rgba(120,90,100,.5)"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9"><circle cx="12" cy="12" r="8"/><path d="M7 8c4 2 7 4 10 6"/></svg></div><div style="font:600 11px Nunito;color:#43352f;line-height:1.25">30 novelos<br>guardados</div></div>
+<div style="text-align:center"><div style="width:64px;height:64px;margin:0 auto 8px;border-radius:50%;background:linear-gradient(140deg,#C7D6B4,#A6BE8B);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 16px -8px rgba(120,150,100,.45)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg></div><div style="font:600 11px Nunito;color:#43352f;line-height:1.25">10 projetos<br>prontos</div></div>
+<div style="text-align:center"><div style="width:64px;height:64px;margin:0 auto 8px;border-radius:50%;background:linear-gradient(140deg,#8E86B7,#5C5485);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 16px -8px rgba(80,70,120,.5)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg></div><div style="font:600 11px Nunito;color:#43352f;line-height:1.25">Coruja<br>(crochê 2h)</div></div>
+<div style="text-align:center;opacity:.55"><div style="width:64px;height:64px;margin:0 auto 8px;border-radius:50%;background:#E7DACE;display:flex;align-items:center;justify-content:center;border:2px dashed #cbb9aa"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a8978c" stroke-width="1.8"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></div><div style="font:600 11px Nunito;color:#7a6657;line-height:1.25">Mestre<br>100 projetos</div></div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isRetro }}" hint-placeholder-val="">
+<div class="scr-anim" style="padding:14px 22px 24px">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:18px"><div onClick="{{ back }}" style="cursor:pointer;width:44px;height:44px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px -8px rgba(150,110,100,.5)" style-active="transform:scale(.92)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5A4D47" stroke-width="1.8"><path d="M15 5l-7 7 7 7"/></svg></div><div style="font:600 26px Fredoka;color:#43352f">Retrospectiva</div></div>
+<div style="background:#5A4D47;border-radius:28px;padding:24px 22px;color:#F2E7DA;position:relative;overflow:hidden;box-shadow:0 18px 32px -14px rgba(90,77,71,.6);margin-bottom:16px">
+<div style="position:absolute;right:-24px;bottom:-30px;width:130px;height:130px;border-radius:50%;background:#C98B86;opacity:.3"></div>
+<div style="font:700 11px Nunito;letter-spacing:.1em;opacity:.8;position:relative">SEU 2025 EM CROCHÊ</div>
+<div style="font:700 56px Fredoka;line-height:1;margin:8px 0 2px;position:relative">412<span style="font:600 24px Fredoka;opacity:.85">h</span></div>
+<div style="font:500 14px Nunito;opacity:.85;position:relative">de pontos, carreirinhas e amor</div>
+<div style="display:flex;gap:0;margin-top:18px;border-top:1px solid rgba(255,255,255,.18);padding-top:14px;position:relative"><div style="flex:1"><div style="font:600 22px Fredoka">{{ totalProjetos }}</div><div style="font:500 11px Nunito;opacity:.8">projetos</div></div><div style="flex:1"><div style="font:600 22px Fredoka">{{ totalNovelos }}</div><div style="font:500 11px Nunito;opacity:.8">novelos</div></div><div style="flex:1"><div style="font:600 22px Fredoka;color:#F2D7A6">R$ 3,2k</div><div style="font:500 11px Nunito;opacity:.8">ganhos</div></div></div>
+</div>
+<div style="background:#fff;border-radius:24px;padding:18px;margin-bottom:16px;box-shadow:0 8px 18px -14px rgba(150,110,100,.45)">
+<div style="font:600 14px Fredoka;color:#43352f;margin-bottom:14px">Horas por mês</div>
+<div style="display:flex;align-items:flex-end;gap:5px;height:96px">
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:40%;background:#EBD4C8;border-radius:5px"></div><span style="font:600 8px Nunito;color:#9a8678">J</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:55%;background:#EBD4C8;border-radius:5px"></div><span style="font:600 8px Nunito;color:#9a8678">F</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:72%;background:#DDB0A8;border-radius:5px"></div><span style="font:600 8px Nunito;color:#9a8678">M</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:50%;background:#EBD4C8;border-radius:5px"></div><span style="font:600 8px Nunito;color:#9a8678">A</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:64%;background:#DDB0A8;border-radius:5px"></div><span style="font:600 8px Nunito;color:#9a8678">M</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:88%;background:#C98B86;border-radius:5px"></div><span style="font:600 8px Nunito;color:#9a8678">J</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:78%;background:#DDB0A8;border-radius:5px"></div><span style="font:600 8px Nunito;color:#9a8678">J</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:60%;background:#EBD4C8;border-radius:5px"></div><span style="font:600 8px Nunito;color:#9a8678">A</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:100%;background:#C98B86;border-radius:5px"></div><span style="font:600 8px Nunito;color:#9a8678">S</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:84%;background:#DDB0A8;border-radius:5px"></div><span style="font:600 8px Nunito;color:#9a8678">O</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:92%;background:#C98B86;border-radius:5px"></div><span style="font:600 8px Nunito;color:#9a8678">N</span></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:100%;height:70%;background:#DDB0A8;border-radius:5px"></div><span style="font:600 8px Nunito;color:#9a8678">D</span></div>
+</div>
+</div>
+<div style="display:flex;gap:11px;margin-bottom:16px">
+<div style="flex:1;background:#fff;border-radius:22px;padding:15px;box-shadow:0 8px 18px -14px rgba(150,110,100,.45)"><div style="width:34px;height:34px;border-radius:11px;background:linear-gradient(140deg,#E9B9B2,#C98B86);margin-bottom:10px"></div><div style="font:600 11px Nunito;color:#9a8678">Fio favorito</div><div style="font:600 15px Fredoka;color:#43352f">Anne Rosé</div><div style="font:500 11px Nunito;color:#7a6657">usado em 9 peças</div></div>
+<div style="flex:1;background:#fff;border-radius:22px;padding:15px;box-shadow:0 8px 18px -14px rgba(150,110,100,.45)"><div style="width:34px;height:34px;border-radius:11px;background:linear-gradient(140deg,#C7B8A0,#8E7B63);margin-bottom:10px"></div><div style="font:600 11px Nunito;color:#9a8678">Maior projeto</div><div style="font:600 15px Fredoka;color:#43352f">Urso Theo</div><div style="font:500 11px Nunito;color:#7a6657">28h de trabalho</div></div>
+</div>
+<div onClick="{{ compartilhar }}" style="cursor:pointer;background:#C98B86;border-radius:24px;padding:16px;text-align:center;font:600 15px Fredoka;color:#fff;box-shadow:0 14px 24px -10px rgba(176,110,106,.6),inset 0 2px 0 rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;gap:9px" style-active="transform:scale(.98)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>Compartilhar retrospectiva</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isGanhos }}" hint-placeholder-val="">
+<div class="scr-anim" style="padding:14px 22px 24px">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:18px"><div onClick="{{ back }}" style="cursor:pointer;width:44px;height:44px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px -8px rgba(150,110,100,.5)" style-active="transform:scale(.92)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5A4D47" stroke-width="1.8"><path d="M15 5l-7 7 7 7"/></svg></div><div style="font:600 26px Fredoka;color:#43352f">Ganhos</div></div>
+<div style="background:#C98B86;border-radius:28px;padding:20px 22px;color:#fff;position:relative;overflow:hidden;box-shadow:0 18px 30px -12px rgba(176,110,106,.6),inset 0 2px 0 rgba(255,255,255,.25);margin-bottom:14px">
+<div style="position:absolute;right:-28px;top:-30px;width:118px;height:118px;border-radius:50%;background:#fff;opacity:.12"></div>
+<div style="display:flex;justify-content:space-between;align-items:center;position:relative"><div style="font:700 11px Nunito;letter-spacing:.08em;opacity:.95">ESTE MÊS · JUNHO</div><div style="font:700 11px Nunito;background:rgba(255,255,255,.25);padding:5px 10px;border-radius:12px">↑ 18%</div></div>
+<div style="font:700 40px Fredoka;margin:6px 0 2px;position:relative">R$ 1.180</div>
+<div style="font:500 12px Nunito;opacity:.9;margin-bottom:16px;position:relative">6 peças vendidas · R$ 180 a mais que maio</div>
+<div style="display:flex;align-items:flex-end;gap:7px;height:52px;position:relative">
+<div style="flex:1;height:42%;background:rgba(255,255,255,.4);border-radius:5px"></div>
+<div style="flex:1;height:58%;background:rgba(255,255,255,.4);border-radius:5px"></div>
+<div style="flex:1;height:50%;background:rgba(255,255,255,.4);border-radius:5px"></div>
+<div style="flex:1;height:72%;background:rgba(255,255,255,.4);border-radius:5px"></div>
+<div style="flex:1;height:80%;background:rgba(255,255,255,.55);border-radius:5px"></div>
+<div style="flex:1;height:100%;background:#fff;border-radius:5px"></div>
+</div>
+</div>
+<div style="display:flex;gap:11px;margin-bottom:18px">
+<div style="flex:1;background:#F3DAD3;border-radius:20px;padding:13px 15px"><div style="font:600 11px Nunito;color:#a06860">Custo de material</div><div style="font:700 19px Fredoka;color:#43352f">R$ 320</div></div>
+<div style="flex:1;background:#FBEFD8;border-radius:20px;padding:13px 15px"><div style="font:600 11px Nunito;color:#9c7a2f">Lucro líquido</div><div style="font:700 19px Fredoka;color:#43352f">R$ 860</div></div>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px"><span style="font:700 12px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678">Vendas recentes</span></div>
+<div style="background:#fff;border-radius:22px;padding:4px 16px;box-shadow:0 8px 18px -14px rgba(150,110,100,.45)">
+<div style="display:flex;align-items:center;gap:13px;padding:13px 0;border-bottom:1px solid #f3e8dd"><div style="width:42px;height:42px;border-radius:13px;flex-shrink:0;background:linear-gradient(140deg,#E9B9B2,#C98B86)"></div><div style="flex:1"><div style="font:600 14px Nunito;color:#43352f">Coelha Lili</div><div style="font:500 11px Nunito;color:#7a6657">24 jun · Bruna M.</div></div><div style="font:700 15px Fredoka;color:#43352f">R$ 240</div></div>
+<div style="display:flex;align-items:center;gap:13px;padding:13px 0;border-bottom:1px solid #f3e8dd"><div style="width:42px;height:42px;border-radius:13px;flex-shrink:0;background:linear-gradient(140deg,#C7D6B4,#A6BE8B)"></div><div style="flex:1"><div style="font:600 14px Nunito;color:#43352f">Dino Pipo</div><div style="font:500 11px Nunito;color:#7a6657">19 jun · feira da praça</div></div><div style="font:700 15px Fredoka;color:#43352f">R$ 180</div></div>
+<div style="display:flex;align-items:center;gap:13px;padding:13px 0"><div style="width:42px;height:42px;border-radius:13px;flex-shrink:0;background:linear-gradient(140deg,#CDB7D6,#9E7B85)"></div><div style="flex:1"><div style="font:600 14px Nunito;color:#43352f">Ursinho Theo</div><div style="font:500 11px Nunito;color:#7a6657">12 jun · encomenda</div></div><div style="font:700 15px Fredoka;color:#43352f">R$ 310</div></div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isCalc }}" hint-placeholder-val="{{ true }}">
+<div class="scr-anim" style="padding:14px 22px 24px">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><div style="display:flex;align-items:center;gap:12px"><sc-if value="{{ calcCanBack }}" hint-placeholder-val=""><div onClick="{{ back }}" style="cursor:pointer;width:44px;height:44px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px -8px rgba(150,110,100,.5)" style-active="transform:scale(.92)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5A4D47" stroke-width="1.8"><path d="M15 5l-7 7 7 7"/></svg></div></sc-if><div style="font:600 23px Fredoka;color:#43352f">Calcular preço</div></div></div>
+<div onClick="{{ openCtx }}" style="cursor:pointer;display:flex;align-items:center;gap:12px;background:#fff;border-radius:18px;padding:11px 13px;margin-bottom:16px;box-shadow:0 6px 14px -10px rgba(150,110,100,.4)" style-active="transform:scale(.99)"><div style="width:42px;height:42px;border-radius:13px;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;background:{{ ctxIconBg }}"><sc-if value="{{ calcAvulsa }}" hint-placeholder-val="{{ true }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C98B86" stroke-width="1.7"><rect x="5" y="2.5" width="14" height="19" rx="3"/><path d="M9 7h6M9 12h1.5M13.5 12H15M9 16h1.5M13.5 16H15"/></svg></sc-if></div><div style="flex:1"><div style="font:600 10px Nunito;letter-spacing:.04em;text-transform:uppercase;color:#9a8678">{{ ctxLabel }}</div><div style="font:600 16px Fredoka;color:#43352f">{{ ctxNome }}</div></div><div style="display:flex;align-items:center;gap:5px;font:600 12px Nunito;color:#a8645c;background:#F3DAD3;padding:8px 12px;border-radius:14px">trocar<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#a8645c" stroke-width="2.6"><path d="M6 9l6 6 6-6"/></svg></div></div>
+<div style="background:#C98B86;border-radius:28px;padding:18px 22px;color:#fff;margin-bottom:16px;position:relative;overflow:hidden;box-shadow:0 18px 30px -12px rgba(176,110,106,.65),inset 0 2px 0 rgba(255,255,255,.25)"><div style="position:absolute;right:-26px;top:-34px;width:110px;height:110px;border-radius:50%;background:#fff;opacity:.1"></div><div style="font:700 11px Nunito;letter-spacing:.08em;opacity:.95;position:relative">PREÇO SUGERIDO</div><div style="font:700 38px Fredoka;margin:2px 0 14px;position:relative">{{ calcTotal }}</div><div style="display:flex;height:12px;border-radius:6px;overflow:hidden;position:relative;margin-bottom:12px"><div style="width:{{ matPctW }};background:#F2D7A6"></div><div style="width:{{ trabPctW }};background:#fff"></div><div style="width:{{ taxaPctW }};background:#E2C58F"></div><div style="width:{{ lucroPctW }};background:#B7CBA0"></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:7px 12px;position:relative"><div style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:#F2D7A6"></span><span style="font:600 11px Nunito;opacity:.95">{{ barMatLbl }}</span></div><div style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:#fff"></span><span style="font:600 11px Nunito;opacity:.95">{{ barTrabLbl }}</span></div><div style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:#E2C58F"></span><span style="font:600 11px Nunito;opacity:.95">{{ barTaxaLbl }}</span></div><div style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:#B7CBA0"></span><span style="font:600 11px Nunito;opacity:.95">{{ barLucroLbl }}</span></div></div></div>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><span style="font:700 12px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678">Fios usados</span><span style="font:700 12px Nunito;color:#a8645c">{{ fiosSubtotal }}</span></div>
+<div style="background:#fff;border-radius:22px;padding:2px 16px;margin-bottom:18px;box-shadow:0 8px 16px -10px rgba(150,110,100,.4)">
+<sc-for list="{{ calcFiosLines }}" as="f" hint-placeholder-count="2">
+<div style="display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #f3e8dd"><div style="width:34px;height:34px;border-radius:11px;flex-shrink:0;background:{{ f.grad }}"></div><div style="flex:1"><div style="font:600 14px Nunito;color:#43352f">{{ f.cor }}</div><div style="font:500 11px Nunito;color:#7a6657">{{ f.sub }}</div></div><div style="font:700 14px Nunito;color:#43352f">{{ f.custo }}</div><div onClick="{{ f.remove }}" style="cursor:pointer;width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0" style-active="transform:scale(.9)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#b09a8c" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></div></div>
+</sc-for>
+<div onClick="{{ openPeso }}" style="cursor:pointer;display:flex;align-items:center;gap:9px;padding:13px 0" style-active="opacity:.6"><div style="width:26px;height:26px;border-radius:50%;background:#F3DAD3;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a8645c" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg></div><span style="font:600 13px Nunito;color:#a8645c">Adicionar fio</span></div>
+</div>
+<div style="font:700 12px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:10px">Mão de obra</div>
+<div style="background:#fff;border-radius:22px;padding:4px 18px;margin-bottom:13px;box-shadow:0 8px 16px -10px rgba(150,110,100,.4)">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid #f3e8dd"><div><div style="font:700 13px Fredoka;color:#43352f">Horas trabalhadas</div><sc-if value="{{ calcVinculado }}" hint-placeholder-val=""><div style="font:600 11px Nunito;color:#b07d72;margin-top:2px">{{ calcHoraFonte }}</div></sc-if></div><div style="display:flex;align-items:baseline;background:{{ fldMatBg }};border-radius:12px;padding:9px 12px;width:122px"><input value="{{ calcHorasInput }}" onInput="{{ setHoras }}" inputmode="decimal" style="width:100%;border:none;outline:none;background:transparent;text-align:right;font:700 15px Nunito;color:#43352f" /><span style="font:600 12px Nunito;color:{{ matCurCol }}">&nbsp;h</span></div></div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0"><div style="font:700 13px Fredoka;color:#43352f">Valor por hora</div><div style="display:flex;align-items:baseline;background:#F8EFE8;border-radius:12px;padding:9px 12px;width:122px"><span style="font:600 12px Nunito;color:#9a8678">R$&nbsp;</span><input value="{{ valorHoraInput }}" onInput="{{ setValorHora }}" inputmode="decimal" style="width:100%;border:none;outline:none;background:transparent;text-align:right;font:700 15px Nunito;color:#43352f" /></div></div>
+</div>
+<div style="font:700 12px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:10px">Outros custos</div>
+<div style="background:#fff;border-radius:22px;padding:6px 16px;margin-bottom:16px;box-shadow:0 8px 16px -10px rgba(150,110,100,.4)">
+<sc-for list="{{ calcExtraLines }}" as="it" hint-placeholder-count="2">
+<div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid #f3e8dd"><input value="{{ it.nome }}" onInput="{{ it.setNome }}" placeholder="ex: olhos de segurança" style="flex:1;min-width:0;border:none;outline:none;background:transparent;font:600 13px Nunito;color:#43352f" /><div style="display:flex;align-items:baseline;background:#F8EFE8;border-radius:12px;padding:7px 11px;width:92px"><span style="font:600 11px Nunito;color:#9a8678">R$&nbsp;</span><input value="{{ it.valor }}" onInput="{{ it.setValor }}" inputmode="decimal" placeholder="0" style="width:100%;border:none;outline:none;background:transparent;text-align:right;font:700 14px Nunito;color:#43352f" /></div><div onClick="{{ it.remove }}" style="cursor:pointer;width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center" style-active="transform:scale(.9)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b09a8c" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></div></div>
+</sc-for>
+<div onClick="{{ addExtra }}" style="cursor:pointer;display:flex;align-items:center;gap:9px;padding:13px 0" style-active="opacity:.6"><div style="width:26px;height:26px;border-radius:50%;background:#F3DAD3;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a8645c" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg></div><span style="font:600 13px Nunito;color:#a8645c">Adicionar custo</span></div>
+</div>
+<div style="font:700 12px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:10px">Margem de lucro</div>
+<div style="background:#fff;border-radius:22px;padding:4px 18px;margin-bottom:16px;box-shadow:0 8px 16px -10px rgba(150,110,100,.4)">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0"><div><div style="font:700 13px Fredoka;color:#43352f">Lucro sobre o custo</div><div style="font:500 11px Nunito;color:#9a8678;margin-top:2px">sobre fios, trabalho e outros</div></div><div style="display:flex;align-items:baseline;background:#F8EFE8;border-radius:12px;padding:9px 12px;width:100px"><input value="{{ calcMargemInput }}" onInput="{{ setMargem }}" inputmode="numeric" style="width:100%;border:none;outline:none;background:transparent;text-align:right;font:700 15px Nunito;color:#43352f" /><span style="font:600 12px Nunito;color:#9a8678">&nbsp;%</span></div></div>
+</div>
+<div style="display:flex;gap:11px;margin-bottom:16px"><div style="flex:1;background:#F3DAD3;border-radius:20px;padding:13px 15px"><div style="font:600 11px Nunito;color:#a06860">Mão de obra</div><div style="font:700 18px Fredoka;color:#43352f">{{ calcMaoObra }}</div></div><div style="flex:1;background:#FBEFD8;border-radius:20px;padding:13px 15px"><div style="font:600 11px Nunito;color:#9c7a2f">Lucro</div><div style="font:700 18px Fredoka;color:#43352f">{{ calcLucro }}</div></div></div>
+<sc-if value="{{ calcAvulsa }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;gap:11px"><div onClick="{{ copiarValor }}" style="cursor:pointer;flex:1;background:#fff;border:1.5px solid #e6d2c6;border-radius:22px;padding:15px;text-align:center;font:600 14px Fredoka;color:#a8645c" style-active="transform:scale(.98)">Copiar valor</div><div onClick="{{ salvarCalc }}" style="cursor:pointer;flex:1;background:#5A4D47;border-radius:22px;padding:15px;text-align:center;font:600 14px Fredoka;color:#F2E7DA" style-active="transform:scale(.98)">Salvar</div></div>
+</sc-if>
+<sc-if value="{{ calcVinculado }}" hint-placeholder-val="">
+<div onClick="{{ desvincular }}" style="cursor:pointer;display:flex;align-items:center;gap:7px;justify-content:center;margin-bottom:14px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#b09a8c" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg><span style="font:500 12px Nunito;color:#a8978c">desvincular projeto</span></div>
+<div onClick="{{ salvarCalc }}" style="cursor:pointer;background:#5A4D47;border-radius:24px;padding:16px;text-align:center;font:600 15px Fredoka;color:#F2E7DA;box-shadow:0 14px 24px -10px rgba(90,77,71,.5),inset 0 2px 0 rgba(255,255,255,.12)" style-active="transform:scale(.98)">Salvar preço no projeto</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDetalhe }}" hint-placeholder-val="{{ true }}">
+<div class="scr-anim">
+<div style="position:relative">
+<div style="position:absolute;top:0;left:0;right:0;height:172px;background:{{ selGrad }}"></div>
+<div style="position:relative;z-index:2;padding:16px 20px 0;display:flex;justify-content:space-between"><div onClick="{{ back }}" style="cursor:pointer;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.28);display:flex;align-items:center;justify-content:center" style-active="transform:scale(.92)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9"><path d="M15 5l-7 7 7 7"/></svg></div><div onClick="{{ openSheet }}" style="cursor:pointer;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.28);display:flex;align-items:center;justify-content:center" style-active="transform:scale(.92)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></div></div>
+<div style="position:relative;z-index:2;padding:42px 22px 24px">
+<div style="background:#fff;border-radius:28px;padding:18px 20px;box-shadow:0 14px 30px -12px rgba(150,110,100,.4);margin-bottom:16px">
+<div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font:600 22px Fredoka;color:#43352f">{{ selName }}</div><div style="font:500 12px Nunito;color:#7a6657;margin-top:2px">{{ selTipo }} · {{ selAgulha }} · iniciado 20 jun</div></div><span style="font:700 11px Nunito;background:{{ selStatusBg }};color:{{ selStatusCol }};padding:7px 13px;border-radius:16px">{{ selStatus }}</span></div>
+<div style="display:flex;gap:0;margin-top:16px;border-top:1px solid #f3e8dd;padding-top:14px"><div style="flex:1;text-align:center"><div style="font:600 18px Fredoka;color:#43352f">{{ selTempo }}</div><div style="font:500 11px Nunito;color:#7a6657">tempo</div></div><div style="flex:1;text-align:center;border-left:1px solid #f3e8dd;border-right:1px solid #f3e8dd"><div style="font:600 18px Fredoka;color:#43352f">{{ selCarreiras }}</div><div style="font:500 11px Nunito;color:#7a6657">carreiras</div></div><div style="flex:1;text-align:center"><div style="font:600 18px Fredoka;color:#a8645c">{{ selPreco }}</div><div style="font:500 11px Nunito;color:#7a6657">preço</div></div></div>
+</div>
+
+<div style="font:700 12px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:10px">Receita / padrão</div>
+<sc-if value="{{ temReceita }}" hint-placeholder-val="{{ true }}">
+<div onClick="{{ abrirReceita }}" style="cursor:pointer;display:flex;align-items:center;gap:13px;background:#fff;border-radius:22px;padding:14px 16px;margin-bottom:18px;box-shadow:0 8px 18px -14px rgba(150,110,100,.45)" style-active="transform:scale(.99)"><div style="width:44px;height:52px;border-radius:8px;background:#F3DAD3;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a8645c" stroke-width="1.7"><path d="M6 3h9l4 4v14a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M14 3v5h5"/></svg></div><div style="flex:1"><div style="font:600 14px Nunito;color:#43352f">{{ receitaNome }}</div><div style="font:500 12px Nunito;color:#7a6657">{{ receitaFonte }}</div></div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b9a395" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>
+</sc-if>
+<sc-if value="{{ semReceita }}" hint-placeholder-val="">
+<div onClick="{{ anexarReceita }}" style="cursor:pointer;display:flex;align-items:center;gap:13px;background:#fff;border:2px dashed #e0c3b8;border-radius:22px;padding:14px 16px;margin-bottom:18px" style-active="transform:scale(.99)"><div style="width:40px;height:40px;border-radius:50%;background:#F8EFE8;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c79b8c" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg></div><div style="flex:1"><div style="font:600 14px Nunito;color:#43352f">Anexar receita</div><div style="font:500 12px Nunito;color:#7a6657">PDF, foto do gráfico ou anotações</div></div></div>
+</sc-if>
+
+<div onClick="{{ openCalc }}" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;background:#FBEFD8;border-radius:22px;padding:15px 18px;margin-bottom:18px" style-active="transform:scale(.99)"><div style="display:flex;align-items:center;gap:12px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#c2913f" stroke-width="1.7"><rect x="4" y="2.5" width="16" height="19" rx="3"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/></svg><div><div style="font:600 14px Nunito;color:#7a5d22">Calcular preço de venda</div><div style="font:500 12px Nunito;color:#9c7a2f">usa o tempo do cronômetro</div></div></div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c79640" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>
+<div style="font:700 12px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:10px">Novelos deste projeto</div>
+<div style="display:flex;gap:9px;margin-bottom:20px"><span style="display:flex;align-items:center;gap:7px;font:600 12px Nunito;background:#fff;color:#6f5f57;padding:9px 14px;border-radius:20px;box-shadow:0 6px 14px -10px rgba(150,110,100,.4)"><span style="width:14px;height:14px;border-radius:50%;background:#9E7B85"></span>Lavanda · 150g</span><span style="display:flex;align-items:center;gap:7px;font:600 12px Nunito;background:#fff;color:#6f5f57;padding:9px 14px;border-radius:20px;box-shadow:0 6px 14px -10px rgba(150,110,100,.4)"><span style="width:14px;height:14px;border-radius:50%;background:#F2E7DA;border:1px solid #e3d6c8"></span>Off-white · 100g</span></div>
+<div onClick="{{ openCronoSel }}" style="cursor:pointer;display:flex;gap:13px;align-items:center" style-active="transform:scale(.99)"><div style="width:58px;height:58px;border-radius:50%;background:#3E322A;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="18" height="20" viewBox="0 0 16 18" fill="#F2E7DA"><path d="M2 2l12 7-12 7z"/></svg></div><div style="flex:1;background:#C98B86;border-radius:30px;padding:19px;text-align:center;font:600 15px Fredoka;color:#fff;box-shadow:0 14px 24px -10px rgba(176,110,106,.6),inset 0 2px 0 rgba(255,255,255,.25)">Continuar cronômetro</div></div>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDetalheNovelo }}" hint-placeholder-val="{{ true }}">
+<div class="scr-anim">
+<div style="position:relative">
+<div style="position:absolute;top:0;left:0;right:0;height:158px;background:{{ snGrad }}"></div>
+<div style="position:relative;z-index:2;padding:14px 22px 0;display:flex;justify-content:space-between"><div onClick="{{ back }}" style="cursor:pointer;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.32);display:flex;align-items:center;justify-content:center" style-active="transform:scale(.92)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9"><path d="M15 5l-7 7 7 7"/></svg></div><div onClick="{{ editarNovelo }}" style="cursor:pointer;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.32);display:flex;align-items:center;justify-content:center" style-active="transform:scale(.92)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9"><path d="M4 20h4l10-10-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></div></div>
+<div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;margin-top:8px"><div style="width:84px;height:84px;border-radius:50%;background:{{ snGrad }};box-shadow:0 12px 26px -8px rgba(150,90,86,.5),inset 0 2px 6px rgba(255,255,255,.5)"></div></div>
+<div style="position:relative;z-index:2;padding:16px 22px 24px">
+<div style="text-align:center;margin-bottom:18px"><div style="font:600 24px Fredoka;color:#43352f">{{ snCor }}</div><div style="font:500 13px Nunito;color:#7a6657">{{ snMarca }} · {{ snLinha }}</div></div>
+
+<div style="background:#fff;border-radius:24px;padding:18px;box-shadow:0 12px 26px -14px rgba(150,110,100,.45);margin-bottom:14px">
+<div style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;text-align:center;margin-bottom:12px">Em estoque</div>
+<div style="display:flex;align-items:center;justify-content:center;gap:24px"><div onClick="{{ snDec }}" style="cursor:pointer;width:46px;height:46px;border-radius:50%;background:#F3DAD3;color:#a8645c;display:flex;align-items:center;justify-content:center;font:700 24px Nunito" style-active="transform:scale(.9)">−</div><div style="text-align:center;min-width:56px"><div style="font:700 42px Fredoka;color:#43352f;line-height:1">{{ snQtd }}</div><div style="font:500 11px Nunito;color:#7a6657">{{ snUnidade }}</div></div><div onClick="{{ snInc }}" style="cursor:pointer;width:46px;height:46px;border-radius:50%;background:#C98B86;color:#fff;display:flex;align-items:center;justify-content:center;font:700 24px Nunito;box-shadow:0 6px 12px -4px rgba(176,110,106,.6)" style-active="transform:scale(.9)">+</div></div>
+</div>
+
+<sc-if value="{{ snLow }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;align-items:center;gap:11px;background:#FBEFD8;border-radius:20px;padding:13px 16px;margin-bottom:14px"><svg width="34" height="34" viewBox="0 0 34 34"><circle cx="17" cy="17" r="16" fill="#F6DDA0"/><circle cx="13" cy="17" r="1.4" fill="#9a6a2a"/><circle cx="21" cy="17" r="1.4" fill="#9a6a2a"/><path d="M14 20c1 1 4 1 5 0" stroke="#9a6a2a" stroke-width="1.2" fill="none" stroke-linecap="round"/></svg><div style="flex:1"><div style="font:600 13px Nunito;color:#7a5d22">Tá acabando</div><div style="font:500 12px Nunito;color:#9c7a2f">repor antes de faltar</div></div><div onClick="{{ snAddList }}" style="cursor:pointer;font:700 11px Nunito;color:#fff;background:#C98B86;padding:9px 13px;border-radius:16px" style-active="transform:scale(.95)">+ lista</div></div>
+</sc-if>
+
+<div style="background:#fff;border-radius:24px;padding:4px 18px;margin-bottom:16px;box-shadow:0 8px 18px -14px rgba(150,110,100,.45)">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid #f3e8dd"><span style="font:500 13px Nunito;color:#7a6657">Fibra</span><span style="font:600 13px Nunito;color:#43352f">{{ snFibra }}</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid #f3e8dd"><span style="font:500 13px Nunito;color:#7a6657">Gramatura</span><span style="font:600 13px Nunito;color:#43352f">{{ snGram }}</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid #f3e8dd"><span style="font:500 13px Nunito;color:#7a6657">Metragem</span><span style="font:600 13px Nunito;color:#43352f">{{ snMetros }}</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid #f3e8dd"><span style="font:500 13px Nunito;color:#7a6657">Agulha sugerida</span><span style="font:600 13px Nunito;color:#43352f">{{ snAgulha }}</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid #f3e8dd"><span style="font:500 13px Nunito;color:#7a6657">Lote / partida</span><span style="font:600 13px Nunito;color:#43352f">{{ snLote }}</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:13px 0"><span style="font:500 13px Nunito;color:#7a6657">Preço</span><span style="font:600 13px Nunito;color:#43352f">{{ snPreco }}</span></div>
+</div>
+
+<div style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:10px">Usado em projetos</div>
+<div style="display:flex;gap:9px;margin-bottom:20px">
+<sc-for list="{{ snUsado }}" as="u" hint-placeholder-count="2">
+<div style="display:flex;align-items:center;gap:9px;background:#fff;border-radius:18px;padding:9px 13px;box-shadow:0 6px 14px -12px rgba(150,110,100,.4)"><div style="width:28px;height:28px;border-radius:9px;flex-shrink:0;background:{{ u.grad }}"></div><span style="font:600 12px Nunito;color:#43352f">{{ u.nome }}</span></div>
+</sc-for>
+</div>
+
+<div onClick="{{ snAddList }}" style="cursor:pointer;background:#C98B86;border-radius:24px;padding:16px;text-align:center;font:600 15px Fredoka;color:#fff;box-shadow:0 14px 24px -10px rgba(176,110,106,.6),inset 0 2px 0 rgba(255,255,255,.25)" style-active="transform:scale(.98)">Adicionar à lista de compras</div>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isLista }}" hint-placeholder-val="">
+<div class="scr-anim" style="padding:14px 22px 24px">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:18px"><div onClick="{{ back }}" style="cursor:pointer;width:44px;height:44px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px -8px rgba(150,110,100,.5)" style-active="transform:scale(.92)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5A4D47" stroke-width="1.8"><path d="M15 5l-7 7 7 7"/></svg></div><div><div style="font:600 23px Fredoka;color:#43352f">Lista de compras</div><div style="font:500 12px Nunito;color:#7a6657">{{ listaSub }}</div></div></div>
+
+<sc-if value="{{ listaTemItens }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;align-items:center;gap:7px;margin-bottom:11px"><span style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678">A comprar</span><div style="flex:1;height:1px;background:#ece0d4"></div></div>
+<div style="background:#fff;border-radius:22px;padding:4px 16px;margin-bottom:22px;box-shadow:0 8px 18px -14px rgba(150,110,100,.45)">
+<sc-for list="{{ listaItens }}" as="it" hint-placeholder-count="3">
+<div style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #f3e8dd">
+<div onClick="{{ it.toggle }}" style="cursor:pointer;width:24px;height:24px;border-radius:50%;flex-shrink:0;border:2px solid {{ it.checkBorder }};background:{{ it.checkBg }};display:flex;align-items:center;justify-content:center" style-active="transform:scale(.9)"><sc-if value="{{ it.checked }}" hint-placeholder-val=""><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5 9-10"/></svg></sc-if></div>
+<div style="width:34px;height:34px;border-radius:11px;background:{{ it.grad }};flex-shrink:0;opacity:{{ it.op }};box-shadow:0 5px 10px -6px rgba(150,110,100,.5)"></div>
+<div style="flex:1;min-width:0;opacity:{{ it.op }}"><div style="font:600 14px Nunito;color:#43352f;{{ it.strike }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.cor }}</div><div style="font:500 11px Nunito;color:#7a6657;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.sub }}</div></div>
+<div style="display:flex;align-items:center;gap:3px;flex-shrink:0"><div onClick="{{ it.dec }}" style="cursor:pointer;width:28px;height:28px;border-radius:50%;background:#F3DAD3;color:#a8645c;display:flex;align-items:center;justify-content:center;font:700 15px Nunito" style-active="transform:scale(.9)">−</div><span style="font:700 14px Nunito;color:#43352f;min-width:13px;text-align:center">{{ it.qtd }}</span><div onClick="{{ it.inc }}" style="cursor:pointer;width:28px;height:28px;border-radius:50%;background:#C98B86;color:#fff;display:flex;align-items:center;justify-content:center;font:700 15px Nunito" style-active="transform:scale(.9)">+</div></div>
+<div onClick="{{ it.del }}" style="cursor:pointer;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0" style-active="transform:scale(.85)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c9a99c" stroke-width="1.8"><path d="M4 7h16M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M6 7l1 13a2 2 0 002 1.8h6a2 2 0 002-1.8L18 7"/></svg></div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ listaVazia }}" hint-placeholder-val="">
+<div style="text-align:center;padding:46px 24px;background:#fff;border-radius:24px;box-shadow:0 7px 16px -12px rgba(150,110,100,.45);margin-bottom:24px"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#e0c3b8" stroke-width="1.5" style="margin-bottom:10px"><path d="M6 8h12l-1 11a2 2 0 01-2 1.8H9a2 2 0 01-2-1.8z"/><path d="M9 8a3 3 0 016 0"/></svg><div style="font:600 16px Fredoka;color:#43352f">Lista vazia</div><div style="font:500 13px Nunito;color:#7a6657;margin-top:4px">Adicione novelos pelo estoque.</div></div>
+</sc-if>
+
+<div onClick="{{ marcarTudo }}" style="cursor:pointer;background:#C98B86;border-radius:24px;padding:16px;text-align:center;font:600 15px Fredoka;color:#fff;box-shadow:0 14px 24px -10px rgba(176,110,106,.6),inset 0 2px 0 rgba(255,255,255,.25)" style-active="transform:scale(.98)">Marcar tudo comprado</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isNovoNovelo }}" hint-placeholder-val="{{ true }}">
+<div class="scr-anim" style="padding:14px 22px 24px">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:18px"><div onClick="{{ back }}" style="cursor:pointer;width:44px;height:44px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px -8px rgba(150,110,100,.5)" style-active="transform:scale(.92)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5A4D47" stroke-width="1.8"><path d="M15 5l-7 7 7 7"/></svg></div><div style="font:600 23px Fredoka;color:#43352f">{{ nfFormTitle }}</div></div>
+<div style="display:flex;gap:12px;margin-bottom:14px">
+<div style="flex:1"><div style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:7px">Marca</div><div style="background:#fff;border-radius:18px;padding:13px 15px;font:500 14px Nunito;color:#43352f;box-shadow:0 6px 14px -10px rgba(150,110,100,.4);display:flex;justify-content:space-between;align-items:center">{{ nfMarca }}<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b9a395" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div></div>
+<div style="flex:1"><div style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:7px">Linha</div><div style="background:#fff;border-radius:18px;padding:13px 15px;font:500 14px Nunito;color:#43352f;box-shadow:0 6px 14px -10px rgba(150,110,100,.4);display:flex;justify-content:space-between;align-items:center">{{ nfLinha }}<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b9a395" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div></div>
+</div>
+<div style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:7px">Nome da cor</div>
+<input value="{{ nfCor }}" onInput="{{ setNfCor }}" placeholder="ex: Rosa Chá" style="width:100%;border:none;outline:none;background:#fff;border-radius:18px;padding:14px 15px;margin-bottom:14px;font:500 14px Nunito;color:#43352f;box-shadow:0 6px 14px -10px rgba(150,110,100,.4)" />
+<div style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:7px">Fibra / composição</div>
+<input value="{{ nfFibra }}" onInput="{{ setNfFibra }}" placeholder="ex: 100% Algodão" style="width:100%;border:none;outline:none;background:#fff;border-radius:18px;padding:14px 15px;margin-bottom:14px;font:500 14px Nunito;color:#43352f;box-shadow:0 6px 14px -10px rgba(150,110,100,.4)" />
+<div style="display:flex;gap:12px;margin-bottom:14px">
+<div style="flex:1"><div style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:7px">Gramatura</div><div style="background:#fff;border-radius:18px;padding:13px 15px;box-shadow:0 6px 14px -10px rgba(150,110,100,.4);display:flex;align-items:baseline;justify-content:space-between"><input value="{{ nfGram }}" onInput="{{ setNfGram }}" inputmode="numeric" style="width:100%;border:none;outline:none;background:transparent;font:500 14px Nunito;color:#43352f" /><span style="font:500 12px Nunito;color:#9a8678">g</span></div></div>
+<div style="flex:1"><div style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:7px">Metragem</div><div style="background:#fff;border-radius:18px;padding:13px 15px;box-shadow:0 6px 14px -10px rgba(150,110,100,.4);display:flex;align-items:baseline;justify-content:space-between"><input value="{{ nfMetros }}" onInput="{{ setNfMetros }}" inputmode="numeric" style="width:100%;border:none;outline:none;background:transparent;font:500 14px Nunito;color:#43352f" /><span style="font:500 12px Nunito;color:#9a8678">m</span></div></div>
+</div>
+<div style="display:flex;gap:12px;margin-bottom:14px">
+<div style="flex:1"><div style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:7px">Preço</div><div style="background:#fff;border-radius:18px;padding:13px 15px;box-shadow:0 6px 14px -10px rgba(150,110,100,.4);display:flex;align-items:baseline"><span style="font:500 12px Nunito;color:#9a8678">R$&nbsp;</span><input value="{{ nfPreco }}" onInput="{{ setNfPreco }}" inputmode="decimal" style="width:100%;border:none;outline:none;background:transparent;font:500 14px Nunito;color:#43352f" /></div></div>
+<div style="flex:1"><div style="display:flex;align-items:center;gap:6px;margin-bottom:7px"><span style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678">Lote / partida</span><span style="font:500 11px Nunito;color:#b9a395">opcional</span></div><input value="{{ nfLote }}" onInput="{{ setNfLote }}" placeholder="ex: A-2241" style="width:100%;border:none;outline:none;background:#fff;border-radius:18px;padding:13px 15px;font:500 14px Nunito;color:#43352f;box-shadow:0 6px 14px -10px rgba(150,110,100,.4)" /></div>
+</div>
+<div style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:9px">Agulha sugerida</div>
+<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+<sc-for list="{{ agulhaOptsN }}" as="a" hint-placeholder-count="5">
+<span onClick="{{ a.pick }}" style="cursor:pointer;font:600 13px Nunito;padding:9px 15px;border-radius:18px;background:{{ a.bg }};color:{{ a.col }};box-shadow:0 6px 14px -12px rgba(150,110,100,.4)">{{ a.label }}</span>
+</sc-for>
+</div>
+<input value="{{ nfAgOutro }}" onInput="{{ setNfAgOutro }}" placeholder="outro tamanho (ex: 3,5 mm)" style="width:100%;border:none;outline:none;background:#fff;border-radius:18px;padding:13px 15px;margin-bottom:18px;font:500 14px Nunito;color:#43352f;box-shadow:0 6px 14px -10px rgba(150,110,100,.4)" />
+<div style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:11px">Capa</div>
+<div style="background:#fff;border-radius:18px;padding:14px;box-shadow:0 6px 14px -10px rgba(150,110,100,.4);margin-bottom:26px;display:flex;align-items:center;gap:14px">
+<div style="width:58px;height:58px;border-radius:16px;flex-shrink:0;background:{{ nfCapaPreview }};box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)"></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;gap:11px;align-items:center">
+<sc-for list="{{ capaOpts }}" as="c" hint-placeholder-count="5">
+<span onClick="{{ c.pick }}" style="cursor:pointer;width:30px;height:30px;border-radius:50%;flex-shrink:0;background:{{ c.color }};box-shadow:{{ c.ring }}"></span>
+</sc-for>
+</div>
+<label style="cursor:pointer;display:flex;align-items:center;gap:7px;font:600 12px Nunito;color:#a8645c"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a8645c" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="11" r="2"/><path d="M3 17l5-4 4 3 4-4 5 5"/></svg>{{ nfFotoLabel }}<input type="file" accept="image/*" onChange="{{ pickNfFoto }}" style="display:none" /></label>
+</div>
+</div>
+<div onClick="{{ salvarNovelo }}" style="cursor:pointer;background:#C98B86;border-radius:24px;padding:16px;text-align:center;font:600 15px Fredoka;color:#fff;box-shadow:0 14px 24px -10px rgba(176,110,106,.6),inset 0 2px 0 rgba(255,255,255,.25)" style-active="transform:scale(.98)">{{ nfSaveLabel }}</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isNovoProjeto }}" hint-placeholder-val="{{ true }}">
+<div class="scr-anim" style="padding:14px 22px 24px">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:18px"><div onClick="{{ back }}" style="cursor:pointer;width:44px;height:44px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px -8px rgba(150,110,100,.5)" style-active="transform:scale(.92)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5A4D47" stroke-width="1.8"><path d="M15 5l-7 7 7 7"/></svg></div><div style="font:600 23px Fredoka;color:#43352f">{{ npFormTitle }}</div></div>
+<div style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:8px">Como vai se chamar?</div>
+<input value="{{ npNome }}" onInput="{{ setNpNome }}" placeholder="ex: Coelha Lavanda" style="width:100%;border:none;outline:none;background:#fff;border-radius:18px;padding:14px 16px;margin-bottom:18px;font:500 14px Nunito;color:#43352f;box-shadow:0 6px 14px -10px rgba(150,110,100,.4)" />
+<div style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:9px">Tipo</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+<sc-for list="{{ tipoOpts }}" as="t" hint-placeholder-count="4">
+<span onClick="{{ t.pick }}" style="cursor:pointer;font:600 13px Nunito;padding:9px 16px;border-radius:20px;background:{{ t.bg }};color:{{ t.col }};box-shadow:{{ t.sh }}">{{ t.label }}</span>
+</sc-for>
+</div>
+<div style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:9px">Agulha</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+<sc-for list="{{ agulhaOptsP }}" as="a" hint-placeholder-count="5">
+<span onClick="{{ a.pick }}" style="cursor:pointer;font:600 13px Nunito;padding:9px 15px;border-radius:18px;background:{{ a.bg }};color:{{ a.col }};box-shadow:0 6px 14px -12px rgba(150,110,100,.4)">{{ a.label }}</span>
+</sc-for>
+</div>
+<input value="{{ npAgOutro }}" onInput="{{ setNpAgOutro }}" placeholder="outro tamanho (ex: 3,5 mm)" style="width:100%;border:none;outline:none;background:#fff;border-radius:18px;padding:13px 15px;margin-bottom:18px;font:500 14px Nunito;color:#43352f;box-shadow:0 6px 14px -10px rgba(150,110,100,.4)" />
+<div style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:9px">Capa</div>
+<div style="background:#fff;border-radius:18px;padding:14px;box-shadow:0 6px 14px -10px rgba(150,110,100,.4);margin-bottom:16px;display:flex;align-items:center;gap:14px">
+<div style="width:58px;height:58px;border-radius:16px;flex-shrink:0;background:{{ npCapaPreview }};box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)"></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;gap:11px;align-items:center">
+<sc-for list="{{ npCapaOpts }}" as="c" hint-placeholder-count="5">
+<span onClick="{{ c.pick }}" style="cursor:pointer;width:30px;height:30px;border-radius:50%;flex-shrink:0;background:{{ c.color }};box-shadow:{{ c.ring }}"></span>
+</sc-for>
+</div>
+<label style="cursor:pointer;display:flex;align-items:center;gap:7px;font:600 12px Nunito;color:#a8645c"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a8645c" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="11" r="2"/><path d="M3 17l5-4 4 3 4-4 5 5"/></svg>{{ npFotoLabel }}<input type="file" accept="image/*" onChange="{{ pickNpFoto }}" style="display:none" /></label>
+</div>
+</div>
+<div style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:9px">Pra vender?</div>
+<div onClick="{{ toggleVender }}" style="cursor:pointer;background:#fff;border-radius:18px;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 6px 14px -10px rgba(150,110,100,.4);margin-bottom:18px"><span style="font:600 13px Nunito;color:#43352f">Vou vender esta peça · {{ venderLabel }}</span><div style="width:46px;height:28px;border-radius:14px;position:relative;background:{{ venderBg }};transition:background .2s"><div style="position:absolute;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.15);transition:left .2s;left:{{ venderX }}"></div></div></div>
+<div style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:9px">Novelos usados</div>
+<div style="display:flex;gap:8px;align-items:center;margin-bottom:26px"><span style="display:flex;align-items:center;gap:7px;font:600 12px Nunito;background:#F3DAD3;color:#a05f57;padding:8px 14px;border-radius:20px"><span style="width:13px;height:13px;border-radius:50%;background:#C98B86"></span>Rosa Chá</span><span style="display:flex;align-items:center;gap:7px;font:600 12px Nunito;background:#EDEFE0;color:#5f6b3c;padding:8px 14px;border-radius:20px"><span style="width:13px;height:13px;border-radius:50%;background:#9CAB8A"></span>Sálvia</span><span style="width:34px;height:34px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;color:#bd917f;font:400 18px Nunito;box-shadow:0 4px 10px -6px rgba(150,110,100,.5)">+</span></div>
+<div onClick="{{ criarProjeto }}" style="cursor:pointer;background:#C98B86;border-radius:24px;padding:16px;text-align:center;font:600 15px Fredoka;color:#fff;box-shadow:0 14px 24px -10px rgba(176,110,106,.6),inset 0 2px 0 rgba(255,255,255,.25)" style-active="transform:scale(.98)">{{ npSaveLabel }}</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isMenu }}" hint-placeholder-val="">
+<div class="scr-anim" style="padding:14px 24px 24px">
+<div style="font:600 26px Fredoka;color:#43352f;margin-bottom:18px">Mais</div>
+<div onClick="{{ goPerfil }}" style="cursor:pointer;display:flex;align-items:center;gap:13px;background:#fff;border-radius:24px;padding:14px 16px;margin-bottom:18px;box-shadow:0 8px 18px -12px rgba(150,110,100,.45)" style-active="transform:scale(.99)">
+<div style="width:52px;height:52px;border-radius:50%;overflow:hidden;background:{{ avatarBg }};display:flex;align-items:center;justify-content:center;flex-shrink:0"><sc-if value="{{ semFoto }}" hint-placeholder-val="{{ true }}"><svg width="52" height="52" viewBox="0 0 52 52"><circle cx="26" cy="26" r="17" fill="none" stroke="#C98B86" stroke-width="1.6"/><path d="M11 21c10 4 20 8 30 11M16 13c5 11 8 19 11 30" stroke="#C98B86" stroke-width="1.3" fill="none"/><circle cx="20.5" cy="27" r="2" fill="#43352f"/><circle cx="31.5" cy="27" r="2" fill="#43352f"/><path d="M21 32c2 2 6 2 8 0" stroke="#43352f" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg></sc-if></div>
+<div style="flex:1"><div style="font:600 17px Fredoka;color:#43352f">{{ nome }}</div><div style="font:500 12px Nunito;color:#7a6657">ver perfil e preferências</div></div>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b9a395" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+</div>
+<div style="background:#fff;border-radius:24px;padding:4px 18px;margin-bottom:18px;box-shadow:0 8px 18px -14px rgba(150,110,100,.45)">
+<div onClick="{{ goLista }}" style="cursor:pointer;display:flex;align-items:center;gap:14px;padding:15px 0" style-active="opacity:.6"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C98B86" stroke-width="1.7"><path d="M6 8h12l-1 11a2 2 0 01-2 1.8H9a2 2 0 01-2-1.8z"/><path d="M9 8a3 3 0 016 0"/></svg><span style="flex:1;font:500 14px Nunito;color:#43352f">Lista de compras</span><span style="font:700 11px Nunito;color:#fff;background:#C98B86;min-width:20px;height:20px;padding:0 6px;border-radius:10px;display:flex;align-items:center;justify-content:center">{{ basketCount }}</span></div>
+<div onClick="{{ exportar }}" style="cursor:pointer;display:flex;align-items:center;gap:14px;padding:15px 0" style-active="opacity:.6"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C98B86" stroke-width="1.7"><path d="M12 3v12M8 11l4 4 4-4"/><path d="M5 19h14"/></svg><span style="flex:1;font:500 14px Nunito;color:#43352f">Exportar dados</span><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#b9a395" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>
+</div>
+<div style="background:#fff;border-radius:24px;padding:4px 18px;box-shadow:0 8px 18px -14px rgba(150,110,100,.45)">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0"><span style="font:500 14px Nunito;color:#43352f">Notificações</span><div onClick="{{ toggleNotif }}" style="cursor:pointer;width:46px;height:28px;border-radius:14px;position:relative;background:{{ notifBg }};transition:background .2s"><div style="position:absolute;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.15);transition:left .2s;left:{{ notifX }}"></div></div></div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isCrono }}" hint-placeholder-val="{{ true }}">
+<div class="scr-anim" style="padding:14px 26px 24px;display:flex;flex-direction:column;align-items:center;min-height:100%">
+<div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:16px"><div onClick="{{ back }}" style="cursor:pointer;width:40px;height:40px;border-radius:50%;background:#54453B;display:flex;align-items:center;justify-content:center" style-active="transform:scale(.92)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e2d4c4" stroke-width="1.8"><path d="M15 5l-7 7 7 7"/></svg></div><div style="text-align:center"><div style="font:600 14px Nunito;color:#f3e7d8">{{ cronoName }}</div><div style="font:500 11px Nunito;color:#b6a48f">{{ cronoAgulha }}</div></div><div style="width:40px;height:40px"></div></div>
+<div style="position:relative;width:216px;height:216px;margin-bottom:8px"><svg width="216" height="216" viewBox="0 0 216 216"><circle cx="108" cy="108" r="96" fill="none" stroke="#54453B" stroke-width="10"/><circle cx="108" cy="108" r="96" fill="none" stroke="#DDA8A2" stroke-width="10" stroke-linecap="round" stroke-dasharray="603" stroke-dashoffset="{{ ringOffset }}" transform="rotate(-90 108 108)"/></svg><div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="font:700 46px Nunito;color:#fff;letter-spacing:.02em">{{ timeBig }}</div><div style="font:500 13px Nunito;color:#d8c6b0">{{ timeSec }}s nesta sessão</div></div></div>
+<div style="display:flex;align-items:center;gap:7px;margin-bottom:14px"><span style="font:700 15px Fredoka;color:#fff">{{ carreiras }}</span><span style="font:500 13px Nunito;color:#b6a48f">de</span><span style="display:inline-flex;align-items:center;background:#54453B;border-radius:11px;padding:4px 6px"><input value="{{ metaInput }}" onInput="{{ setMeta }}" inputmode="numeric" style="width:40px;border:none;outline:none;background:transparent;text-align:center;font:700 14px Nunito;color:#fff" /></span><span style="font:500 13px Nunito;color:#b6a48f">carreiras · {{ metaPct }}</span></div>
+<div style="display:flex;align-items:center;gap:8px;background:#54453B;border-radius:22px;padding:9px 15px;margin-bottom:20px"><span style="width:8px;height:8px;border-radius:50%;background:{{ runDotColor }};{{ runDotAnim }}"></span><span style="font:500 12px Nunito;color:#e9dccb">{{ runStatusLabel }}</span></div>
+<div style="display:flex;gap:13px;width:100%;margin-bottom:22px">
+<div style="flex:1;background:#54453B;border-radius:22px;padding:14px;text-align:center"><div style="font:500 12px Nunito;color:#c6b39d;margin-bottom:8px">Carreiras</div><div style="display:flex;align-items:center;justify-content:center;gap:10px"><div onClick="{{ decCarr }}" style="cursor:pointer;width:42px;height:42px;border-radius:50%;background:#3E322A;display:flex;align-items:center;justify-content:center;font:700 19px Nunito;color:#c6b39d" style-active="transform:scale(.9)">−</div><div style="font:700 23px Fredoka;color:#fff;min-width:38px">{{ carreiras }}</div><div onClick="{{ incCarr }}" style="cursor:pointer;width:42px;height:42px;border-radius:50%;background:#DDA8A2;display:flex;align-items:center;justify-content:center;font:700 19px Nunito;color:#3E322A" style-active="transform:scale(.9)">+</div></div></div>
+<div style="flex:1;background:#54453B;border-radius:22px;padding:14px;text-align:center"><div style="font:500 12px Nunito;color:#c6b39d;margin-bottom:8px">Pontos</div><div style="display:flex;align-items:center;justify-content:center;gap:10px"><div onClick="{{ decPts }}" style="cursor:pointer;width:42px;height:42px;border-radius:50%;background:#3E322A;display:flex;align-items:center;justify-content:center;font:700 19px Nunito;color:#c6b39d" style-active="transform:scale(.9)">−</div><div style="font:700 23px Fredoka;color:#fff;min-width:28px">{{ pontos }}</div><div onClick="{{ incPts }}" style="cursor:pointer;width:42px;height:42px;border-radius:50%;background:#DDA8A2;display:flex;align-items:center;justify-content:center;font:700 19px Nunito;color:#3E322A" style-active="transform:scale(.9)">+</div></div></div>
+</div>
+<div style="display:flex;gap:13px;width:100%;align-items:center"><div onClick="{{ back }}" style="cursor:pointer;width:58px;height:58px;border-radius:50%;background:#54453B;display:flex;align-items:center;justify-content:center;flex-shrink:0" style-active="transform:scale(.92)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c6b39d" stroke-width="2"><path d="M9 6l6 6-6 6" transform="rotate(180 12 12)"/></svg></div><div onClick="{{ toggleRun }}" style="cursor:pointer;flex:1;background:{{ runBtnBg }};border-radius:30px;padding:19px;text-align:center;font:600 15px Fredoka;color:{{ runBtnCol }};box-shadow:0 12px 22px -10px rgba(230,184,106,.45),inset 0 2px 0 rgba(255,255,255,.3)" style-active="transform:scale(.98)">{{ runBtnLabel }}</div></div>
+</div>
+</sc-if>
+
+</div>
+
+<sc-if value="{{ showNav }}" hint-placeholder-val="{{ true }}">
+<div style="flex-shrink:0;display:flex;justify-content:space-around;align-items:center;padding:13px 22px 26px;background:rgba(248,239,232,.92);backdrop-filter:blur(8px);border-top:1px solid rgba(220,205,195,.5);z-index:20">
+<div onClick="{{ goHome }}" style="cursor:pointer;padding:11px 10px;display:flex;align-items:center;justify-content:center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{ cHome }}" stroke-width="{{ wHome }}"><path d="M4 11l8-7 8 7v8a1 1 0 01-1 1h-4v-6h-6v6H5a1 1 0 01-1-1z"/></svg></div>
+<div onClick="{{ goNovelos }}" style="cursor:pointer;padding:11px 10px;display:flex;align-items:center;justify-content:center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{ cNov }}" stroke-width="{{ wNov }}"><circle cx="12" cy="12" r="8"/><path d="M7 8c4 2 7 4 10 6"/></svg></div>
+<div onClick="{{ goProjetos }}" style="cursor:pointer;padding:11px 10px;display:flex;align-items:center;justify-content:center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{ cProj }}" stroke-width="{{ wProj }}"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg></div>
+<div onClick="{{ goCalcTab }}" style="cursor:pointer;padding:11px 10px;display:flex;align-items:center;justify-content:center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{ cCalc }}" stroke-width="{{ wCalc }}"><rect x="5" y="2.5" width="14" height="19" rx="3"/><path d="M9 7h6M9 12h1.5M13.5 12H15M9 16h1.5M13.5 16H15"/></svg></div>
+<div onClick="{{ goMenu }}" style="cursor:pointer;padding:11px 10px;display:flex;align-items:center;justify-content:center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{ cMais }}" stroke-width="{{ wMais }}" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showFab }}" hint-placeholder-val="{{ true }}">
+<div onClick="{{ fabAction }}" style="position:absolute;right:22px;bottom:96px;width:58px;height:58px;border-radius:50%;background:#C98B86;display:flex;align-items:center;justify-content:center;box-shadow:0 14px 28px -8px rgba(176,110,106,.65),inset 0 2px 0 rgba(255,255,255,.3);z-index:25;cursor:pointer;animation:pop .3s" style-active="transform:scale(.92)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+</sc-if>
+
+<sc-if value="{{ showSheet }}" hint-placeholder-val="">
+<div onClick="{{ closeSheet }}" style="position:absolute;inset:0;background:rgba(40,30,26,.4);z-index:45;animation:fadein .2s"></div>
+<div style="position:absolute;left:0;right:0;bottom:0;background:#F8EFE8;border-radius:28px 28px 42px 42px;padding:10px 18px 30px;z-index:46;animation:sheetin .28s cubic-bezier(.22,.7,.3,1)">
+<div style="width:42px;height:5px;border-radius:3px;background:#dcccc0;margin:6px auto 12px"></div>
+<div onClick="{{ sheetEditar }}" style="cursor:pointer;display:flex;align-items:center;gap:14px;padding:15px 8px;border-radius:16px" style-active="background:#fff"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5A4D47" stroke-width="1.8"><path d="M4 20h4l10-10-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg><span style="font:600 15px Nunito;color:#43352f">Editar projeto</span></div>
+<div onClick="{{ sheetDuplicar }}" style="cursor:pointer;display:flex;align-items:center;gap:14px;padding:15px 8px;border-radius:16px" style-active="background:#fff"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5A4D47" stroke-width="1.8"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M4 16V5a1 1 0 011-1h11"/></svg><span style="font:600 15px Nunito;color:#43352f">Duplicar</span></div>
+<div onClick="{{ sheetExcluir }}" style="cursor:pointer;display:flex;align-items:center;gap:14px;padding:15px 8px;border-radius:16px" style-active="background:#fff"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b5443c" stroke-width="1.8"><path d="M5 7h14M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M7 7l1 13a1 1 0 001 1h6a1 1 0 001-1l1-13"/></svg><span style="font:600 15px Nunito;color:#b5443c">Excluir projeto</span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ calcPickerOpen }}" hint-placeholder-val="">
+<div onClick="{{ closeCalcPicker }}" style="position:absolute;inset:0;background:rgba(40,30,26,.4);z-index:45;animation:fadein .2s"></div>
+<div style="position:absolute;left:0;right:0;bottom:0;max-height:74%;display:flex;flex-direction:column;background:#F8EFE8;border-radius:28px 28px 42px 42px;padding:10px 18px 26px;z-index:46;animation:sheetin .28s cubic-bezier(.22,.7,.3,1)">
+<div style="width:42px;height:5px;border-radius:3px;background:#dcccc0;margin:6px auto 14px;flex-shrink:0"></div>
+<div style="font:600 18px Fredoka;color:#43352f;margin-bottom:12px;flex-shrink:0">Calcular para</div>
+<div style="display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:12px 14px;margin-bottom:12px;flex-shrink:0;box-shadow:0 6px 14px -10px rgba(150,110,100,.4)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#b9a395" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M16 16l4 4"/></svg><input value="{{ calcBusca }}" onInput="{{ setCalcBusca }}" placeholder="Buscar projeto..." style="flex:1;border:none;outline:none;background:transparent;font:500 14px Nunito;color:#43352f" /></div>
+<div style="overflow-y:auto;display:flex;flex-direction:column">
+<div onClick="{{ pickAvulso }}" style="cursor:pointer;display:flex;align-items:center;gap:13px;padding:11px 12px;border-radius:16px;background:{{ avulsoRowBg }}" style-active="opacity:.6"><div style="width:38px;height:38px;border-radius:12px;flex-shrink:0;background:#F3DAD3;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C98B86" stroke-width="1.7"><rect x="5" y="2.5" width="14" height="19" rx="3"/><path d="M9 7h6M9 12h1.5M13.5 12H15M9 16h1.5M13.5 16H15"/></svg></div><div style="flex:1"><div style="font:600 15px Nunito;color:#43352f">Cálculo avulso</div><div style="font:500 12px Nunito;color:#7a6657">sem vincular a um projeto</div></div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C98B86" stroke-width="2.6" style="opacity:{{ avulsoCheckOp }}"><path d="M5 12l5 5 9-10"/></svg></div>
+<sc-for list="{{ calcProjLista }}" as="p" hint-placeholder-count="4">
+<div onClick="{{ p.pick }}" style="cursor:pointer;display:flex;align-items:center;gap:13px;padding:11px 12px;border-radius:16px;background:{{ p.rowBg }}" style-active="opacity:.6"><div style="width:38px;height:38px;border-radius:12px;flex-shrink:0;background:{{ p.grad }}"></div><div style="flex:1"><div style="font:600 15px Nunito;color:#43352f">{{ p.nome }}</div><div style="font:500 12px Nunito;color:#7a6657">{{ p.sub }}</div></div><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C98B86" stroke-width="2.4" style="opacity:{{ p.checkOp }}"><path d="M5 12l5 5 9-10"/></svg></div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ pesoOpen }}" hint-placeholder-val="">
+<div onClick="{{ closePeso }}" style="position:absolute;inset:0;background:rgba(40,30,26,.4);z-index:45;animation:fadein .2s"></div>
+<div style="position:absolute;left:0;right:0;bottom:0;max-height:82%;display:flex;flex-direction:column;background:#F8EFE8;border-radius:28px 28px 42px 42px;padding:10px 18px 26px;z-index:46;animation:sheetin .28s cubic-bezier(.22,.7,.3,1)">
+<div style="width:42px;height:5px;border-radius:3px;background:#dcccc0;margin:6px auto 14px;flex-shrink:0"></div>
+<div style="font:600 18px Fredoka;color:#43352f;flex-shrink:0">Adicionar fio</div>
+<div style="font:500 12px Nunito;color:#7a6657;margin-bottom:14px;flex-shrink:0">Escolha a cor e quanto você usou.</div>
+<div style="font:700 11px Nunito;letter-spacing:.05em;text-transform:uppercase;color:#9a8678;margin-bottom:9px;flex-shrink:0">Cor do estoque</div>
+<div style="display:flex;gap:9px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px;flex-shrink:0">
+<sc-for list="{{ pesoNovelos }}" as="n" hint-placeholder-count="4">
+<div onClick="{{ n.pick }}" style="cursor:pointer;flex-shrink:0;width:98px;border-radius:16px;padding:9px;background:#fff;box-shadow:{{ n.ring }}" style-active="transform:scale(.97)"><div style="height:34px;border-radius:11px;background:{{ n.grad }};margin-bottom:7px"></div><div style="font:600 12px Nunito;color:#43352f">{{ n.cor }}</div><div style="font:500 10px Nunito;color:#7a6657">{{ n.perG }}</div></div>
+</sc-for>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:16px;padding:14px 16px;margin-bottom:14px;flex-shrink:0;box-shadow:0 6px 14px -10px rgba(150,110,100,.4)"><div style="font:700 13px Fredoka;color:#43352f">Quanto você usou?</div><div style="display:flex;align-items:baseline;background:#F8EFE8;border-radius:12px;padding:9px 12px;width:100px"><input value="{{ pesoGramas }}" onInput="{{ setPesoGramas }}" inputmode="numeric" placeholder="0" style="width:100%;border:none;outline:none;background:transparent;text-align:right;font:700 15px Nunito;color:#43352f" /><span style="font:600 12px Nunito;color:#9a8678">&nbsp;g</span></div></div>
+<div style="display:flex;align-items:center;justify-content:space-between;background:#F3DAD3;border-radius:16px;padding:14px 16px;margin-bottom:16px;flex-shrink:0"><div style="font:600 13px Nunito;color:#a06860">Custo deste fio</div><div style="font:700 22px Fredoka;color:#43352f">{{ pesoCusto }}</div></div>
+<div onClick="{{ addFio }}" style="cursor:pointer;background:#C98B86;border-radius:22px;padding:15px;text-align:center;font:600 15px Fredoka;color:#fff;flex-shrink:0;box-shadow:0 14px 24px -10px rgba(176,110,106,.6),inset 0 2px 0 rgba(255,255,255,.25)" style-active="transform:scale(.98)">Adicionar à lista</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ toast }}" hint-placeholder-val="">
+<div style="position:absolute;left:50%;bottom:104px;transform:translateX(-50%);background:#43352f;color:#F8EFE8;font:600 13px Nunito;padding:12px 20px;border-radius:22px;box-shadow:0 14px 30px -10px rgba(0,0,0,.4);z-index:48;white-space:nowrap;animation:toastin .3s">{{ toast }}</div>
+</sc-if>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:480,&quot;height&quot;:880},&quot;userName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Bruna&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;startRunning&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;mostrarAlerta&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.state = {
+      tab: 'home',
+      pushed: [],
+      running: (props.startRunning ?? true),
+      session: 8073,
+      carreiras: 142,
+      pontos: 18,
+      cronoProj: 1,
+      selProj: 1,
+      selNovelo: 1,
+      filter: 'all',
+      groupBy: 'marca',
+      lowOnly: false,
+      estoqueBusca: '',
+      metaCarreiras: 240,
+      calcExtrasList: [
+        { key:'c1', nome:'Olhos de segurança', valor:'4,00' },
+        { key:'c2', nome:'Enchimento', valor:'6,00' }
+      ],
+      pesoOpen: false,
+      pesoGramas: '',
+      pesoNovelo: 1,
+      calcFios: [
+        { key:'f1', novId:1, gramas:120 },
+        { key:'f2', novId:5, gramas:60 }
+      ],
+      calcHoras: 6,
+      calcMargem: 40,
+      valorHora: 8,
+      calcProj: 1,
+      calcPicker: false,
+      calcBusca: '',
+      calcVinculado: false,
+      calcMatInput: '30,72',
+      notif: true,
+      foco: true,
+      sheet: false,
+      pNome: (props.userName ?? 'Marina'),
+      pDesde: '2021',
+      pBio: 'Amigurumis feitos à mão, com muito carinho.',
+      pFoto: null,
+      pe: { nome:'', desde:'', bio:'', foto:null },
+      lista: [
+        { key:'k1', id:1, qtd:2, checked:false },
+        { key:'k7', id:7, qtd:1, checked:false },
+        { key:'k2', id:2, qtd:1, checked:true },
+        { key:'k6', id:6, qtd:3, checked:false }
+      ],
+      nf: { marca:'Círculo', linha:'Amigurumi', cor:'Rosa Chá', fibra:'100% Algodão', gram:'75', metros:'170', preco:'18,00', lote:'', agulha:'2,5 mm', agOutro:'', capa:'#C98B86', foto:null },
+      np: { nome:'', tipo:'Amigurumi', vender:true, agulha:'2,5 mm', agOutro:'', capa:'#C98B86', foto:null },
+      npEditId: null,
+      nfEditId: null,
+      toast: null,
+      novelos: [
+        { id:1, cor:'Rosa Chá', fam:'Rosa', marca:'Círculo', linha:'Amigurumi', fibra:'100% Algodão', gram:75, metros:170, preco:18.0, lote:'A-2241', agulha:'2,5 mm', qtd:1, abertoG:40, grad:'linear-gradient(135deg,#E3B4AD,#C98B86)' },
+        { id:2, cor:'Sálvia', fam:'Verde', marca:'Pingouin', linha:'Algodão', fibra:'100% Algodão', gram:100, metros:230, preco:21.5, lote:'B-1180', agulha:'3 mm', qtd:5, abertoG:0, grad:'linear-gradient(135deg,#9CAB8A,#7a8a68)' },
+        { id:3, cor:'Mel', fam:'Amarelo', marca:'Círculo', linha:'Algodão', fibra:'100% Algodão', gram:100, metros:215, preco:19.9, lote:'C-3007', agulha:'3 mm', qtd:2, abertoG:0, grad:'linear-gradient(135deg,#D9A85E,#c2913f)' },
+        { id:4, cor:'Terracota', fam:'Terracota', marca:'Círculo', linha:'Algodão', fibra:'100% Algodão', gram:100, metros:215, preco:19.9, lote:'C-3008', agulha:'3 mm', qtd:3, abertoG:0, grad:'linear-gradient(135deg,#C97B5A,#b5562f)' },
+        { id:5, cor:'Off-white', fam:'Off-white', marca:'Círculo', linha:'Clea 1000', fibra:'100% Algodão', gram:100, metros:120, preco:16.5, lote:'D-9921', agulha:'4 mm', qtd:4, abertoG:30, grad:'linear-gradient(135deg,#F2E7DA,#e3d3c0)' },
+        { id:6, cor:'Lavanda', fam:'Lavanda', marca:'Pingouin', linha:'Pingo Doce', fibra:'70% Algodão · 30% Acrílico', gram:50, metros:125, preco:12.0, lote:'E-4410', agulha:'2,5 mm', qtd:2, abertoG:0, grad:'linear-gradient(135deg,#B5A0C0,#9E7B85)' },
+        { id:7, cor:'Caramelo', fam:'Caramelo', marca:'Pingouin', linha:'Pingo Doce', fibra:'70% Algodão · 30% Acrílico', gram:50, metros:125, preco:12.0, lote:'E-4411', agulha:'2,5 mm', qtd:1, abertoG:20, grad:'linear-gradient(135deg,#E6B86A,#cf9a3f)' }
+      ],
+      projetos: [
+        { id:1, nome:'Ursinho Café', tipo:'Amigurumi', agulha:'2,5 mm', status:'fazendo', tempo:'2h14', horas:2.25, carreiras:142, gastoG:128, custoG:0.24, fios:[{novId:1,gramas:90},{novId:7,gramas:38}], preco:'R$ 110', grad:'linear-gradient(135deg,#D8A38A,#C98B86)', receita:{nome:'Ursinho clássico', fonte:'PDF · 4 páginas'} },
+        { id:2, nome:'Coelha Lavanda', tipo:'Amigurumi', agulha:'3 mm', status:'fazendo', tempo:'7h20', horas:7.33, carreiras:58, gastoG:96, custoG:0.20, fios:[{novId:6,gramas:96},{novId:1,gramas:40}], preco:'R$ 96', grad:'linear-gradient(135deg,#E3B4AD,#C98B86)', receita:null },
+        { id:3, nome:'Tapete Sol', tipo:'Decoração', agulha:'5 mm', status:'concluído', tempo:'12h', horas:12, carreiras:240, gastoG:300, custoG:0.18, fios:[{novId:3,gramas:300}], preco:'R$ 140', grad:'linear-gradient(135deg,#E6B86A,#cf9a3f)', receita:{nome:'Tapete sol redondo', fonte:'Anotações'} }
+      ]
+    };
+  }
+  componentDidMount(){
+    this._t = setInterval(()=>{ if(this.state.running) this.setState(s=>({session:s.session+1})); }, 1000);
+  }
+  componentWillUnmount(){ clearInterval(this._t); clearTimeout(this._tt); }
+
+  view(){ const p=this.state.pushed; return p.length ? p[p.length-1] : this.state.tab; }
+  go(tab){ this.setState({tab, pushed:[], sheet:false}); }
+  push(s){ this.setState(st=>({pushed:[...st.pushed, s], sheet:false})); }
+  back(){ this.setState(st=>({pushed:st.pushed.slice(0,-1), sheet:false})); }
+  showToast(msg){ this.setState({toast:msg}); clearTimeout(this._tt); this._tt=setTimeout(()=>this.setState({toast:null}),2200); }
+
+  pad(n){ return String(n).padStart(2,'0'); }
+  fmtTime(){ const s=this.state.session; const h=Math.floor(s/3600); const m=Math.floor((s%3600)/60); const ss=s%60; return { big:this.pad(h)+':'+this.pad(m), sec:this.pad(ss) }; }
+  brl(n){ return 'R$ ' + n.toFixed(2).replace('.',','); }
+
+  renderVals(){
+    const v = this.view();
+    const S = this.state;
+    const t = this.fmtTime();
+    const cron = S.projetos.find(p=>p.id===S.cronoProj) || S.projetos[0];
+    const sel = S.projetos.find(p=>p.id===S.selProj) || S.projetos[0];
+    const selN = S.novelos.find(n=>n.id===S.selNovelo) || S.novelos[0];
+    const parseCover=(g)=>{ if(!g) return {capa:'#C98B86',foto:null}; if(g.indexOf('url(')===0){ const m=g.match(/url\((.*?)\)/); return {capa:'#C98B86', foto:m?m[1]:null}; } const m=g.match(/linear-gradient\([^,]+,\s*([^,]+?)\s*,/); return {capa:m?m[1].trim():'#C98B86', foto:null}; };
+    const totalNovelos = S.novelos.reduce((a,n)=>a+n.qtd,0);
+    const novSrc = (S.filter==='baixo' ? S.novelos.filter(n=>n.qtd<=2) : S.novelos);
+    const _q=(S.estoqueBusca||'').toLowerCase();
+    const _match=(n)=> !_q || (n.cor+' '+n.marca+' '+n.linha+' '+n.fibra+' '+(n.fam||'')).toLowerCase().includes(_q);
+    const novView = novSrc.filter(n=> _match(n) && (!S.lowOnly || n.qtd<=2));
+    const mkItem=(n)=>({ ...n, gramLabel:n.gram+'g', badgeBg:n.qtd<=1?'#C98B86':'rgba(255,255,255,.92)', badgeCol:n.qtd<=1?'#fff':'#5A4D47', open:()=>{ this.setState({selNovelo:n.id}); this.push('detalhenovelo'); } });
+    const _brands = [];
+    novView.forEach(n=>{
+      let b=_brands.find(x=>x.marca===n.marca); if(!b){b={marca:n.marca,linhas:[]};_brands.push(b);}
+      let l=b.linhas.find(x=>x.linha===n.linha); if(!l){l={linha:n.linha,items:[]};b.linhas.push(l);}
+      l.items.push(mkItem(n));
+    });
+    const novelosGrupos = S.groupBy==='marca' ? _brands.map(b=>{ const tot=b.linhas.reduce((a,l)=>a+l.items.reduce((s,i)=>s+i.qtd,0),0); return { marca:b.marca, resumo:b.linhas.length+(b.linhas.length===1?' linha · ':' linhas · ')+tot, linhas:b.linhas }; }) : [];
+    const _famColor={Rosa:'#C98B86',Verde:'#9CAB8A',Amarelo:'#D9A85E',Terracota:'#C97B5A','Off-white':'#E7D8C8',Lavanda:'#9E7B85',Caramelo:'#E6B86A'};
+    const _fams=[];
+    novView.forEach(n=>{ const f=n.fam||'Outros'; let g=_fams.find(x=>x.familia===f); if(!g){g={familia:f,items:[]};_fams.push(g);} g.items.push(mkItem(n)); });
+    const corGrupos = S.groupBy==='cor' ? _fams.map(g=>({ familia:g.familia, swatch:_famColor[g.familia]||'#C98B86', resumo:g.items.reduce((a,i)=>a+i.qtd,0)+' un'+(g.items.length>1?(' · '+g.items.length+' tons'):''), items:g.items })) : [];
+    const novById=(id)=>S.novelos.find(n=>n.id===id)||{};
+    const mapLi=(li)=>{ const n=novById(li.id); return { key:li.key, qtd:li.qtd, checked:li.checked, cor:n.cor||'Novelo', sub:(n.marca||'')+' · '+(n.gram||0)+'g', preco:this.brl(n.preco||0), grad:n.grad||'#e8d8cf', op: li.checked?'.5':'1', strike: li.checked?'text-decoration:line-through':'', checkBg: li.checked?'#9CAB8A':'transparent', checkBorder: li.checked?'#9CAB8A':'#d9c3b8', inc:()=>this.setState(st=>({lista:st.lista.map(x=>x.key===li.key?{...x,qtd:x.qtd+1}:x)})), dec:()=>this.setState(st=>({lista:st.lista.map(x=>x.key===li.key?{...x,qtd:Math.max(1,x.qtd-1)}:x)})), toggle:()=>this.setState(st=>({lista:st.lista.map(x=>x.key===li.key?{...x,checked:!x.checked}:x)})), del:()=>{ this.setState(st=>({lista:st.lista.filter(x=>x.key!==li.key)})); this.showToast(n.cor+' removido da lista'); } }; };
+    const listaTotalNum = S.lista.reduce((a,li)=>{ const n=novById(li.id); return a + (li.checked?0:(li.qtd*(n.preco||0))); },0);
+    const listaCheckedN = S.lista.filter(x=>x.checked).length;
+    const listaPctN = S.lista.length ? Math.round(listaCheckedN/S.lista.length*100) : 0;
+    const listaUnidades = S.lista.reduce((a,li)=>a+li.qtd,0);
+
+    const dark = (v==='crono');
+    const accentNav = (k)=> v===k ? '#C98B86' : '#9a8678';
+    const accentW = (k)=> v===k ? 2.2 : 1.6;
+
+    const cp = S.projetos.find(p=>p.id===S.calcProj) || S.projetos[0] || {};
+    const vh = S.valorHora;
+    const _novById=(id)=>S.novelos.find(n=>n.id===id)||{};
+    const _fioCost=(f)=>{ const n=_novById(f.novId); return (f.gramas||0)*((n.preco||0)/(n.gram||1)); };
+    const fioC = (S.calcFios||[]).reduce((a,f)=>a+_fioCost(f),0);
+    const outrosC = (S.calcExtrasList||[]).reduce((a,it)=> a + (parseFloat(String(it.valor||'0').replace(',','.'))||0), 0);
+    const mao = S.calcHoras*vh;
+    const sub = fioC+outrosC+mao;
+    const lucro = sub*S.calcMargem/100;
+    const total = sub+lucro;
+    const _tot = total>0?total:1;
+    const matPct = Math.round(fioC/_tot*100);
+    const trabPct = Math.round(mao/_tot*100);
+    const taxaPct = Math.round(outrosC/_tot*100);
+    const lucroPct = Math.max(0, 100-matPct-trabPct-taxaPct);
+    const r0 = (n)=>'R$ '+Math.round(n);
+    const _pN = S.novelos.find(n=>n.id===S.pesoNovelo) || S.novelos[0] || {};
+    const _perG = (_pN.preco||0)/(_pN.gram||1);
+    const _pesoG = parseFloat(String(S.pesoGramas||'0').replace(',','.'))||0;
+    const _pesoCusto = _pesoG*_perG;
+
+    const statusBg = (on)=> on ? '#C98B86' : '#dcccc0';
+    const knobX = (on)=> on ? '21px' : '3px';
+
+    const tipos = ['Amigurumi','Roupa','Decoração','Acessório'];
+    const agulhas = ['2 mm','2,5 mm','3 mm','4 mm','5 mm'];
+    const capas = ['#C98B86','#9CAB8A','#D9A85E','#B5A0C0','#F2E7DA'];
+
+    return {
+      screenBg: dark ? '#3E322A' : '#F8EFE8',
+      sbColor: dark ? '#e9dccb' : '#5A4D47',
+
+      isHome:v==='home', isEstoque:v==='estoque', isProjetos:v==='projetos', isPerfil:v==='perfil',
+      isCalc:v==='calc', isDetalhe:v==='detalhe', isDetalheNovelo:v==='detalhenovelo', isNovoNovelo:v==='novonovelo', isNovoProjeto:v==='novoprojeto', isCrono:v==='crono', isMenu:v==='menu', isPerfil:v==='perfil',
+      isConquistas:v==='conquistas', isRetro:v==='retro', isGanhos:v==='ganhos', isEditarPerfil:v==='editarperfil',
+
+      showNav: ['home','estoque','projetos','calc','menu'].includes(v),
+      showFab: ['estoque','projetos'].includes(v),
+      fabAction: ()=>{ if(v==='estoque'){ this.setState({nfEditId:null, nf:{marca:'Círculo',linha:'Amigurumi',cor:'',fibra:'',gram:'',metros:'',preco:'',lote:'',agulha:'2,5 mm',agOutro:'',capa:'#C98B86',foto:null}}); this.push('novonovelo'); } else { this.setState({npEditId:null, np:{nome:'',tipo:'Amigurumi',vender:true,agulha:'2,5 mm',agOutro:'',capa:'#C98B86',foto:null}}); this.push('novoprojeto'); } },
+
+      cHome:accentNav('home'), wHome:accentW('home'),
+      cNov:accentNav('estoque'), wNov:accentW('estoque'),
+      cProj:accentNav('projetos'), wProj:accentW('projetos'),
+      cCalc:accentNav('calc'), wCalc:accentW('calc'),
+      cMais:accentNav('menu'), wMais:accentW('menu'),
+      goHome:()=>this.go('home'), goNovelos:()=>this.go('estoque'), goProjetos:()=>this.go('projetos'), goCalcTab:()=>this.go('calc'), goMenu:()=>this.go('menu'), goPerfil:()=>this.push('perfil'), exportar:()=>this.showToast('Exportar dados em breve'),
+      goConquistas:()=>this.push('conquistas'), goRetro:()=>this.push('retro'), goGanhos:()=>this.push('ganhos'),
+      compartilhar:()=>this.showToast('Gerando imagem para compartilhar…'),
+      goEditarPerfil:()=>{ this.setState(st=>({ pe:{ nome:st.pNome, desde:st.pDesde, bio:st.pBio, foto:st.pFoto } })); this.push('editarperfil'); },
+      back:()=>this.back(),
+
+      nome: S.pNome,
+      pDesde: S.pDesde,
+      pBio: S.pBio,
+      temBio: !!(S.pBio && S.pBio.trim()),
+      avatarBg: S.pFoto ? ('url('+S.pFoto+') center/cover') : '#F3DAD3',
+      hasFoto: !!S.pFoto,
+      semFoto: !S.pFoto,
+      hoje: '26 de junho',
+      mostrarAlerta: (this.props.mostrarAlerta ?? true),
+      timeBig:t.big, timeSec:t.sec,
+      carreiras:S.carreiras, pontos:S.pontos,
+      cronoName: cron.nome,
+      cronoAgulha: cron.agulha,
+      totalNovelos, totalProjetos:S.projetos.length,
+
+      projetosAtivos: S.projetos.filter(p=>p.status==='fazendo').map(p=>({ ...p, open:()=>{ this.setState({selProj:p.id}); this.push('detalhe'); } })),
+      semAtivos: S.projetos.filter(p=>p.status==='fazendo').length===0,
+      projetosVazio: S.projetos.length===0,
+
+      openCrono: ()=>{ this.setState({cronoProj:1}); this.push('crono'); },
+
+      // estoque
+      estoqueVazio: novView.length===0,
+      novelosGrupos,
+      corGrupos,
+      groupByMarca: S.groupBy==='marca', groupByCor: S.groupBy==='cor',
+      gMarcaBg: S.groupBy==='marca'?'#C98B86':'#fff', gMarcaCol: S.groupBy==='marca'?'#fff':'#7a6657', gMarcaSh: S.groupBy==='marca'?'0 4px 10px -6px rgba(176,110,106,.5)':'0 4px 10px -8px rgba(150,110,100,.3)',
+      gCorBg: S.groupBy==='cor'?'#C98B86':'#fff', gCorCol: S.groupBy==='cor'?'#fff':'#7a6657', gCorSh: S.groupBy==='cor'?'0 4px 10px -6px rgba(176,110,106,.5)':'0 4px 10px -8px rgba(150,110,100,.3)',
+      setGroupMarca:()=>this.setState({groupBy:'marca'}), setGroupCor:()=>this.setState({groupBy:'cor'}),
+      lowBg: S.lowOnly?'#FBEFD8':'#fff', lowCol: S.lowOnly?'#9c7a2f':'#7a6657', lowDot: S.lowOnly?'#E6B86A':'#cdbcae', toggleLow:()=>this.setState(s=>({lowOnly:!s.lowOnly})),
+      estoqueBusca: S.estoqueBusca, setEstoqueBusca:(e)=>{ const val=e.target.value; this.setState({estoqueBusca:val}); },
+      goLista:()=>this.push('lista'),
+      basketCount: S.lista.filter(x=>!x.checked).length,
+      // lista de compras
+      isLista:v==='lista',
+      listaItens: S.lista.map(mapLi),
+      listaVazia: S.lista.length===0,
+      listaTemItens: S.lista.length>0,
+      listaSub: S.lista.length+(S.lista.length===1?' item · ':' itens · ')+this.brl(listaTotalNum)+' estimado',
+      marcarTudo:()=>{ this.setState(st=>({lista:st.lista.map(x=>({...x,checked:true}))})); this.showToast('Tudo marcado como comprado'); },
+      fAllBg: S.filter==='all'?'#C98B86':'#fff', fAllCol: S.filter==='all'?'#fff':'#7a6657',
+      fBaixoBg: S.filter==='baixo'?'#C98B86':'#fff', fBaixoCol: S.filter==='baixo'?'#fff':'#7a6657',
+      setFilterAll:()=>this.setState({filter:'all'}), setFilterBaixo:()=>this.setState({filter:'baixo'}),
+
+      // detalhe novelo
+      snCor:selN.cor, snMarca:selN.marca, snLinha:selN.linha, snFibra:selN.fibra,
+      snGram:selN.gram+' g', snMetros:selN.metros+' m', snAgulha:selN.agulha, snLote:selN.lote||'—',
+      snPreco:this.brl(selN.preco), snGrad:selN.grad, snQtd:selN.qtd, snUnidade:selN.qtd===1?'novelo':'novelos',
+      snLow: selN.qtd<=1,
+      editarNovelo: ()=>{ const cov=parseCover(selN.grad); this.setState({nfEditId:selN.id, nf:{marca:selN.marca, linha:selN.linha, cor:selN.cor, fibra:selN.fibra, gram:String(selN.gram), metros:String(selN.metros), preco:(selN.preco||0).toFixed(2).replace('.',','), lote:selN.lote||'', agulha:selN.agulha, agOutro:'', capa:cov.capa, foto:cov.foto}}); this.push('novonovelo'); },
+      snUsado: S.projetos.slice(0,2).map(p=>({ nome:p.nome, grad:p.grad })),
+      snInc:()=>this.setState(st=>({novelos:st.novelos.map(n=>n.id===st.selNovelo?{...n,qtd:n.qtd+1}:n)})),
+      snDec:()=>this.setState(st=>({novelos:st.novelos.map(n=>n.id===st.selNovelo?{...n,qtd:Math.max(0,n.qtd-1)}:n)})),
+      snAddList:()=>{ this.setState(st=>{ const exists=st.lista.some(x=>x.id===st.selNovelo && !x.auto); return { lista: exists ? st.lista : [...st.lista, {key:'k'+Date.now(), id:st.selNovelo, qtd:1, checked:false, auto:false}] }; }); this.showToast('Adicionado à lista de compras'); this.push('lista'); },
+
+      // projetos
+      projetosView: S.projetos.map(p=>({
+        ...p,
+        statusBg: p.status==='concluído' ? '#E7EFE0' : '#FBEFD8',
+        statusCol: p.status==='concluído' ? '#4f6a39' : '#9c7a2f',
+        open: ()=>{ this.setState({selProj:p.id}); this.push('detalhe'); }
+      })),
+
+      // perfil
+      notifBg: statusBg(S.notif), notifX: knobX(S.notif), toggleNotif:()=>this.setState(s=>({notif:!s.notif})),
+      focoBg: statusBg(S.foco), focoX: knobX(S.foco), toggleFoco:()=>this.setState(s=>({foco:!s.foco})),
+
+      // editar perfil
+      peNome: S.pe.nome,
+      peDesde: S.pe.desde,
+      peBio: S.pe.bio,
+      setPeNome:(e)=>{ const val=e.target.value; this.setState(s=>({pe:{...s.pe,nome:val}})); },
+      setPeDesde:(e)=>{ const val=(e.target.value||'').replace(/[^0-9]/g,'').slice(0,4); this.setState(s=>({pe:{...s.pe,desde:val}})); },
+      setPeBio:(e)=>{ const val=e.target.value; this.setState(s=>({pe:{...s.pe,bio:val}})); },
+      peFotoPreview: S.pe.foto ? ('url('+S.pe.foto+') center/cover') : '#F3DAD3',
+      semPeFoto: !S.pe.foto,
+      peFotoLabel: S.pe.foto ? 'Trocar foto' : 'Adicionar foto',
+      pickPeFoto:(e)=>{ const file=e.target.files&&e.target.files[0]; if(!file)return; const url=URL.createObjectURL(file); this.setState(s=>({pe:{...s.pe,foto:url}})); },
+      salvarPerfil:()=>{ this.setState(st=>({ pNome:(st.pe.nome||'').trim()||st.pNome, pDesde:(st.pe.desde||'').trim()||st.pDesde, pBio:st.pe.bio, pFoto:st.pe.foto })); this.showToast('Perfil atualizado'); this.back(); },
+
+      // detalhe projeto
+      selName:sel.nome, selTipo:sel.tipo, selAgulha:sel.agulha, selStatus:sel.status, selTempo:sel.tempo, selCarreiras:sel.carreiras, selPreco:sel.preco, selGrad:sel.grad,
+      selStatusBg: sel.status==='concluído' ? '#E7EFE0' : '#FBEFD8',
+      selStatusCol: sel.status==='concluído' ? '#4f6a39' : '#9c7a2f',
+      temReceita: !!sel.receita,
+      semReceita: !sel.receita,
+      receitaNome: sel.receita ? sel.receita.nome : '',
+      receitaFonte: sel.receita ? sel.receita.fonte : '',
+      abrirReceita: ()=> this.showToast('Abrindo receita…'),
+      anexarReceita: ()=> this.showToast('Anexar PDF, foto ou anotação'),
+      openCalc: ()=>{ this.setState({calcProj:S.selProj, calcVinculado:true, calcFios:(sel.fios||[]).map((f,i)=>({key:'sf'+i,novId:f.novId,gramas:f.gramas})), calcHoras: sel.horas}); this.push('calc'); },
+      openCronoSel: ()=>{ this.setState({cronoProj:S.selProj}); this.push('crono'); },
+
+      // action sheet
+      showSheet: S.sheet,
+      openSheet: ()=> this.setState({sheet:true}),
+      closeSheet: ()=> this.setState({sheet:false}),
+      sheetEditar: ()=>{ const cov=parseCover(sel.grad); this.setState({sheet:false, npEditId:sel.id, np:{nome:sel.nome, tipo:sel.tipo, vender:true, agulha:sel.agulha, agOutro:'', capa:cov.capa, foto:cov.foto}}); this.push('novoprojeto'); },
+      sheetDuplicar: ()=>{ this.setState(st=>{ const id=Math.max(...st.projetos.map(p=>p.id))+1; const orig=st.projetos.find(p=>p.id===st.selProj); return { projetos:[...st.projetos,{...orig,id,nome:orig.nome+' (cópia)'}], sheet:false }; }); this.showToast('Projeto duplicado'); },
+      sheetExcluir: ()=>{ this.setState(st=>({ projetos:st.projetos.filter(p=>p.id!==st.selProj), sheet:false, pushed:st.pushed.slice(0,-1) })); this.showToast('Projeto excluído'); },
+
+      // calc
+      calcAvulsa: !S.calcVinculado,
+      calcVinculado: S.calcVinculado,
+      calcNome: cp.nome || 'Projeto',
+      calcGrad: cp.grad || '#e8d8cf',
+      calcMatInput: S.calcMatInput,
+      setCalcMat:(e)=>{ const val=(e.target.value||'').replace(/[^0-9,]/g,''); this.setState({calcMatInput:val}); },
+      calcMatFonte: (cp.gastoG||0)+' g gastos · do projeto',
+      calcHoraFonte: 'do cronômetro · '+(cp.tempo||'0h'),
+      fldMatBg: S.calcVinculado?'#F7E2DC':'#F8EFE8',
+      matCurCol: S.calcVinculado?'#a8645c':'#9a8678',
+      fioPctW: matPct+'%', matPctW: matPct+'%', trabPctW: trabPct+'%', taxaPctW: taxaPct+'%', lucroPctW: lucroPct+'%',
+      barMatLbl: 'Fios '+r0(fioC), barTrabLbl: 'Trabalho '+r0(mao), barTaxaLbl: 'Outros '+r0(outrosC), barLucroLbl: 'Lucro '+r0(lucro),
+      calcFiosLines: (S.calcFios||[]).map(f=>{ const n=_novById(f.novId); return { key:f.key, cor:n.cor||'Fio', grad:n.grad||'#e8d8cf', sub:(n.marca||'')+' · '+(f.gramas||0)+' g', custo:this.brl(_fioCost(f)), remove:()=>this.setState(st=>({calcFios:st.calcFios.filter(x=>x.key!==f.key)})) }; }),
+      fiosSubtotal: this.brl(fioC),
+      openCtx: ()=>this.setState({calcPicker:true, calcBusca:''}),
+      ctxLabel: S.calcVinculado ? 'Calculando para' : 'Calculando',
+      ctxNome: S.calcVinculado ? (cp.nome||'Projeto') : 'Cálculo avulso',
+      ctxIconBg: S.calcVinculado ? (cp.grad||'#F3DAD3') : '#F3DAD3',
+      pickAvulso: ()=>this.setState({calcVinculado:false, calcPicker:false}),
+      avulsoRowBg: !S.calcVinculado ? '#FBE9E4' : 'transparent',
+      avulsoCheckOp: !S.calcVinculado ? '1' : '0',
+      calcExtraLines: (S.calcExtrasList||[]).map(it=>({ key:it.key, nome:it.nome, valor:it.valor, setNome:(e)=>{ const val=e.target.value; this.setState(st=>({calcExtrasList:st.calcExtrasList.map(x=>x.key===it.key?{...x,nome:val}:x)})); }, setValor:(e)=>{ const val=(e.target.value||'').replace(/[^0-9,]/g,''); this.setState(st=>({calcExtrasList:st.calcExtrasList.map(x=>x.key===it.key?{...x,valor:val}:x)})); }, remove:()=>this.setState(st=>({calcExtrasList:st.calcExtrasList.filter(x=>x.key!==it.key)})) })),
+      addExtra:()=>this.setState(st=>({calcExtrasList:[...(st.calcExtrasList||[]),{key:'c'+Date.now(),nome:'',valor:''}]})),
+      pesoOpen: S.pesoOpen,
+      openPeso: ()=>this.setState({pesoOpen:true}),
+      closePeso: ()=>this.setState({pesoOpen:false}),
+      pesoGramas: S.pesoGramas,
+      setPesoGramas:(e)=>{ const val=(e.target.value||'').replace(/[^0-9]/g,''); this.setState({pesoGramas:val}); },
+      pesoNovelos: S.novelos.map(n=>({ cor:n.cor, grad:n.grad, perG:this.brl(n.preco/(n.gram||1))+'/g', ring: S.pesoNovelo===n.id?'0 0 0 2px #C98B86':'0 6px 14px -10px rgba(150,110,100,.4)', pick:()=>this.setState({pesoNovelo:n.id}) })),
+      pesoCusto: this.brl(_pesoCusto),
+      addFio: ()=>{ this.setState(st=>({ calcFios:[...(st.calcFios||[]), {key:'f'+Date.now(), novId:st.pesoNovelo, gramas:(parseInt(String(st.pesoGramas||'0').replace(/[^0-9]/g,''),10)||0)}], pesoOpen:false, pesoGramas:'' })); this.showToast('Fio adicionado'); },
+      vincularProj: ()=>this.setState({calcPicker:true, calcBusca:''}),
+      desvincular: ()=>this.setState({calcVinculado:false}),
+      calcCanBack: S.pushed.length>0,
+      calcPickerOpen: S.calcPicker,
+      openCalcPicker: ()=>this.setState({calcPicker:true, calcBusca:''}),
+      closeCalcPicker: ()=>this.setState({calcPicker:false}),
+      calcBusca: S.calcBusca,
+      setCalcBusca:(e)=>{ const val=e.target.value; this.setState({calcBusca:val}); },
+      calcProjLista: S.projetos.filter(p=>p.nome.toLowerCase().includes((S.calcBusca||'').toLowerCase())).map(p=>({
+        nome:p.nome, sub:p.tipo+' · '+p.agulha, grad:p.grad,
+        sel: S.calcProj===p.id,
+        checkOp: S.calcProj===p.id ? '1' : '0',
+        rowBg: S.calcProj===p.id ? '#FBE9E4' : 'transparent',
+        pick:()=>this.setState({calcProj:p.id, calcVinculado:true, calcFios:(p.fios||[]).map((f,i)=>({key:'pf'+p.id+'_'+i, novId:f.novId, gramas:f.gramas})), calcHoras:p.horas, calcPicker:false})
+      })),
+      calcHorasInput: (S.calcHoras).toFixed(1).replace('.',','),
+      setHoras:(e)=>{ const raw=(e.target.value||'').replace(',', '.').replace(/[^0-9.]/g,''); const n=parseFloat(raw); this.setState({calcHoras: isNaN(n)?0:Math.min(99,n)}); },
+      calcMargem:S.calcMargem,
+      calcMargemInput: String(S.calcMargem),
+      setMargem:(e)=>{ const raw=(e.target.value||'').replace(/[^0-9]/g,''); const n=parseInt(raw,10); this.setState({calcMargem: isNaN(n)?0:Math.min(300,n)}); },
+      valorHoraInput: (S.valorHora).toFixed(2).replace('.',','),
+      setValorHora:(e)=>{ const raw=(e.target.value||'').replace(',', '.').replace(/[^0-9.]/g,''); const n=parseFloat(raw); this.setState({valorHora: isNaN(n)?0:Math.min(999,n)}); },
+      incVH:()=>this.setState(s=>({valorHora:Math.min(999,s.valorHora+1)})),
+      decVH:()=>this.setState(s=>({valorHora:Math.max(0,s.valorHora-1)})),
+      calcTotal:this.brl(total), calcMaoObra:this.brl(mao), calcLucro:this.brl(lucro),
+      incHoras:()=>this.setState(s=>({calcHoras:Math.min(99,Math.round((s.calcHoras+0.5)*2)/2)})),
+      decHoras:()=>this.setState(s=>({calcHoras:Math.max(0,Math.round((s.calcHoras-0.5)*2)/2)})),
+      incMargem:()=>this.setState(s=>({calcMargem:Math.min(300,s.calcMargem+5)})),
+      decMargem:()=>this.setState(s=>({calcMargem:Math.max(0,s.calcMargem-5)})),
+      salvarCalc:()=>{ const novo=this.brl(total).split(',')[0]; if(S.calcVinculado){ this.setState(st=>({projetos:st.projetos.map(p=>p.id===st.calcProj?{...p,preco:novo}:p)})); this.showToast('Preço salvo em '+(cp.nome||'projeto')); if(this.state.pushed.length>0) this.back(); } else { this.showToast('Cálculo salvo'); } },
+      copiarValor:()=>this.showToast('Valor copiado: '+this.brl(total)),
+
+      // crono
+      ringOffset: 603*(1 - Math.min(1, S.carreiras/(S.metaCarreiras||1))),
+      metaInput: String(S.metaCarreiras),
+      setMeta:(e)=>{ const n=parseInt((e.target.value||'').replace(/[^0-9]/g,''),10); this.setState({metaCarreiras: isNaN(n)?0:Math.min(9999,n)}); },
+      metaPct: Math.round(Math.min(1, S.carreiras/(S.metaCarreiras||1))*100)+'%',
+      runStatusLabel: S.running ? 'Sessão em andamento' : 'Sessão pausada',
+      runDotColor: S.running ? '#9CCB8A' : '#c6b39d',
+      runDotAnim: S.running ? 'animation:runpulse 1.6s infinite' : '',
+      incCarr:()=>this.setState(s=>({carreiras:s.carreiras+1})), decCarr:()=>this.setState(s=>({carreiras:Math.max(0,s.carreiras-1)})),
+      setCarr:(e)=>{ const n=parseInt((e.target.value||'').replace(/[^0-9]/g,''),10); this.setState({carreiras: isNaN(n)?0:Math.min(9999,n)}); },
+      incPts:()=>this.setState(s=>({pontos:s.pontos+1})), decPts:()=>this.setState(s=>({pontos:Math.max(0,s.pontos-1)})),
+      setPts:(e)=>{ const n=parseInt((e.target.value||'').replace(/[^0-9]/g,''),10); this.setState({pontos: isNaN(n)?0:Math.min(9999,n)}); },
+      toggleRun:()=>this.setState(s=>({running:!s.running})),
+      runBtnLabel: S.running ? 'Pausar sessão' : 'Retomar sessão',
+      runBtnBg: S.running ? '#E6B86A' : '#DDA8A2',
+      runBtnCol: S.running ? '#5a3d0e' : '#3E322A',
+
+      // novo novelo
+      nfFormTitle: S.nfEditId ? 'Editar novelo' : 'Novo novelo', nfSaveLabel: S.nfEditId ? 'Salvar alterações' : 'Salvar novelo',
+      nfMarca:S.nf.marca, nfLinha:S.nf.linha, nfCor:S.nf.cor, nfFibra:S.nf.fibra, nfGram:S.nf.gram, nfMetros:S.nf.metros, nfPreco:S.nf.preco, nfLote:S.nf.lote,
+      setNfCor:(e)=>{ const val=e.target.value; this.setState(s=>({nf:{...s.nf,cor:val}})); },
+      setNfFibra:(e)=>{ const val=e.target.value; this.setState(s=>({nf:{...s.nf,fibra:val}})); },
+      setNfGram:(e)=>{ const val=e.target.value.replace(/[^0-9]/g,''); this.setState(s=>({nf:{...s.nf,gram:val}})); },
+      setNfMetros:(e)=>{ const val=e.target.value.replace(/[^0-9]/g,''); this.setState(s=>({nf:{...s.nf,metros:val}})); },
+      setNfPreco:(e)=>{ const val=e.target.value.replace(/[^0-9,]/g,''); this.setState(s=>({nf:{...s.nf,preco:val}})); },
+      setNfLote:(e)=>{ const val=e.target.value; this.setState(s=>({nf:{...s.nf,lote:val}})); },
+      agulhaOptsN: agulhas.map(a=>({ label:a, bg:S.nf.agulha===a?'#C98B86':'#fff', col:S.nf.agulha===a?'#fff':'#7a6657', pick:()=>this.setState(s=>({nf:{...s.nf,agulha:a,agOutro:''}})) })),
+      nfAgOutro: S.nf.agOutro,
+      setNfAgOutro:(e)=>{ const val=e.target.value; this.setState(s=>({nf:{...s.nf,agOutro:val,agulha: val.trim()?val:s.nf.agulha}})); },
+      capaOpts: capas.map(c=>({ color:c, ring: (!S.nf.foto && S.nf.capa===c)?('0 0 0 2px #fff,0 0 0 4px '+c):'none', pick:()=>this.setState(s=>({nf:{...s.nf,capa:c,foto:null}})) })),
+      nfCapaPreview: S.nf.foto ? ("url("+S.nf.foto+") center/cover") : ('linear-gradient(135deg,'+S.nf.capa+','+S.nf.capa+')'),
+      nfFotoLabel: S.nf.foto ? 'Trocar foto' : 'Adicionar foto',
+      pickNfFoto:(e)=>{ const file=e.target.files&&e.target.files[0]; if(!file)return; const url=URL.createObjectURL(file); this.setState(s=>({nf:{...s.nf,foto:url}})); },
+      salvarNovelo:()=>{ const editing=!!this.state.nfEditId; this.setState(st=>{ const grad= st.nf.foto ? ("url("+st.nf.foto+") center/cover") : ('linear-gradient(135deg,'+st.nf.capa+','+st.nf.capa+')'); const preco=parseFloat((st.nf.preco||'0').replace(',','.'))||0; const data={cor:st.nf.cor||'Novo novelo',marca:st.nf.marca,linha:st.nf.linha,fibra:st.nf.fibra,gram:parseInt(st.nf.gram,10)||0,metros:parseInt(st.nf.metros,10)||0,preco,lote:st.nf.lote,agulha:st.nf.agulha,grad}; if(st.nfEditId){ return { novelos: st.novelos.map(n=>n.id===st.nfEditId?{...n,...data}:n), nfEditId:null }; } const id=Math.max(0,...st.novelos.map(n=>n.id))+1; return { novelos:[{id,...data,qtd:1,fam:'Outros'}, ...st.novelos] }; }); this.showToast(editing?'Novelo atualizado':'Novelo adicionado ao estoque'); this.back(); },
+
+      // novo projeto
+      npFormTitle: S.npEditId ? 'Editar projeto' : 'Novo projeto', npSaveLabel: S.npEditId ? 'Salvar alterações' : 'Criar projeto',
+      npNome:S.np.nome,
+      setNpNome:(e)=>{ const val=e.target.value; this.setState(s=>({np:{...s.np,nome:val}})); },
+      tipoOpts: tipos.map(tp=>({ label:tp, bg:S.np.tipo===tp?'#C98B86':'#fff', col:S.np.tipo===tp?'#fff':'#7a6657', sh:S.np.tipo===tp?'0 4px 10px -4px rgba(176,110,106,.6)':'0 6px 14px -12px rgba(150,110,100,.4)', pick:()=>this.setState(s=>({np:{...s.np,tipo:tp}})) })),
+      agulhaOptsP: agulhas.map(a=>({ label:a, bg:S.np.agulha===a?'#C98B86':'#fff', col:S.np.agulha===a?'#fff':'#7a6657', pick:()=>this.setState(s=>({np:{...s.np,agulha:a,agOutro:''}})) })),
+      npAgOutro: S.np.agOutro,
+      setNpAgOutro:(e)=>{ const val=e.target.value; this.setState(s=>({np:{...s.np,agOutro:val,agulha: val.trim()?val:s.np.agulha}})); },
+      venderLabel: S.np.vender?'Sim':'Não', venderBg: statusBg(S.np.vender), venderX: knobX(S.np.vender),
+      toggleVender:()=>this.setState(s=>({np:{...s.np,vender:!s.np.vender}})),
+      npCapaOpts: capas.map(c=>({ color:c, ring: (!S.np.foto && S.np.capa===c)?('0 0 0 2px #fff,0 0 0 4px '+c):'none', pick:()=>this.setState(s=>({np:{...s.np,capa:c,foto:null}})) })),
+      npCapaPreview: S.np.foto ? ("url("+S.np.foto+") center/cover") : ('linear-gradient(135deg,'+S.np.capa+','+S.np.capa+')'),
+      npFotoLabel: S.np.foto ? 'Trocar foto' : 'Adicionar foto',
+      pickNpFoto:(e)=>{ const file=e.target.files&&e.target.files[0]; if(!file)return; const url=URL.createObjectURL(file); this.setState(s=>({np:{...s.np,foto:url}})); },
+      criarProjeto:()=>{ const editing=!!this.state.npEditId; this.setState(st=>{ const grad=(st.np.foto?("url("+st.np.foto+") center/cover"):('linear-gradient(135deg,'+st.np.capa+','+st.np.capa+')')); const resetNp={nome:'',tipo:'Amigurumi',vender:true,agulha:'2,5 mm',agOutro:'',capa:'#C98B86',foto:null}; if(st.npEditId){ return { projetos: st.projetos.map(p=>p.id===st.npEditId?{...p,nome:st.np.nome||p.nome,tipo:st.np.tipo,agulha:st.np.agulha,grad}:p), npEditId:null, np:resetNp }; } const id=Math.max(0,...st.projetos.map(p=>p.id))+1; const nome=st.np.nome||'Novo projeto'; return { projetos:[...st.projetos,{id,nome,tipo:st.np.tipo,agulha:st.np.agulha,status:'fazendo',tempo:'0h',horas:0,carreiras:0,gastoG:0,custoG:0.20,fios:[],preco:'—',grad,receita:null}], np:resetNp }; }); this.showToast(editing?'Projeto atualizado':'Projeto criado'); this.back(); },
+
+      toast:S.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

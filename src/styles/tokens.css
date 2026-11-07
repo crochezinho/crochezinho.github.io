@@ -1,0 +1,48 @@
+:root {
+  --rosa: #c98b86;
+  --rosa-escuro: #a8645c;
+  --rosa-suave: #f3dad3;
+  --rosa-selecao: #fbe9e4;
+
+  --texto: #43352f;
+  --texto-2: #7a6657;
+  --texto-apagado: #8a7566;
+  --icone-apagado: #9a8678;
+  --placeholder: #bda99c;
+
+  --fundo: #f8efe8;
+  --superficie: #ffffff;
+  --divisoria: #f3e8dd;
+  --toggle-off: #dcccc0;
+
+  --fazendo-bg: #fbefd8;
+  --fazendo-fg: #9c7a2f;
+  --concluido-bg: #e7efe0;
+  --concluido-fg: #4f6a39;
+
+  --salvia: #9cab8a;
+  --mel: #e6b86a;
+  --mel-escuro: #d9a85e;
+  --lavanda: #b5a0c0;
+  --lavanda-escuro: #9e7b85;
+  --off-white: #f2e7da;
+
+  --crono-fundo: #3e322a;
+  --crono-texto: #e9dccb;
+  --crono-superficie: #54453b;
+  --crono-destaque: #dda8a2;
+
+  --fonte-titulo: 'Fredoka', 'Nunito', system-ui, sans-serif;
+  --fonte-texto: 'Nunito', system-ui, sans-serif;
+
+  --raio-s: 12px;
+  --raio-m: 18px;
+  --raio-l: 24px;
+  --raio-pill: 999px;
+  --sombra-cartao: 0 10px 24px -16px rgba(150, 110, 100, 0.45);
+  --sombra-rosa: 0 12px 26px -12px rgba(176, 110, 106, 0.6);
+
+  --gutter: 20px;
+  --toque-min: 44px;
+  --nav-altura: 64px;
+}
