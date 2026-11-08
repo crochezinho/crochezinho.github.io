@@ -4,11 +4,13 @@ import { diaMes, haQuanto } from '../../app/datas.ts';
 import { useAgora } from '../../app/hooks.ts';
 import { href, ir } from '../../app/router.ts';
 import { Icone } from '../../components/Icone.tsx';
+import { SeloPrazo } from '../../components/SeloPrazo.tsx';
 import { toast } from '../../components/toast.tsx';
 import { useLive } from '../../db/hooks.ts';
 import { iniciar, lerConfig, pausar } from '../../db/repo.ts';
 import { CHAVES_SYNC, lerConexao } from '../../db/sync.ts';
 import { duracao, formatarSessao, formatarTotal, totalDoProjeto, totalNoMes } from '../../domain/tempo.ts';
+import { ordenarPorPrazo } from '../../domain/prazo.ts';
 
 export function Inicio() {
   const dados = useDadosCrono();
@@ -23,7 +25,7 @@ export function Inicio() {
   if (!dados) return null;
   const { projetos, sessoes, aberta } = dados;
   const daVez = projetoDaVez(dados);
-  const emAndamento = projetos.filter((p) => p.status === 'fazendo');
+  const emAndamento = ordenarPorPrazo(projetos.filter((p) => p.status === 'fazendo'));
   const rodando = (id: string) => aberta?.projetoId === id;
 
   const alternar = async (id: string) => {
@@ -99,7 +101,8 @@ export function Inicio() {
                 <span class="capa" style={estiloCapa(p.capaCor)} />
                 <span class="linha-projeto-texto">
                   <strong>{p.nome}</strong>
-                  <small>{formatarTotal(totalDoProjeto(sessoes, p.id, agora))}</small>
+                  <small>{[p.cliente && `para ${p.cliente}`, formatarTotal(totalDoProjeto(sessoes, p.id, agora))].filter(Boolean).join(' · ')}</small>
+                  <SeloPrazo entregaEm={p.entregaEm} agora={agora} />
                 </span>
                 <button
                   class={'botao-redondo' + (rodando(p.id) ? ' rodando' : '')}

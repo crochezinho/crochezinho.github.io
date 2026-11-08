@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { agrupar, filtrar, nomeDoNovelo, novelosInteiros, type NoveloLista } from './novelos.ts';
+import { agrupar, contarUso, filtrar, nomeDoNovelo, novelosInteiros, type NoveloLista } from './novelos.ts';
 
 const n = (id: string, cor: string, marca: string, tipo: string, gramatura: number, estoqueG: number): NoveloLista => ({
   id,
@@ -57,4 +57,14 @@ test('agrupa por tipo → marca, "Sem tipo" por último', () => {
       ['Sem tipo', [['', ['Avulso']]]]
     ]
   );
+});
+
+test('dentro do subgrupo, os mais usados primeiro', () => {
+  const uso = contarUso([
+    { fios: [{ noveloId: '4' }, { noveloId: '4' }] },
+    { fios: [{ noveloId: '4' }, { noveloId: '3' }] }
+  ]);
+  assert.deepEqual([...uso.entries()].sort(), [['3', 1], ['4', 2]]);
+  const chenille = agrupar(lista, 'tipo', uso).find((g) => g.nome === 'Chenille')!;
+  assert.deepEqual(chenille.sub[0].itens.map((i) => i.cor), ['Terracota', 'Mel']);
 });

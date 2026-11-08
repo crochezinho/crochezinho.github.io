@@ -43,6 +43,9 @@ export interface Projeto extends Registro {
   agulha: string;
   capaCor: string;
   quantidade: number;
+  cliente: string;
+  entregaEm: string | null;
+  entregueEm: number | null;
   status: StatusProjeto;
   fios: FioUsado[];
   calculo: Calculo | null;

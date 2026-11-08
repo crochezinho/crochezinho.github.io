@@ -264,3 +264,110 @@
   font-weight: 800;
   font-size: 14px;
 }
+
+.estoque-resumo {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  border-radius: var(--raio-m);
+  font-size: 14px;
+}
+.estoque-resumo.ok {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--concluido-bg);
+  color: var(--concluido-fg);
+  font-weight: 700;
+}
+.estoque-resumo.falta {
+  background: var(--fazendo-bg);
+  color: var(--fazendo-fg);
+}
+.estoque-resumo ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.estoque-resumo li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.35;
+}
+.estoque-resumo li i {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  margin-top: 3px;
+  border-radius: 50%;
+}
+.detalhe-fim-2 {
+  margin-top: 10px;
+}
+
+.campo-data {
+  -webkit-appearance: none;
+  appearance: none;
+  font: inherit;
+  color: var(--texto);
+}
+.campo-data::-webkit-date-and-time-value {
+  text-align: left;
+}
+.selo-prazo {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: var(--raio-pill);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.selo-prazo.ok {
+  background: var(--rosa-selecao);
+  color: var(--texto-2);
+}
+.selo-prazo.perto {
+  background: var(--fazendo-bg);
+  color: var(--fazendo-fg);
+}
+.selo-prazo.atrasada {
+  background: #f9dcd8;
+  color: #8d2f25;
+}
+.linha-projeto-lado {
+  flex-shrink: 0;
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+.busca-projetos {
+  margin-bottom: 18px;
+}
+.linha-projeto-texto .selo-prazo,
+.detalhe-titulo .selo-prazo {
+  justify-self: start;
+  display: inline-block;
+  margin-top: 5px;
+}
+
+.vista-projetos {
+  margin: -6px 0 18px;
+}
+.chip-status.pronta {
+  background: var(--rosa-selecao);
+  color: var(--rosa-escuro);
+}
+.chip-status.entregue {
+  background: var(--concluido-bg);
+  color: var(--concluido-fg);
+}
+.selo-prazo.entregue {
+  background: var(--concluido-bg);
+  color: var(--concluido-fg);
+}
+.link-centro {
+  display: block;
+  margin: 14px auto 0;
+}

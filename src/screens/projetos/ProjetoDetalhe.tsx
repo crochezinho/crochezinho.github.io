@@ -4,14 +4,18 @@ import { useDadosCrono } from '../../app/dados.ts';
 import { diaCurto } from '../../app/datas.ts';
 import { useAgora } from '../../app/hooks.ts';
 import { href, ir, voltar } from '../../app/router.ts';
+import { CampoInteiro } from '../../components/Campos.tsx';
 import { Icone } from '../../components/Icone.tsx';
 import { Interruptor } from '../../components/Interruptor.tsx';
+import { SeloPrazo } from '../../components/SeloPrazo.tsx';
 import { Sheet } from '../../components/Sheet.tsx';
 import { toast } from '../../components/toast.tsx';
 import { useLive } from '../../db/hooks.ts';
-import { concluirProjeto, excluirProjeto, iniciar, listarNovelos, reabrirProjeto, restaurarProjeto } from '../../db/repo.ts';
-import type { Novelo, Projeto } from '../../db/types.ts';
-import { calcularDesconto, formatarEstoque } from '../../domain/estoque.ts';
+import { concluirProjeto, duplicarProjeto, excluirProjeto, iniciar, listarNovelos, marcarEntregue, reabrirProjeto, restaurarProjeto } from '../../db/repo.ts';
+import type { FioUsado, Novelo, Projeto } from '../../db/types.ts';
+import { calcularDesconto, conferirEstoque, formatarEstoque } from '../../domain/estoque.ts';
+import { diaDaEntrega } from '../../domain/prazo.ts';
+import { ehEncomenda, etapa } from '../../domain/encomendas.ts';
 import { nomeDoNovelo } from '../../domain/novelos.ts';
 import { brl } from '../../domain/preco.ts';
 import { formatarTotal, totalDoProjeto } from '../../domain/tempo.ts';
@@ -22,6 +26,7 @@ export function ProjetoDetalhe({ id }: { id: string }) {
   const [menu, setMenu] = useState(false);
   const [concluindo, setConcluindo] = useState(false);
   const [reabrindo, setReabrindo] = useState(false);
+  const [repetindo, setRepetindo] = useState(false);
 
   const projeto = dados?.projetos.find((p) => p.id === id);
   const rodando = !!projeto && dados?.aberta?.projetoId === projeto.id;
@@ -46,8 +51,21 @@ export function ProjetoDetalhe({ id }: { id: string }) {
   const temSessao = dados.sessoes.some((s) => s.projetoId === projeto.id && !s.ajuste);
   const novelo = (nid: string) => novelos.find((n) => n.id === nid);
   const quantidade = projeto.quantidade ?? 1;
+  const encomenda = ehEncomenda(projeto);
+  const fase = etapa(projeto);
   const manuais = (projeto.calculo?.fios ?? []).filter((f) => !f.noveloId);
-  const detalhes = [projeto.tipo, quantidade > 1 ? `${quantidade} peças` : '', projeto.agulha, concluido && projeto.concluidoEm ? `concluído em ${diaCurto(projeto.concluidoEm)}` : `iniciado em ${diaCurto(projeto.criadoEm)}`]
+  const detalhes = [
+    projeto.cliente ? `para ${projeto.cliente}` : '',
+    projeto.tipo,
+    quantidade > 1 ? `${quantidade} peças` : '',
+    projeto.agulha,
+    fase === 'entregue' && projeto.entregueEm
+      ? `entregue em ${diaCurto(projeto.entregueEm)}`
+      : projeto.entregaEm
+        ? `entrega ${diaDaEntrega(projeto.entregaEm)}`
+        : '',
+    concluido && projeto.concluidoEm ? `${encomenda ? 'pronta' : 'concluído'} em ${diaCurto(projeto.concluidoEm)}` : `iniciado em ${diaCurto(projeto.criadoEm)}`
+  ]
     .filter(Boolean)
     .join(' · ');
 
@@ -56,6 +74,14 @@ export function ProjetoDetalhe({ id }: { id: string }) {
     await excluirProjeto(projeto.id);
     voltar(href.projetos);
     toast(`${projeto.nome} excluído`, { rotulo: 'Desfazer', fazer: () => void restaurarProjeto(projeto.id) });
+  };
+
+  const entregar = async (sim: boolean) => {
+    await marcarEntregue(projeto.id, sim);
+    toast(sim ? `Entregue${projeto.cliente ? ` para ${projeto.cliente}` : ''}` : 'Voltou para "pronta"', {
+      rotulo: 'Desfazer',
+      fazer: () => void marcarEntregue(projeto.id, !sim)
+    });
   };
 
   const abrirCrono = async () => {
@@ -84,8 +110,11 @@ export function ProjetoDetalhe({ id }: { id: string }) {
             <div>
               <h1>{projeto.nome}</h1>
               <p>{detalhes}</p>
+              {fase !== 'entregue' && <SeloPrazo entregaEm={projeto.entregaEm} agora={agora} />}
             </div>
-            <span class={'chip-status ' + projeto.status}>{concluido ? 'concluído' : rodando ? 'rodando' : 'fazendo'}</span>
+            <span class={'chip-status ' + (encomenda ? fase : projeto.status)}>
+              {rodando ? 'rodando' : encomenda ? fase : concluido ? 'concluído' : 'fazendo'}
+            </span>
           </div>
           <div class="detalhe-stats">
             <div>
@@ -148,10 +177,26 @@ export function ProjetoDetalhe({ id }: { id: string }) {
         ) : (
           <p class="texto-apagado">Nenhum fio registrado. Os fios entram pela calculadora de preço.</p>
         )}
+        {!concluido && <ResumoEstoque fios={projeto.fios} novelos={novelos} quantidade={quantidade} />}
 
-        <button class="botao largo detalhe-fim" onClick={() => (concluido ? setReabrindo(true) : setConcluindo(true))}>
-          {concluido ? 'Reabrir projeto' : 'Concluir projeto'}
+        {encomenda && fase === 'pronta' && (
+          <button class="botao primario largo detalhe-fim" onClick={() => void entregar(true)}>
+            Marcar como entregue
+          </button>
+        )}
+        {concluido && (
+          <button class={'botao largo ' + (encomenda && fase === 'pronta' ? 'detalhe-fim-2' : 'primario detalhe-fim')} onClick={() => setRepetindo(true)}>
+            Fazer de novo
+          </button>
+        )}
+        <button class={'botao largo ' + (concluido ? 'detalhe-fim-2' : 'detalhe-fim')} onClick={() => (concluido ? setReabrindo(true) : setConcluindo(true))}>
+          {concluido ? 'Reabrir projeto' : encomenda ? 'Marcar como pronta' : 'Concluir projeto'}
         </button>
+        {fase === 'entregue' && (
+          <button class="link-pequeno link-centro" onClick={() => void entregar(false)}>
+            ainda não foi entregue
+          </button>
+        )}
       </div>
 
       <Sheet aberta={menu} aoFechar={() => setMenu(false)} titulo={projeto.nome}>
@@ -165,15 +210,105 @@ export function ProjetoDetalhe({ id }: { id: string }) {
           >
             Editar projeto
           </button>
+          <button
+            class="botao largo"
+            onClick={() => {
+              setMenu(false);
+              setRepetindo(true);
+            }}
+          >
+            Fazer de novo
+          </button>
           <button class="botao perigo largo" onClick={() => void excluir()}>
             Excluir projeto
           </button>
         </div>
       </Sheet>
 
-      <ConcluirSheet aberta={concluindo} aoFechar={() => setConcluindo(false)} projeto={projeto} novelos={novelos} rodando={rodando} />
+      <ConcluirSheet aberta={concluindo} aoFechar={() => setConcluindo(false)} projeto={projeto} novelos={novelos} rodando={rodando} encomenda={encomenda} />
       <ReabrirSheet aberta={reabrindo} aoFechar={() => setReabrindo(false)} projeto={projeto} novelos={novelos} />
+      <FazerDeNovoSheet aberta={repetindo} aoFechar={() => setRepetindo(false)} projeto={projeto} novelos={novelos} />
     </main>
+  );
+}
+
+function ResumoEstoque({ fios, novelos, quantidade }: { fios: FioUsado[]; novelos: Novelo[]; quantidade: number }) {
+  const itens = conferirEstoque(fios, novelos, quantidade);
+  if (!itens.length) return null;
+  const faltando = itens.filter((i) => i.falta > 0);
+  const pecas = quantidade > 1 ? `as ${quantidade} peças` : 'a peça';
+  if (!faltando.length) {
+    return (
+      <p class="estoque-resumo ok">
+        <Icone nome="check" tamanho={16} espessura={2.6} /> Tem fio para {pecas}
+      </p>
+    );
+  }
+  return (
+    <div class="estoque-resumo falta">
+      <strong>Falta fio para {pecas}</strong>
+      <ul>
+        {faltando.map((i) => {
+          const n = novelos.find((x) => x.id === i.noveloId)!;
+          return (
+            <li key={i.noveloId}>
+              <i style={estiloCapa(n.capaCor, n.textura)} />
+              <span>
+                {nomeDoNovelo(n)}: precisa {i.precisa} g, tem {i.tem} g · <b>faltam {i.falta} g</b>
+                {i.novelosAComprar > 0 && ` (${i.novelosAComprar} ${i.novelosAComprar === 1 ? 'novelo' : 'novelos'})`}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function FazerDeNovoSheet(props: Parameters<typeof FazerDeNovoAberta>[0]) {
+  return props.aberta ? <FazerDeNovoAberta {...props} /> : null;
+}
+
+function FazerDeNovoAberta({ aberta, aoFechar, projeto, novelos }: { aberta: boolean; aoFechar: () => void; projeto: Projeto; novelos: Novelo[] }) {
+  const [quantidade, setQuantidade] = useState(projeto.quantidade ?? 1);
+  const [criando, setCriando] = useState(false);
+  const q = Math.max(1, quantidade);
+
+  const criar = async () => {
+    setCriando(true);
+    const novoId = await duplicarProjeto(projeto.id, q);
+    aoFechar();
+    ir(href.projeto(novoId));
+    toast('Projeto novo criado, com o cronômetro zerado');
+  };
+
+  return (
+    <Sheet aberta={aberta} aoFechar={aoFechar} titulo="Fazer de novo" subtitulo="Um projeto novo com os mesmos fios, custos e capa. O cronômetro começa do zero.">
+      <div class="cartao-lista">
+        <div class="linha-campo">
+          <div class="linha-campo-texto">
+            <strong>Peças</strong>
+          </div>
+          <div class="stepper">
+            <button aria-label="Menos uma peça" disabled={q <= 1} onClick={() => setQuantidade(q - 1)}>
+              <Icone nome="menos" tamanho={18} />
+            </button>
+            <CampoInteiro valor={quantidade} aoMudar={setQuantidade} rotulo="Peças" sufixo="" max={9999} minimo={1} />
+            <button aria-label="Mais uma peça" onClick={() => setQuantidade(Math.min(9999, q + 1))}>
+              <Icone nome="mais" tamanho={18} />
+            </button>
+          </div>
+        </div>
+      </div>
+      {projeto.fios.length > 0 ? (
+        <ResumoEstoque fios={projeto.fios} novelos={novelos} quantidade={q} />
+      ) : (
+        <p class="texto-apagado">Este projeto não tem fios do estoque registrados.</p>
+      )}
+      <button class="botao primario largo" style={{ marginTop: 18 }} disabled={criando} onClick={() => void criar()}>
+        Criar projeto
+      </button>
+    </Sheet>
   );
 }
 
@@ -186,13 +321,15 @@ function ConcluirAberta({
   aoFechar,
   projeto,
   novelos,
-  rodando
+  rodando,
+  encomenda
 }: {
   aberta: boolean;
   aoFechar: () => void;
   projeto: Projeto;
   novelos: Novelo[];
   rodando: boolean;
+  encomenda: boolean;
 }) {
   const itens = calcularDesconto(projeto.fios, novelos, projeto.quantidade ?? 1);
   const [descontar, setDescontar] = useState(itens.length > 0);
@@ -200,11 +337,11 @@ function ConcluirAberta({
   const concluir = async () => {
     await concluirProjeto(projeto.id, descontar && itens.length > 0);
     aoFechar();
-    toast('Projeto concluído', { rotulo: 'Desfazer', fazer: () => void reabrirProjeto(projeto.id, true) });
+    toast(encomenda ? 'Encomenda pronta' : 'Projeto concluído', { rotulo: 'Desfazer', fazer: () => void reabrirProjeto(projeto.id, true) });
   };
 
   return (
-    <Sheet aberta={aberta} aoFechar={aoFechar} titulo="Concluir projeto" subtitulo={rodando ? 'O cronômetro deste projeto será pausado.' : undefined}>
+    <Sheet aberta={aberta} aoFechar={aoFechar} titulo={encomenda ? 'Marcar como pronta' : 'Concluir projeto'} subtitulo={rodando ? 'O cronômetro deste projeto será pausado.' : undefined}>
       {itens.length > 0 ? (
         <>
           <Interruptor ligado={descontar} aoMudar={setDescontar} rotulo="Descontar fios do estoque" detalhe="Tira do estoque o que este projeto usou." />
@@ -232,7 +369,7 @@ function ConcluirAberta({
         <p class="texto-apagado">Nenhum fio registrado neste projeto, então o estoque não muda.</p>
       )}
       <button class="botao primario largo" style={{ marginTop: 18 }} onClick={() => void concluir()}>
-        Concluir projeto
+        {encomenda ? 'Marcar como pronta' : 'Concluir projeto'}
       </button>
     </Sheet>
   );

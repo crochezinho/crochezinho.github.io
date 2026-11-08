@@ -3,10 +3,10 @@ import { estiloCapa } from '../../app/capa.ts';
 import { href, ir } from '../../app/router.ts';
 import { Icone } from '../../components/Icone.tsx';
 import { useLive } from '../../db/hooks.ts';
-import { lerConfig, listarNovelos, salvarConfig } from '../../db/repo.ts';
+import { lerConfig, listarNovelos, listarProjetos, salvarConfig } from '../../db/repo.ts';
 import type { Novelo } from '../../db/types.ts';
 import { formatarEstoque } from '../../domain/estoque.ts';
-import { agrupar, filtrar, novelosInteiros, type Agrupamento } from '../../domain/novelos.ts';
+import { agrupar, contarUso, filtrar, novelosInteiros, type Agrupamento } from '../../domain/novelos.ts';
 
 const OPCOES: { valor: Agrupamento; rotulo: string }[] = [
   { valor: 'tipo', rotulo: 'Por tipo' },
@@ -15,10 +15,12 @@ const OPCOES: { valor: Agrupamento; rotulo: string }[] = [
 
 export function Novelos() {
   const novelos = useLive(listarNovelos);
+  const projetos = useLive(listarProjetos);
   const agruparSalvo = useLive(() => lerConfig<Agrupamento>('novelos.agrupar', 'tipo'));
   const [busca, setBusca] = useState('');
 
-  if (!novelos || !agruparSalvo) return null;
+  if (!novelos || !agruparSalvo || !projetos) return null;
+  const uso = contarUso(projetos);
   const por: Agrupamento = agruparSalvo === 'marca' ? 'marca' : 'tipo';
   const visiveis = filtrar(novelos, busca);
   const totalInteiros = novelos.reduce((s, n) => s + novelosInteiros(n), 0);
@@ -71,7 +73,7 @@ export function Novelos() {
               <p>Tente outra busca.</p>
             </div>
           ) : (
-            agrupar(visiveis, por).map((g) => {
+            agrupar(visiveis, por, uso).map((g) => {
               const subs = g.sub.filter((s) => s.nome).length;
               return (
                 <section key={g.nome} class="grupo">

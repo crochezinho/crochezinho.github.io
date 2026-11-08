@@ -27,6 +27,25 @@ export function calcularDesconto(
   return itens;
 }
 
+export interface ItemNecessario {
+  noveloId: string;
+  precisa: number;
+  tem: number;
+  falta: number;
+  novelosAComprar: number;
+}
+
+export function conferirEstoque(
+  fios: { noveloId: string | null; gramas: number }[],
+  estoque: { id: string; estoqueG: number; gramatura: number }[],
+  quantidade = 1
+): ItemNecessario[] {
+  return calcularDesconto(fios, estoque, quantidade).map((d) => {
+    const g = estoque.find((n) => n.id === d.noveloId)!.gramatura;
+    return { noveloId: d.noveloId, precisa: d.gramas, tem: d.antes, falta: d.faltou, novelosAComprar: d.faltou > 0 && g > 0 ? Math.ceil(d.faltou / g) : 0 };
+  });
+}
+
 export function formatarEstoque(estoqueG: number, gramatura: number): string {
   const g = Math.max(0, Math.round(estoqueG));
   if (g === 0) return 'sem estoque';

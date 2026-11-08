@@ -11,13 +11,21 @@ import { CAPA_PADRAO, criarProjeto, editarProjeto, type CamposProjeto } from '..
 export function ProjetoForm({ id }: { id: string | null }) {
   const dados = useDadosCrono();
   const projeto = id ? dados?.projetos.find((p) => p.id === id) : undefined;
-  const [campos, setCampos] = useState<CamposProjeto>({ nome: '', tipo: TIPOS[0], agulha: '', capaCor: CAPA_PADRAO, quantidade: 1 });
+  const [campos, setCampos] = useState<CamposProjeto>({ nome: '', tipo: TIPOS[0], agulha: '', capaCor: CAPA_PADRAO, quantidade: 1, cliente: '', entregaEm: null });
   const [carregado, setCarregado] = useState(!id);
   const nomeRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (projeto && !carregado) {
-      setCampos({ nome: projeto.nome, tipo: projeto.tipo, agulha: projeto.agulha, capaCor: projeto.capaCor, quantidade: projeto.quantidade ?? 1 });
+      setCampos({
+        nome: projeto.nome,
+        tipo: projeto.tipo,
+        agulha: projeto.agulha,
+        capaCor: projeto.capaCor,
+        quantidade: projeto.quantidade ?? 1,
+        cliente: projeto.cliente ?? '',
+        entregaEm: projeto.entregaEm ?? null
+      });
       setCarregado(true);
     }
   }, [projeto, carregado]);
@@ -81,7 +89,40 @@ export function ProjetoForm({ id }: { id: string | null }) {
         <label class="rotulo" for="pf-qtd">
           Peças iguais
         </label>
-        <CampoInteiro id="pf-qtd" valor={campos.quantidade} aoMudar={(q) => mudar({ quantidade: q })} rotulo="Peças iguais" sufixo="peças" max={9999} minimo={1} />
+        <CampoInteiro id="pf-qtd" valor={campos.quantidade} aoMudar={(q) => mudar({ quantidade: q })} rotulo="Peças iguais" sufixo="un" max={9999} minimo={1} />
+
+        <div class="grade-2">
+          <div>
+            <label class="rotulo" for="pf-cliente">
+              Para quem <span class="opcional">opcional</span>
+            </label>
+            <input
+              id="pf-cliente"
+              class="campo"
+              value={campos.cliente}
+              onInput={(e) => mudar({ cliente: e.currentTarget.value })}
+              placeholder="ex: Júlia"
+              autocomplete="off"
+            />
+          </div>
+          <div>
+            <label class="rotulo" for="pf-entrega">
+              Entrega <span class="opcional">opcional</span>
+            </label>
+            <input
+              id="pf-entrega"
+              class="campo campo-data"
+              type="date"
+              value={campos.entregaEm ?? ''}
+              onInput={(e) => mudar({ entregaEm: e.currentTarget.value || null })}
+            />
+          </div>
+        </div>
+        {campos.entregaEm && (
+          <button type="button" class="link-pequeno" style={{ marginTop: 6 }} onClick={() => mudar({ entregaEm: null })}>
+            tirar a data de entrega
+          </button>
+        )}
 
         <p class="rotulo">Agulha</p>
         <div class="chips" role="radiogroup" aria-label="Agulha">

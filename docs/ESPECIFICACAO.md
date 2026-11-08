@@ -72,19 +72,35 @@ Abrir o cálculo de um projeto sempre mostra o Preço. O que foi digitado em Sho
 
 ### Projetos
 - Lista em "Em andamento" e "Concluídos" (com preço quando houver); "+" abre o formulário.
-- Formulário (criar/editar): nome, tipo, **peças iguais**, agulha (chips + outro tamanho), cor de capa (livre).
+- Formulário (criar/editar): nome, tipo, **peças iguais**, **para quem** e **entrega** (opcionais), agulha
+  (chips + outro tamanho), cor de capa.
+- **Encomendas**: com data de entrega, o projeto em andamento ganha um selo ("entrega em 3 dias", "entrega hoje",
+  "atrasada 2 dias"; amarelo até 3 dias, vermelho se atrasada). "Em andamento" (Projetos e Início) mostra primeiro
+  as encomendas, da entrega mais próxima para a mais distante. Sem notificações.
+- Busca por nome, cliente ou tipo quando há 6 projetos ou mais.
+- Topo da aba Projetos: **Todos · Encomendas** (preferência lembrada). Encomenda = projeto com "Para quem" ou
+  "Entrega". Etapas **Fazendo → Pronta → Entregue**: pronta é o projeto concluído (o fio sai do estoque aí);
+  "Marcar como entregue" guarda a data (`entregueEm`), com desfazer. Na vista Encomendas: Fazendo e Prontas para
+  entregar (pela entrega mais próxima) e Entregues (mais recente primeiro). Numa encomenda, "Concluir projeto"
+  aparece como "Marcar como pronta".
 - Detalhe: tempo, preço, "Começar/Continuar cronômetro" (já inicia e abre o crono), cartão de preço
   (abre a calculadora do projeto), fios usados (editados pela calculadora), menu ⋮ com Editar/Excluir.
 - "Concluir projeto" → folha com o que sai de cada novelo (gramas por peça × peças) e o que fica; interruptor para não descontar;
   pausa o crono se estiver rodando. "Desfazer" no aviso reabre e devolve o estoque.
 - "Reabrir projeto" → oferece devolver ao estoque o que foi descontado.
+- **Quanto fio preciso?** No projeto em andamento, abaixo dos fios: "Tem fio para as N peças" ou, por novelo,
+  quanto precisa (por peça × peças), quanto tem, quanto falta e quantos novelos comprar. Fios manuais ficam de fora.
+- **Fazer de novo** (menu ⋮, e botão no projeto concluído): escolhe as peças, mostra a conferência do estoque e cria
+  um projeto novo com nome, tipo, agulha, capa e fios por peça; cronômetro zerado. Se o original tinha cálculo, o novo
+  começa com um cálculo em andamento com os mesmos fios (preço atual do novelo), outros custos, valor/hora e margem.
 - Excluir com "desfazer". Sessões de projetos excluídos não entram nas contas.
 
 ### Novelos
 - Novelo = **tipo** (digitado, ex.: Amigurumi, Chenille, Balloon Amigo) + **cor** + **marca**.
   Por extenso, o nome é **tipo + cor** ("Chenille Rosa Chá").
 - Lista "Meus novelos" (cores · novelos), busca sem acento (cor, marca, tipo),
-  agrupar **por tipo → marca** (padrão) ou **por marca → tipo** (preferência lembrada). Sem filtro "acabando".
+  agrupar **por tipo → marca** (padrão) ou **por marca → tipo** (preferência lembrada). Dentro de cada grupo,
+  os novelos usados em mais projetos vêm primeiro. Sem filtro "acabando".
 - Detalhe: estoque com − / + (um novelo por toque) e "ajustar em gramas" (fechados + peso dos abertos,
   com desfazer); ficha (gramatura, agulha, lote, preço, preço/grama); usado em projetos;
   menu ⋮ Editar/Excluir (com desfazer).

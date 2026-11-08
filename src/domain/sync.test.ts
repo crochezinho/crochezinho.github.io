@@ -92,7 +92,9 @@ test('migração v1 → v2 de novelos e projetos', () => {
   assert.deepEqual(['linha', 'familia', 'fibra', 'metros'].filter((k) => k in v2), []);
   assert.deepEqual(normalizarNovelo(v2), v2, 'idempotente');
   assert.equal((normalizarNovelo({ tipo: 'Chenille', linha: 'X', textura: 'felpudo' }) as { tipo: string }).tipo, 'Chenille');
-  assert.equal((normalizarProjeto({ id: 'p' }) as { quantidade: number }).quantidade, 1);
+  assert.deepEqual(normalizarProjeto({ id: 'p' }), { id: 'p', cliente: '', entregaEm: null, entregueEm: null, quantidade: 1 });
+  assert.equal((normalizarProjeto({ entregaEm: '2026-11-20' }) as { entregaEm: string }).entregaEm, '2026-11-20');
+  assert.equal((normalizarProjeto({ entregaEm: 'amanhã' }) as { entregaEm: null }).entregaEm, null);
   assert.equal((normalizarProjeto({ quantidade: 5 }) as { quantidade: number }).quantidade, 5);
   assert.equal((normalizarProjeto({ quantidade: 0 }) as { quantidade: number }).quantidade, 1);
 });

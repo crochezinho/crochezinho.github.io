@@ -5,7 +5,7 @@ import type { Calculo, FioUsado, Id, Novelo, Projeto, Rascunho, Sessao } from '.
 const agora = () => Date.now();
 const ativo = <T extends { excluidoEm: number | null }>(r: T) => !r.excluidoEm;
 
-export type CamposProjeto = Pick<Projeto, 'nome' | 'tipo' | 'agulha' | 'capaCor' | 'quantidade'>;
+export type CamposProjeto = Pick<Projeto, 'nome' | 'tipo' | 'agulha' | 'capaCor' | 'quantidade' | 'cliente' | 'entregaEm'>;
 
 export const CAPA_PADRAO = '#C98B86';
 
@@ -16,6 +16,9 @@ export async function criarProjeto(nome: string, campos: Partial<CamposProjeto> 
     tipo: 'Amigurumi',
     agulha: '',
     capaCor: CAPA_PADRAO,
+    cliente: '',
+    entregaEm: null,
+    entregueEm: null,
     ...campos,
     quantidade: Math.max(1, Math.floor(campos.quantidade ?? 1) || 1),
     nome: nome.trim() || 'Novo projeto',
@@ -41,10 +44,42 @@ export async function listarProjetos(): Promise<Projeto[]> {
 export async function editarProjeto(id: Id, campos: CamposProjeto): Promise<void> {
   const quantidade = Math.max(1, Math.floor(campos.quantidade) || 1);
   await db.transaction('rw', db.projetos, db.config, async () => {
-    await db.projetos.update(id, { ...campos, nome: campos.nome.trim() || 'Projeto', quantidade, atualizadoEm: agora() });
+    await db.projetos.update(id, {
+      ...campos,
+      nome: campos.nome.trim() || 'Projeto',
+      cliente: campos.cliente.trim(),
+      entregaEm: campos.entregaEm || null,
+      quantidade,
+      atualizadoEm: agora()
+    });
     const r = await lerRascunho(id);
     if (r && (r.quantidade ?? 1) !== quantidade) await salvarRascunho(id, { ...r, quantidade });
   });
+}
+
+export async function duplicarProjeto(id: Id, quantidade: number): Promise<Id> {
+  const p = await db.projetos.get(id);
+  if (!p) throw new Error('Projeto não encontrado.');
+  const q = Math.max(1, Math.floor(quantidade) || 1);
+  const novoProjetoId = await criarProjeto(p.nome, { tipo: p.tipo, agulha: p.agulha, capaCor: p.capaCor, quantidade: q });
+  await db.projetos.update(novoProjetoId, { fios: p.fios.map((f) => ({ ...f })) });
+  if (p.calculo) {
+    const novelos = await db.novelos.toArray();
+    const chave = () => Math.random().toString(36).slice(2, 10);
+    await salvarRascunho(novoProjetoId, {
+      fios: p.calculo.fios.map((f) => {
+        const n = f.noveloId ? novelos.find((x) => x.id === f.noveloId && !x.excluidoEm) : undefined;
+        return { ...f, chave: chave(), precoPorGramaCentavos: n && n.gramatura > 0 ? n.precoCentavos / n.gramatura : f.precoPorGramaCentavos };
+      }),
+      quantidade: q,
+      minutos: 0,
+      minutosDoCrono: true,
+      valorHoraCentavos: p.calculo.valorHoraCentavos,
+      extras: p.calculo.extras.map((e) => ({ ...e, chave: chave() })),
+      margemPct: p.calculo.margemPct
+    });
+  }
+  return novoProjetoId;
 }
 
 async function pausarSeRodando(projetoId: Id, t: number): Promise<void> {
@@ -81,8 +116,13 @@ export async function reabrirProjeto(id: Id, devolver: boolean): Promise<void> {
         if (n && !n.excluidoEm) await db.novelos.update(n.id, { estoqueG: n.estoqueG + d.gramas, atualizadoEm: t });
       }
     }
-    await db.projetos.update(id, { status: 'fazendo', concluidoEm: null, descontado: [], atualizadoEm: t });
+    await db.projetos.update(id, { status: 'fazendo', concluidoEm: null, entregueEm: null, descontado: [], atualizadoEm: t });
   });
+}
+
+export async function marcarEntregue(id: Id, entregue: boolean): Promise<void> {
+  const t = agora();
+  await db.projetos.update(id, { entregueEm: entregue ? t : null, atualizadoEm: t });
 }
 
 export async function excluirProjeto(id: Id): Promise<void> {

@@ -28,6 +28,12 @@ export function filtrar<T extends NoveloLista>(novelos: T[], busca: string): T[]
 
 const comparar = (a: string, b: string) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' });
 
+export function contarUso(projetos: { fios: { noveloId: string }[] }[]): Map<string, number> {
+  const uso = new Map<string, number>();
+  for (const p of projetos) for (const id of new Set(p.fios.map((f) => f.noveloId))) uso.set(id, (uso.get(id) ?? 0) + 1);
+  return uso;
+}
+
 export type Agrupamento = 'marca' | 'tipo';
 
 export interface Grupo<T> {
@@ -38,7 +44,8 @@ export interface Grupo<T> {
 
 const SEM = { marca: 'Sem marca', tipo: 'Sem tipo' } as const;
 
-export function agrupar<T extends NoveloLista>(novelos: T[], por: Agrupamento): Grupo<T>[] {
+export function agrupar<T extends NoveloLista>(novelos: T[], por: Agrupamento, uso: Map<string, number> = new Map()): Grupo<T>[] {
+  const usos = (n: T) => uso.get(n.id) ?? 0;
   const outro: Agrupamento = por === 'marca' ? 'tipo' : 'marca';
   const sem = SEM[por];
   const mapa = new Map<string, Map<string, T[]>>();
@@ -55,7 +62,7 @@ export function agrupar<T extends NoveloLista>(novelos: T[], por: Agrupamento): 
     .map(([nome, subs]) => {
       const sub = [...subs.entries()]
         .sort(([a], [b]) => (a === '' ? 1 : b === '' ? -1 : comparar(a, b)))
-        .map(([s, itens]) => ({ nome: s, itens: [...itens].sort((x, y) => comparar(x.cor, y.cor)) }));
+        .map(([s, itens]) => ({ nome: s, itens: [...itens].sort((x, y) => usos(y) - usos(x) || comparar(x.cor, y.cor)) }));
       const totalInteiros = sub.reduce((s, l) => s + l.itens.reduce((t, i) => t + novelosInteiros(i), 0), 0);
       return { nome, sub, totalInteiros };
     });
