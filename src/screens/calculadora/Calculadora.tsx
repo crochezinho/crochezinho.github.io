@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { estiloCapa } from '../../app/capa.ts';
 import { useDadosCrono } from '../../app/dados.ts';
 import { diaCurto } from '../../app/datas.ts';
 import { useAgora } from '../../app/hooks.ts';
@@ -21,8 +22,11 @@ import {
   type PadroesCalculo
 } from '../../db/repo.ts';
 import type { Calculo, Novelo, Projeto, Rascunho } from '../../db/types.ts';
-import { brl, calcular, composicao, custoDoFio, precoPorGrama } from '../../domain/preco.ts';
+import { nomeDoNovelo } from '../../domain/novelos.ts';
+import { brl, calcular, composicao, custoDoFio, pecas, precoPorGrama } from '../../domain/preco.ts';
 import { formatarTotal, totalDoProjeto } from '../../domain/tempo.ts';
+import { CHAVE_SHOPEE, SHOPEE_PADRAO, type EstadoShopee } from '../vender/estado.ts';
+import { AbasCalcular, irParaAba } from './AbasCalcular.tsx';
 import { FioSheet, type FioEditado } from './FioSheet.tsx';
 
 const CHAVE_CONTEXTO = 'calc.contexto';
@@ -34,6 +38,7 @@ function rascunhoInicial(projeto: Projeto | undefined, novelos: Novelo[], p: Pad
       const n = novelos.find((x) => x.id === f.noveloId);
       return { chave: chave(), ...f, precoPorGramaCentavos: n ? precoPorGrama(n.precoCentavos, n.gramatura) : 0 };
     }),
+    quantidade: projeto?.quantidade ?? 1,
     minutos: 0,
     minutosDoCrono: !!projeto,
     valorHoraCentavos: p.valorHoraCentavos,
@@ -42,9 +47,10 @@ function rascunhoInicial(projeto: Projeto | undefined, novelos: Novelo[], p: Pad
   };
 }
 
-function rascunhoDoCalculo(c: Calculo): Rascunho {
+function rascunhoDoCalculo(c: Calculo, projeto?: Projeto): Rascunho {
   return {
     fios: c.fios.map((f) => ({ chave: chave(), ...f })),
+    quantidade: projeto?.quantidade ?? c.quantidade ?? 1,
     minutos: c.minutos,
     minutosDoCrono: false,
     valorHoraCentavos: c.valorHoraCentavos,
@@ -55,7 +61,8 @@ function rascunhoDoCalculo(c: Calculo): Rascunho {
 
 const assinatura = (c: Omit<Calculo, 'calculadoEm'>) =>
   JSON.stringify([
-    c.fios.map((f) => [f.noveloId, f.gramas, f.precoPorGramaCentavos]),
+    c.fios.map((f) => [f.noveloId, f.gramas, f.precoPorGramaCentavos, f.nome ?? '', f.valorCentavos ?? null]),
+    pecas(c.quantidade),
     c.minutos,
     c.valorHoraCentavos,
     c.extras.map((e) => [e.nome, e.valorCentavos]),
@@ -93,7 +100,7 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
     let vivo = true;
     void (async () => {
       const salvo = await lerRascunho(projeto?.id ?? null);
-      const novo = salvo ?? (projeto?.calculo ? rascunhoDoCalculo(projeto.calculo) : rascunhoInicial(projeto, novelos!, padroes!));
+      const novo = salvo ?? (projeto?.calculo ? rascunhoDoCalculo(projeto.calculo, projeto) : rascunhoInicial(projeto, novelos!, padroes!));
       if (!vivo) return;
       pendente.current = false;
       setR(novo);
@@ -134,17 +141,26 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
 
   const minutosCrono = projeto ? Math.floor(totalDoProjeto(dados!.sessoes, projeto.id, agora) / 60_000) : null;
   const minutos = r.minutosDoCrono && minutosCrono !== null ? minutosCrono : r.minutos;
+  const quantidade = pecas(r.quantidade);
+  const varias = quantidade > 1;
   const res = calcular({
     fios: r.fios,
     minutos,
     valorHoraCentavos: r.valorHoraCentavos,
     extrasCentavos: r.extras.map((e) => e.valorCentavos),
-    margemPct: r.margemPct
+    margemPct: r.margemPct,
+    quantidade
   });
   const comp = composicao(res);
+  const fiosPorPeca = r.fios.reduce((s, f) => s + custoDoFio(f), 0);
+  const outrosPorPeca = r.extras.reduce((s, e) => s + Math.max(0, e.valorCentavos), 0);
+  const porPeca = varias ? ' por peça' : '';
 
   const montar = (): Calculo => ({
-    fios: r.fios.map(({ noveloId, gramas, precoPorGramaCentavos }) => ({ noveloId, gramas, precoPorGramaCentavos })),
+    fios: r.fios.map(({ noveloId, gramas, precoPorGramaCentavos, nome, valorCentavos }) =>
+      noveloId ? { noveloId, gramas, precoPorGramaCentavos } : { noveloId: null, gramas: 0, precoPorGramaCentavos: 0, nome: nome ?? '', valorCentavos: valorCentavos ?? 0 }
+    ),
+    quantidade,
     minutos,
     valorHoraCentavos: r.valorHoraCentavos,
     extras: r.extras.map(({ nome, valorCentavos }) => ({ nome: nome.trim(), valorCentavos })),
@@ -154,11 +170,17 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
   });
 
   const salvoNoProjeto = projeto?.calculo ?? null;
+  const salvoPorPeca = salvoNoProjeto ? projeto!.precoCentavos ?? salvoNoProjeto.totalCentavos : 0;
   const naoSalvo = !!projeto && (!salvoNoProjeto || assinatura(montar()) !== assinatura(salvoNoProjeto));
   const tempoMudou =
     !!salvoNoProjeto && minutosCrono !== null && minutosCrono > 0 && !r.minutosDoCrono && minutosCrono !== r.minutos;
 
-  const novelo = (id: string) => novelos!.find((n) => n.id === id);
+  const novelo = (id: string | null) => (id ? novelos!.find((n) => n.id === id) : undefined);
+  const nomeDoFio = (f: { noveloId: string | null; nome?: string }) => {
+    if (!f.noveloId) return f.nome || 'Valor manual';
+    const n = novelo(f.noveloId);
+    return n ? nomeDoNovelo(n) : 'Fio removido';
+  };
   const fioEditando = fioSheet?.chave ? r.fios.find((f) => f.chave === fioSheet.chave) ?? null : null;
 
   const salvarFio = (f: FioEditado) => {
@@ -173,19 +195,26 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
 
   const removerFio = (k: string) => {
     const antes = r;
-    const n = novelo(r.fios.find((f) => f.chave === k)?.noveloId ?? '');
-    atualizar((a) => ({ ...a, fios: a.fios.filter((f) => f.chave !== k) }));
-    toast(`${n?.cor ?? 'Fio'} removido`, { rotulo: 'Desfazer', fazer: () => substituir(antes) });
+    const f = r.fios.find((x) => x.chave === k);
+    atualizar((a) => ({ ...a, fios: a.fios.filter((x) => x.chave !== k) }));
+    toast(`${f ? nomeDoFio(f) : 'Fio'} removido`, { rotulo: 'Desfazer', fazer: () => substituir(antes) });
+  };
+
+  const verNaShopee = async () => {
+    const atual = await lerConfig<EstadoShopee | null>(CHAVE_SHOPEE, null);
+    const custo = Math.round((res.fios + res.trabalho + res.outros) / quantidade);
+    await salvarConfig(CHAVE_SHOPEE, { ...SHOPEE_PADRAO, ...(atual ?? {}), precoCentavos: res.porPeca, custoCentavos: custo });
+    await irParaAba('shopee');
   };
 
   const copiar = async () => {
-    const valor = brl(res.total);
+    const valor = brl(res.porPeca);
     toast((await copiarTexto(valor)) ? `Copiado: ${valor}` : 'Não foi possível copiar');
   };
 
   const salvarNoProjeto = async () => {
     if (!projeto) return;
-    await salvarCalculoNoProjeto(projeto.id, montar());
+    await salvarCalculoNoProjeto(projeto.id, montar(), res.porPeca);
     substituir({ ...r, minutos, minutosDoCrono: false });
     pendente.current = false;
     toast(`Preço salvo em ${projeto.nome}`);
@@ -196,7 +225,7 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
     if (projeto && salvoNoProjeto) {
       void descartarRascunho(projeto.id);
       pendente.current = false;
-      setR(rascunhoDoCalculo(salvoNoProjeto));
+      setR(rascunhoDoCalculo(salvoNoProjeto, projeto));
       toast('Alterações descartadas', { rotulo: 'Desfazer', fazer: () => substituir(antes) });
     } else {
       substituir(rascunhoInicial(projeto, novelos!, padroes!));
@@ -213,8 +242,8 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
 
   const criarComCalculo = async (nome: string) => {
     const calculo = montar();
-    const id = await criarProjeto(nome);
-    await salvarCalculoNoProjeto(id, calculo);
+    const id = await criarProjeto(nome, { quantidade });
+    await salvarCalculoNoProjeto(id, calculo, res.porPeca);
     await descartarRascunho(null);
     setCriando(false);
     await salvarConfig(CHAVE_CONTEXTO, id);
@@ -223,10 +252,14 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
 
   return (
     <main class="tela anim-tela calc">
+      <AbasCalcular atual="preco" />
       {totalFixo && (
         <div class="total-fixo" aria-hidden="true">
-          <span>{projeto ? projeto.nome : 'Preço sugerido'}</span>
-          <strong>{brl(res.total)}</strong>
+          <span>
+            {projeto ? projeto.nome : 'Preço sugerido'}
+            {porPeca}
+          </span>
+          <strong>{brl(res.porPeca)}</strong>
         </div>
       )}
 
@@ -240,7 +273,7 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
       </header>
 
       <button class="contexto" onClick={() => setTrocando(true)}>
-        <span class="capa capa-p" style={{ background: projeto?.capaCor ?? 'var(--rosa-suave)' }}>
+        <span class="capa capa-p" style={projeto ? estiloCapa(projeto.capaCor) : { background: 'var(--rosa-suave)' }}>
           {!projeto && <Icone nome="calcular" />}
         </span>
         <span class="linha-projeto-texto">
@@ -251,18 +284,41 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
       </button>
 
       <section class="cartao-preco" ref={cartao}>
-        <p class="sobretitulo">Preço sugerido</p>
-        <p class="cartao-preco-valor">{brl(res.total)}</p>
+        <p class="sobretitulo">Preço sugerido{porPeca}</p>
+        <p class="cartao-preco-valor">{brl(res.porPeca)}</p>
+        {varias && (
+          <p class="cartao-preco-sub">
+            {quantidade} peças: <strong>{brl(res.total)}</strong>
+          </p>
+        )}
         {projeto && (
           <p class="cartao-preco-sub">
             {naoSalvo
               ? salvoNoProjeto
-                ? `não salvo · no projeto: ${brl(salvoNoProjeto.totalCentavos)}`
+                ? `não salvo · no projeto: ${brl(salvoPorPeca)}`
                 : 'ainda não salvo no projeto'
               : `salvo no projeto em ${diaCurto(salvoNoProjeto!.calculadoEm)}`}
           </p>
         )}
       </section>
+
+      <div class="cartao-lista">
+        <div class="linha-campo">
+          <div class="linha-campo-texto">
+            <strong>Peças iguais</strong>
+            <small>{varias ? 'fios e outros custos são por peça' : 'faz mais de uma? aumente aqui'}</small>
+          </div>
+          <div class="stepper">
+            <button aria-label="Menos uma peça" disabled={quantidade <= 1} onClick={() => atualizar({ quantidade: quantidade - 1 })}>
+              <Icone nome="menos" tamanho={18} />
+            </button>
+            <CampoInteiro valor={quantidade} aoMudar={(q) => atualizar({ quantidade: Math.max(1, q) })} rotulo="Peças iguais" sufixo="" max={9999} vazioQuandoZero={false} />
+            <button aria-label="Mais uma peça" onClick={() => atualizar({ quantidade: Math.min(9999, quantidade + 1) })}>
+              <Icone nome="mais" tamanho={18} />
+            </button>
+          </div>
+        </div>
+      </div>
 
       <section class="composicao" aria-label="Composição do preço">
         <div class="barra">
@@ -277,6 +333,7 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
           <li><i class="outros" />Outros <strong>{brl(res.outros)}</strong></li>
           <li><i class="lucro" />Lucro <strong>{brl(res.lucro)}</strong></li>
         </ul>
+        {varias && <p class="composicao-nota">Valores das {quantidade} peças juntas.</p>}
       </section>
 
       {tempoMudou && (
@@ -291,23 +348,30 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
       )}
 
       <div class="secao-cabecalho">
-        <h2 class="secao-titulo">Fios usados</h2>
-        <span class="secao-valor">{brl(res.fios)}</span>
+        <h2 class="secao-titulo">Fios{porPeca}</h2>
+        <span class="secao-valor">{brl(fiosPorPeca)}</span>
       </div>
       <div class="cartao-lista">
         {r.fios.map((f) => {
           const n = novelo(f.noveloId);
+          const nome = nomeDoFio(f);
           return (
             <div key={f.chave} class="linha-fio">
               <button class="linha-fio-principal" onClick={() => setFioSheet({ chave: f.chave })}>
-                <span class="capa capa-p" style={{ background: n?.capaCor ?? 'var(--divisoria)' }} />
+                {f.noveloId ? (
+                  <span class="capa capa-p" style={n ? estiloCapa(n.capaCor, n.textura) : { background: 'var(--divisoria)' }} />
+                ) : (
+                  <span class="capa capa-p" style={{ background: 'var(--divisoria)' }}>
+                    <Icone nome="calcular" tamanho={18} />
+                  </span>
+                )}
                 <span class="linha-projeto-texto">
-                  <strong>{n?.cor ?? 'Fio removido'}</strong>
-                  <small>{[n?.marca, `${f.gramas} g`].filter(Boolean).join(' · ')}</small>
+                  <strong>{nome}</strong>
+                  <small>{f.noveloId ? [n?.marca, `${f.gramas} g`].filter(Boolean).join(' · ') : 'valor manual'}</small>
                 </span>
                 <span class="linha-fio-valor">{brl(custoDoFio(f))}</span>
               </button>
-              <button class="botao-x" aria-label={`Remover ${n?.cor ?? 'fio'}`} onClick={() => removerFio(f.chave)}>
+              <button class="botao-x" aria-label={`Remover ${nome}`} onClick={() => removerFio(f.chave)}>
                 <Icone nome="fechar" tamanho={16} />
               </button>
             </div>
@@ -323,7 +387,7 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
       <div class="cartao-lista">
         <div class="linha-campo">
           <div class="linha-campo-texto">
-            <strong>Horas trabalhadas</strong>
+            <strong>Horas trabalhadas{varias ? ' (todas as peças)' : ''}</strong>
             {projeto &&
               (r.minutosDoCrono ? (
                 <small>do cronômetro</small>
@@ -370,8 +434,8 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
       </div>
 
       <div class="secao-cabecalho">
-        <h2 class="secao-titulo">Outros custos</h2>
-        <span class="secao-valor">{brl(res.outros)}</span>
+        <h2 class="secao-titulo">Outros custos{porPeca}</h2>
+        <span class="secao-valor">{brl(outrosPorPeca)}</span>
       </div>
       <div class="cartao-lista">
         {r.extras.map((e) => (
@@ -456,6 +520,11 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
           </button>
         )}
       </div>
+      {res.porPeca > 0 && (
+        <button class="link-pequeno link-shopee" onClick={() => void verNaShopee()}>
+          Quanto sobra vendendo na Shopee? →
+        </button>
+      )}
 
       <FioSheet
         aberta={fioSheet !== null}
@@ -463,6 +532,7 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
         novelos={novelos!}
         inicial={fioEditando}
         aoSalvar={salvarFio}
+        varias={varias}
       />
 
       <Sheet aberta={trocando} aoFechar={() => setTrocando(false)} titulo="Calcular para">
@@ -480,7 +550,7 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
             .sort((a, b) => (a.status === b.status ? 0 : a.status === 'fazendo' ? -1 : 1))
             .map((p) => (
               <li key={p.id} class={'linha-projeto' + (p.id === projeto?.id ? ' selecionada' : '')} onClick={() => void trocarContexto(p.id)}>
-                <span class="capa capa-p" style={{ background: p.capaCor }} />
+                <span class="capa capa-p" style={estiloCapa(p.capaCor)} />
                 <span class="linha-projeto-texto">
                   <strong>{p.nome}</strong>
                   <small>{p.precoCentavos !== null ? brl(p.precoCentavos) : 'sem preço'}{p.status === 'concluido' ? ' · concluído' : ''}</small>
@@ -490,7 +560,7 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
         </ul>
       </Sheet>
 
-      <CriarProjetoSheet aberta={criando} aoFechar={() => setCriando(false)} aoCriar={(nome) => void criarComCalculo(nome)} total={res.total} />
+      <CriarProjetoSheet aberta={criando} aoFechar={() => setCriando(false)} aoCriar={(nome) => void criarComCalculo(nome)} total={res.porPeca} />
     </main>
   );
 }

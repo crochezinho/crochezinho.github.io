@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { estiloCapa } from '../../app/capa.ts';
 import { useDadosCrono } from '../../app/dados.ts';
 import { href, ir, voltar } from '../../app/router.ts';
 import { CampoInteiro } from '../../components/Campos.tsx';
@@ -9,7 +10,7 @@ import { useLive } from '../../db/hooks.ts';
 import { definirEstoque, excluirNovelo, listarNovelos, restaurarNovelo } from '../../db/repo.ts';
 import type { Novelo } from '../../db/types.ts';
 import { formatarEstoque } from '../../domain/estoque.ts';
-import { estaAcabando, novelosInteiros } from '../../domain/novelos.ts';
+import { nomeDoNovelo, novelosInteiros } from '../../domain/novelos.ts';
 import { brl, precoPorGrama } from '../../domain/preco.ts';
 
 export function NoveloDetalhe({ id }: { id: string }) {
@@ -34,6 +35,7 @@ export function NoveloDetalhe({ id }: { id: string }) {
     );
   }
 
+  const nome = nomeDoNovelo(n);
   const inteiros = novelosInteiros(n);
   const sobra = Math.max(0, n.estoqueG) - inteiros * n.gramatura;
   const usadoEm = dados.projetos.filter((p) => p.fios.some((f) => f.noveloId === n.id));
@@ -47,13 +49,11 @@ export function NoveloDetalhe({ id }: { id: string }) {
     setMenu(false);
     await excluirNovelo(n.id);
     voltar(href.novelos);
-    toast(`${n.cor} excluído`, { rotulo: 'Desfazer', fazer: () => void restaurarNovelo(n.id) });
+    toast(`${nome} excluído`, { rotulo: 'Desfazer', fazer: () => void restaurarNovelo(n.id) });
   };
 
   const ficha: [string, string][] = [
-    ['Fibra', n.fibra],
     ['Gramatura', n.gramatura ? `${n.gramatura} g` : ''],
-    ['Metragem', n.metros ? `${n.metros} m` : ''],
     ['Agulha sugerida', n.agulha],
     ['Lote / partida', n.lote],
     ['Preço', n.precoCentavos ? brl(n.precoCentavos) : ''],
@@ -62,7 +62,7 @@ export function NoveloDetalhe({ id }: { id: string }) {
 
   return (
     <main class="detalhe anim-tela">
-      <div class="detalhe-faixa novelo" style={{ background: n.capaCor }}>
+      <div class="detalhe-faixa novelo" style={estiloCapa(n.capaCor, n.textura)}>
         <button class="botao-voltar claro" aria-label="Voltar" onClick={() => voltar(href.novelos)}>
           <Icone nome="voltar" />
         </button>
@@ -73,8 +73,8 @@ export function NoveloDetalhe({ id }: { id: string }) {
 
       <div class="detalhe-corpo">
         <section class="detalhe-cartao">
-          <h1 class="novelo-nome">{n.cor}</h1>
-          <p class="texto-apagado">{[n.marca, n.linha].filter(Boolean).join(' · ') || 'Sem marca'}</p>
+          <h1 class="novelo-nome">{nome}</h1>
+          <p class="texto-apagado">{n.marca || 'Sem marca'}</p>
 
           <div class="estoque">
             <p class="rotulo" style={{ marginTop: 16 }}>
@@ -99,12 +99,6 @@ export function NoveloDetalhe({ id }: { id: string }) {
               ajustar em gramas
             </button>
           </div>
-
-          {estaAcabando(n) && (
-            <div class="aviso aviso-compacto">
-              <strong>Tá acabando</strong> · {n.estoqueG > 0 ? `só ${formatarEstoque(n.estoqueG, n.gramatura)}` : 'sem estoque'}
-            </div>
-          )}
         </section>
 
         <h2 class="secao-titulo">Ficha</h2>
@@ -124,7 +118,7 @@ export function NoveloDetalhe({ id }: { id: string }) {
           <div class="chips">
             {usadoEm.map((p) => (
               <button key={p.id} class="chip-fio" onClick={() => ir(href.projeto(p.id))}>
-                <i style={{ background: p.capaCor }} />
+                <i style={estiloCapa(p.capaCor)} />
                 {p.nome}
               </button>
             ))}
@@ -134,7 +128,7 @@ export function NoveloDetalhe({ id }: { id: string }) {
         )}
       </div>
 
-      <Sheet aberta={menu} aoFechar={() => setMenu(false)} titulo={n.cor}>
+      <Sheet aberta={menu} aoFechar={() => setMenu(false)} titulo={nome}>
         <div class="menu-acoes">
           <button
             class="botao largo"

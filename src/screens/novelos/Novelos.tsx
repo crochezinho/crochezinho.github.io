@@ -1,27 +1,28 @@
 import { useState } from 'preact/hooks';
+import { estiloCapa } from '../../app/capa.ts';
 import { href, ir } from '../../app/router.ts';
 import { Icone } from '../../components/Icone.tsx';
 import { useLive } from '../../db/hooks.ts';
 import { lerConfig, listarNovelos, salvarConfig } from '../../db/repo.ts';
 import type { Novelo } from '../../db/types.ts';
 import { formatarEstoque } from '../../domain/estoque.ts';
-import { agruparPorCor, agruparPorMarca, estaAcabando, filtrar, novelosInteiros } from '../../domain/novelos.ts';
+import { agrupar, filtrar, novelosInteiros, type Agrupamento } from '../../domain/novelos.ts';
 
-type Agrupar = 'marca' | 'cor';
+const OPCOES: { valor: Agrupamento; rotulo: string }[] = [
+  { valor: 'marca', rotulo: 'Por marca' },
+  { valor: 'tipo', rotulo: 'Por tipo' }
+];
 
 export function Novelos() {
   const novelos = useLive(listarNovelos);
-  const agruparSalvo = useLive(() => lerConfig<Agrupar>('novelos.agrupar', 'marca'));
+  const agruparSalvo = useLive(() => lerConfig<Agrupamento>('novelos.agrupar', 'marca'));
   const [busca, setBusca] = useState('');
-  const [soAcabando, setSoAcabando] = useState(false);
 
   if (!novelos || !agruparSalvo) return null;
-  const agrupar = agruparSalvo;
-  const visiveis = filtrar(novelos, busca, soAcabando);
+  const por: Agrupamento = agruparSalvo === 'tipo' ? 'tipo' : 'marca';
+  const visiveis = filtrar(novelos, busca);
   const totalInteiros = novelos.reduce((s, n) => s + novelosInteiros(n), 0);
-  const acabando = novelos.filter(estaAcabando).length;
-
-  const bloco = (n: Novelo) => <BlocoNovelo key={n.id} n={n} />;
+  const nomeSub = (q: number) => (por === 'marca' ? (q === 1 ? 'tipo' : 'tipos') : q === 1 ? 'marca' : 'marcas');
 
   return (
     <main class="tela anim-tela">
@@ -47,7 +48,7 @@ export function Novelos() {
             <input
               class="campo"
               type="search"
-              placeholder="Buscar cor, marca, fibra…"
+              placeholder="Buscar cor, marca, tipo…"
               value={busca}
               onInput={(e) => setBusca(e.currentTarget.value)}
               aria-label="Buscar novelos"
@@ -56,52 +57,44 @@ export function Novelos() {
 
           <div class="filtros">
             <div class="segmentado compacto" role="tablist" aria-label="Agrupar por">
-              {(['marca', 'cor'] as const).map((a) => (
-                <button key={a} role="tab" aria-selected={agrupar === a} class={agrupar === a ? 'ativo' : ''} onClick={() => void salvarConfig('novelos.agrupar', a)}>
-                  {a === 'marca' ? 'Por marca' : 'Por cor'}
+              {OPCOES.map((o) => (
+                <button key={o.valor} role="tab" aria-selected={por === o.valor} class={por === o.valor ? 'ativo' : ''} onClick={() => void salvarConfig('novelos.agrupar', o.valor)}>
+                  {o.rotulo}
                 </button>
               ))}
             </div>
-            <button class={'chip-filtro' + (soAcabando ? ' ativo' : '')} aria-pressed={soAcabando} onClick={() => setSoAcabando(!soAcabando)}>
-              <i />
-              Acabando{acabando ? ` (${acabando})` : ''}
-            </button>
           </div>
 
           {visiveis.length === 0 ? (
             <div class="vazio">
               <h2>Nada encontrado</h2>
-              <p>{soAcabando && !busca ? 'Nenhum novelo acabando. Estoque tranquilo!' : 'Tente outra busca.'}</p>
+              <p>Tente outra busca.</p>
             </div>
-          ) : agrupar === 'marca' ? (
-            agruparPorMarca(visiveis).map((g) => (
-              <section key={g.marca} class="grupo">
-                <div class="grupo-cabecalho">
-                  <h2>{g.marca}</h2>
-                  <span class="grupo-resumo">
-                    {g.linhas.length} {g.linhas.length === 1 ? 'linha' : 'linhas'} · {g.totalInteiros} {g.totalInteiros === 1 ? 'novelo' : 'novelos'}
-                  </span>
-                </div>
-                {g.linhas.map((l) => (
-                  <div key={l.linha}>
-                    {l.linha && <h3 class="grupo-linha">{l.linha}</h3>}
-                    <div class="grade-novelos">{l.itens.map(bloco)}</div>
-                  </div>
-                ))}
-              </section>
-            ))
           ) : (
-            agruparPorCor(visiveis).map((g) => (
-              <section key={g.familia} class="grupo">
-                <div class="grupo-cabecalho">
-                  <h2>{g.familia}</h2>
-                  <span class="grupo-resumo">
-                    {g.itens.length} {g.itens.length === 1 ? 'tom' : 'tons'}
-                  </span>
-                </div>
-                <div class="grade-novelos">{g.itens.map(bloco)}</div>
-              </section>
-            ))
+            agrupar(visiveis, por).map((g) => {
+              const subs = g.sub.filter((s) => s.nome).length;
+              return (
+                <section key={g.nome} class="grupo">
+                  <div class="grupo-cabecalho">
+                    <h2>{g.nome}</h2>
+                    <span class="grupo-resumo">
+                      {subs > 0 && `${subs} ${nomeSub(subs)} · `}
+                      {g.totalInteiros} {g.totalInteiros === 1 ? 'novelo' : 'novelos'}
+                    </span>
+                  </div>
+                  {g.sub.map((s) => (
+                    <div key={s.nome}>
+                      {(s.nome || g.sub.length > 1) && <h3 class="grupo-linha">{s.nome || (por === 'marca' ? 'Sem tipo' : 'Sem marca')}</h3>}
+                      <div class="grade-novelos">
+                        {s.itens.map((n) => (
+                          <BlocoNovelo key={n.id} n={n} />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </section>
+              );
+            })
           )}
         </>
       )}
@@ -115,11 +108,10 @@ export function Novelos() {
 
 function BlocoNovelo({ n }: { n: Novelo }) {
   const inteiros = novelosInteiros(n);
-  const pouco = estaAcabando(n);
   return (
     <button class="bloco-novelo" onClick={() => ir(href.novelo(n.id))}>
-      <span class="bloco-cor" style={{ background: n.capaCor }}>
-        <span class={'bloco-qtd' + (pouco ? ' pouco' : '')}>{inteiros > 0 ? inteiros : `${Math.max(0, n.estoqueG)} g`}</span>
+      <span class="bloco-cor" style={estiloCapa(n.capaCor, n.textura)}>
+        <span class="bloco-qtd">{inteiros > 0 ? inteiros : `${Math.max(0, n.estoqueG)} g`}</span>
       </span>
       <strong>{n.cor}</strong>
       <small>{formatarEstoque(n.estoqueG, n.gramatura)}</small>

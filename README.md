@@ -37,7 +37,7 @@ public/icons/  ícones do PWA
 src/
   app/         moldura do app e rotas
   db/          banco local (Dexie) e tipos
-  domain/      regras puras: tempo, preço, estoque
+  domain/      regras puras: tempo, preço, estoque, novelos, vendas (Shopee e embalagem)
   screens/     uma pasta por tela
   components/  componentes reutilizáveis
   styles/      tokens, base e animações

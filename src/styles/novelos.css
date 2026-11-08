@@ -22,33 +22,6 @@
   min-height: 36px;
   font-size: 13px;
 }
-.chip-filtro {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 0 14px;
-  border-radius: var(--raio-pill);
-  background: var(--superficie);
-  color: var(--texto-2);
-  font-weight: 700;
-  font-size: 13px;
-  box-shadow: var(--sombra-cartao);
-  white-space: nowrap;
-}
-.chip-filtro i {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--toggle-off);
-}
-.chip-filtro.ativo {
-  background: var(--fazendo-bg);
-  color: var(--fazendo-fg);
-}
-.chip-filtro.ativo i {
-  background: var(--mel);
-}
 .grupo {
   margin-top: 24px;
 }
@@ -116,10 +89,6 @@
   line-height: 24px;
   text-align: center;
 }
-.bloco-qtd.pouco {
-  background: var(--rosa-escuro);
-  color: #fff;
-}
 .bloco-novelo strong {
   font-size: 14px;
   line-height: 1.2;
@@ -177,10 +146,6 @@
   display: block;
   margin: 12px auto 0;
 }
-.aviso-compacto {
-  margin-top: 14px;
-  padding: 10px 14px;
-}
 .ficha {
   margin: 0;
   border-radius: var(--raio-l);
@@ -210,9 +175,22 @@
 button.chip-fio {
   min-height: 0;
 }
-.capa-nome {
-  margin: 8px 0 0;
-  font-size: 13px;
-  font-weight: 700;
+
+.mais-detalhes {
+  margin-top: 22px;
+  padding: 4px 16px 16px;
+  border-radius: var(--raio-m);
+  background: var(--superficie);
+  box-shadow: var(--sombra-cartao);
+}
+.mais-detalhes summary {
+  min-height: var(--toque-min);
+  display: flex;
+  align-items: center;
+  font-weight: 800;
   color: var(--texto-2);
+  cursor: pointer;
+}
+.mais-detalhes:not([open]) {
+  padding-bottom: 4px;
 }

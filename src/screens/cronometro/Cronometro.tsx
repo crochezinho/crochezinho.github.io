@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { estiloCapa } from '../../app/capa.ts';
 import { useDadosCrono, projetoDaVez } from '../../app/dados.ts';
 import { useAgora, useTelaAcesa } from '../../app/hooks.ts';
 import { href, ir, voltar } from '../../app/router.ts';
@@ -93,7 +94,7 @@ export function Cronometro({ projetoId }: { projetoId: string | null }) {
                   if (p.id !== projeto.id) ir(href.crono(p.id), true);
                 }}
               >
-                <span class="capa" style={{ background: p.capaCor }} />
+                <span class="capa" style={estiloCapa(p.capaCor)} />
                 <span class="linha-projeto-texto">
                   <strong>{p.nome}</strong>
                   <small>

@@ -1,22 +1,23 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { AGULHAS, CAPAS, TIPOS } from '../../app/constantes.ts';
+import { AGULHAS, TIPOS } from '../../app/constantes.ts';
+import { CampoInteiro } from '../../components/Campos.tsx';
 import { SeletorCapa } from '../../components/SeletorCapa.tsx';
 import { useDadosCrono } from '../../app/dados.ts';
 import { href, ir, voltar } from '../../app/router.ts';
 import { Icone } from '../../components/Icone.tsx';
 import { toast } from '../../components/toast.tsx';
-import { criarProjeto, editarProjeto, type CamposProjeto } from '../../db/repo.ts';
+import { CAPA_PADRAO, criarProjeto, editarProjeto, type CamposProjeto } from '../../db/repo.ts';
 
 export function ProjetoForm({ id }: { id: string | null }) {
   const dados = useDadosCrono();
   const projeto = id ? dados?.projetos.find((p) => p.id === id) : undefined;
-  const [campos, setCampos] = useState<CamposProjeto>({ nome: '', tipo: TIPOS[0], agulha: '', capaCor: CAPAS[0].cor });
+  const [campos, setCampos] = useState<CamposProjeto>({ nome: '', tipo: TIPOS[0], agulha: '', capaCor: CAPA_PADRAO, quantidade: 1 });
   const [carregado, setCarregado] = useState(!id);
   const nomeRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (projeto && !carregado) {
-      setCampos({ nome: projeto.nome, tipo: projeto.tipo, agulha: projeto.agulha, capaCor: projeto.capaCor });
+      setCampos({ nome: projeto.nome, tipo: projeto.tipo, agulha: projeto.agulha, capaCor: projeto.capaCor, quantidade: projeto.quantidade ?? 1 });
       setCarregado(true);
     }
   }, [projeto, carregado]);
@@ -77,6 +78,12 @@ export function ProjetoForm({ id }: { id: string | null }) {
           ))}
         </div>
 
+        <label class="rotulo" for="pf-qtd">
+          Peças iguais
+        </label>
+        <CampoInteiro id="pf-qtd" valor={campos.quantidade} aoMudar={(q) => mudar({ quantidade: Math.max(1, q) })} rotulo="Peças iguais" sufixo="peças" max={9999} vazioQuandoZero={false} />
+        <p class="texto-apagado">Ex.: 10 chaveiros iguais. Na calculadora, fios e outros custos são por peça.</p>
+
         <p class="rotulo">Agulha</p>
         <div class="chips" role="radiogroup" aria-label="Agulha">
           {AGULHAS.map((a) => (
@@ -102,7 +109,7 @@ export function ProjetoForm({ id }: { id: string | null }) {
         />
 
         <p class="rotulo">Capa</p>
-        <SeletorCapa valor={campos.capaCor} aoMudar={(c) => mudar({ capaCor: c })} />
+        <SeletorCapa cor={campos.capaCor} aoMudarCor={(c) => mudar({ capaCor: c })} />
 
         <button type="submit" class="botao primario largo" style={{ marginTop: 28 }}>
           {id ? 'Salvar alterações' : 'Criar projeto'}

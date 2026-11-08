@@ -1,25 +1,41 @@
-import { CAPAS } from '../app/constantes.ts';
+import { TEXTURAS, corValida, estiloCapa } from '../app/capa.ts';
+import type { Textura } from '../db/types.ts';
 
-export function SeletorCapa({ valor, aoMudar }: { valor: string; aoMudar: (cor: string) => void }) {
-  const atual = CAPAS.find((c) => c.cor.toLowerCase() === valor.toLowerCase());
+export function SeletorCapa({
+  cor,
+  aoMudarCor,
+  textura,
+  aoMudarTextura
+}: {
+  cor: string;
+  aoMudarCor: (cor: string) => void;
+  textura?: Textura;
+  aoMudarTextura?: (t: Textura) => void;
+}) {
+  const valor = corValida(cor);
   return (
-    <>
-      <div class="capas" role="radiogroup" aria-label="Cor da capa">
-        {CAPAS.map((c) => (
-          <button
-            type="button"
-            key={c.cor}
-            role="radio"
-            aria-checked={c.cor === atual?.cor}
-            class={'capa-opcao' + (c.cor === atual?.cor ? ' ativa' : '')}
-            style={{ background: c.cor, color: c.cor }}
-            aria-label={c.nome}
-            title={c.nome}
-            onClick={() => aoMudar(c.cor)}
-          />
-        ))}
-      </div>
-      {atual && <p class="capa-nome">{atual.nome}</p>}
-    </>
+    <div class="seletor-capa">
+      <label class="capa-amostra" style={estiloCapa(valor, textura)}>
+        <input type="color" value={valor} onInput={(e) => aoMudarCor(e.currentTarget.value)} aria-label="Cor da capa" />
+        <span class="capa-amostra-dica">Toque para trocar a cor</span>
+      </label>
+      {textura && aoMudarTextura && (
+        <div class="texturas" role="radiogroup" aria-label="Textura">
+          {TEXTURAS.map((t) => (
+            <button
+              type="button"
+              key={t.valor}
+              role="radio"
+              aria-checked={textura === t.valor}
+              class={'textura-opcao' + (textura === t.valor ? ' ativa' : '')}
+              onClick={() => aoMudarTextura(t.valor)}
+            >
+              <span style={estiloCapa(valor, t.valor)} />
+              {t.nome}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

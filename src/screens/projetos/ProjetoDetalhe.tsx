@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { corValida, estiloCapa } from '../../app/capa.ts';
 import { useDadosCrono } from '../../app/dados.ts';
 import { diaCurto } from '../../app/datas.ts';
 import { useAgora } from '../../app/hooks.ts';
@@ -11,6 +12,7 @@ import { useLive } from '../../db/hooks.ts';
 import { concluirProjeto, excluirProjeto, iniciar, listarNovelos, reabrirProjeto, restaurarProjeto } from '../../db/repo.ts';
 import type { Novelo, Projeto } from '../../db/types.ts';
 import { calcularDesconto, formatarEstoque } from '../../domain/estoque.ts';
+import { nomeDoNovelo } from '../../domain/novelos.ts';
 import { brl } from '../../domain/preco.ts';
 import { formatarTotal, totalDoProjeto } from '../../domain/tempo.ts';
 
@@ -43,7 +45,9 @@ export function ProjetoDetalhe({ id }: { id: string }) {
   const concluido = projeto.status === 'concluido';
   const temSessao = dados.sessoes.some((s) => s.projetoId === projeto.id && !s.ajuste);
   const novelo = (nid: string) => novelos.find((n) => n.id === nid);
-  const detalhes = [projeto.tipo, projeto.agulha, concluido && projeto.concluidoEm ? `concluído em ${diaCurto(projeto.concluidoEm)}` : `iniciado em ${diaCurto(projeto.criadoEm)}`]
+  const quantidade = projeto.quantidade ?? 1;
+  const manuais = (projeto.calculo?.fios ?? []).filter((f) => !f.noveloId);
+  const detalhes = [projeto.tipo, quantidade > 1 ? `${quantidade} peças` : '', projeto.agulha, concluido && projeto.concluidoEm ? `concluído em ${diaCurto(projeto.concluidoEm)}` : `iniciado em ${diaCurto(projeto.criadoEm)}`]
     .filter(Boolean)
     .join(' · ');
 
@@ -65,7 +69,7 @@ export function ProjetoDetalhe({ id }: { id: string }) {
 
   return (
     <main class="detalhe anim-tela">
-      <div class="detalhe-faixa" style={{ background: `linear-gradient(160deg, ${projeto.capaCor}, ${projeto.capaCor}cc)` }}>
+      <div class="detalhe-faixa" style={{ background: `linear-gradient(160deg, ${corValida(projeto.capaCor)}, ${corValida(projeto.capaCor)}cc)` }}>
         <button class="botao-voltar claro" aria-label="Voltar" onClick={() => voltar(href.projetos)}>
           <Icone nome="voltar" />
         </button>
@@ -90,7 +94,7 @@ export function ProjetoDetalhe({ id }: { id: string }) {
             </div>
             <div>
               <strong class="preco">{projeto.precoCentavos !== null ? brl(projeto.precoCentavos) : '—'}</strong>
-              <span>preço</span>
+              <span>{quantidade > 1 ? 'por peça' : 'preço'}</span>
             </div>
           </div>
         </section>
@@ -116,24 +120,30 @@ export function ProjetoDetalhe({ id }: { id: string }) {
         </button>
 
         <div class="secao-cabecalho">
-          <h2 class="secao-titulo">Fios usados</h2>
+          <h2 class="secao-titulo">Fios{quantidade > 1 ? ' por peça' : ''}</h2>
           {!concluido && (
             <button class="link-pequeno" onClick={() => ir(href.calcularPara(projeto.id))}>
               {projeto.fios.length ? 'editar' : 'registrar'}
             </button>
           )}
         </div>
-        {projeto.fios.length ? (
+        {projeto.fios.length || manuais.length ? (
           <div class="chips">
             {projeto.fios.map((f, i) => {
               const n = novelo(f.noveloId);
               return (
                 <span key={i} class="chip-fio">
-                  <i style={{ background: n?.capaCor ?? 'var(--divisoria)' }} />
-                  {n?.cor ?? 'Fio removido'} · {f.gramas} g
+                  <i style={n ? estiloCapa(n.capaCor, n.textura) : { background: 'var(--divisoria)' }} />
+                  {n ? nomeDoNovelo(n) : 'Fio removido'} · {f.gramas} g
                 </span>
               );
             })}
+            {manuais.map((f, i) => (
+              <span key={`m${i}`} class="chip-fio">
+                <i style={{ background: 'var(--divisoria)' }} />
+                {f.nome || 'Valor manual'} · {brl(f.valorCentavos ?? 0)}
+              </span>
+            ))}
           </div>
         ) : (
           <p class="texto-apagado">Nenhum fio registrado. Os fios entram pela calculadora de preço.</p>
@@ -184,7 +194,7 @@ function ConcluirAberta({
   novelos: Novelo[];
   rodando: boolean;
 }) {
-  const itens = calcularDesconto(projeto.fios, novelos);
+  const itens = calcularDesconto(projeto.fios, novelos, projeto.quantidade ?? 1);
   const [descontar, setDescontar] = useState(itens.length > 0);
 
   const concluir = async () => {
@@ -203,10 +213,10 @@ function ConcluirAberta({
               const n = novelos.find((x) => x.id === it.noveloId)!;
               return (
                 <li key={it.noveloId}>
-                  <span class="capa capa-p" style={{ background: n.capaCor }} />
+                  <span class="capa capa-p" style={estiloCapa(n.capaCor, n.textura)} />
                   <span class="linha-projeto-texto">
                     <strong>
-                      {n.cor} <span class="menos">−{it.gramas} g</span>
+                      {nomeDoNovelo(n)} <span class="menos">−{it.gramas} g</span>
                     </strong>
                     <small>
                       fica {formatarEstoque(it.depois, n.gramatura)}
@@ -250,7 +260,7 @@ function ReabrirAberta({ aberta, aoFechar, projeto, novelos }: { aberta: boolean
           aoMudar={setDevolver}
           rotulo="Devolver fios ao estoque"
           detalhe={descontado
-            .map((d) => `${novelos.find((n) => n.id === d.noveloId)!.cor} +${d.gramas} g`)
+            .map((d) => `${nomeDoNovelo(novelos.find((n) => n.id === d.noveloId)!)} +${d.gramas} g`)
             .join(' · ')}
         />
       )}

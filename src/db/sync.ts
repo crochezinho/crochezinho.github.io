@@ -1,4 +1,5 @@
 import { CONFIG_SINCRONIZADA, VERSAO_PACOTE, mesclarPacotes, validarPacote, type Pacote } from '../domain/sync.ts';
+import { normalizarNovelo, normalizarProjeto } from '../domain/migracao.ts';
 import { db } from './db.ts';
 import { ErroGitHub, gravarRemoto, lerRemoto, type ConexaoGitHub } from './github.ts';
 import { lerConfig, salvarConfig, apagarConfig } from './repo.ts';
@@ -29,7 +30,9 @@ export async function montarPacote(): Promise<PacoteApp> {
 async function mesclarComLocal(remoto: PacoteApp | null) {
   const local = await montarPacote();
   const m = mesclarPacotes(local, remoto, Date.now());
-  const { projetos, sessoes, novelos, config } = m.paraLocal;
+  const { sessoes, config } = m.paraLocal;
+  const projetos = m.paraLocal.projetos.map(normalizarProjeto);
+  const novelos = m.paraLocal.novelos.map(normalizarNovelo);
   if (projetos.length || sessoes.length || novelos.length || config.length) {
     await db.transaction('rw', db.projetos, db.sessoes, db.novelos, db.config, async () => {
       await db.projetos.bulkPut(projetos);

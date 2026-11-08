@@ -5,7 +5,9 @@ import type { Calculo, FioUsado, Id, Novelo, Projeto, Rascunho, Sessao } from '.
 const agora = () => Date.now();
 const ativo = <T extends { excluidoEm: number | null }>(r: T) => !r.excluidoEm;
 
-export type CamposProjeto = Pick<Projeto, 'nome' | 'tipo' | 'agulha' | 'capaCor'>;
+export type CamposProjeto = Pick<Projeto, 'nome' | 'tipo' | 'agulha' | 'capaCor' | 'quantidade'>;
+
+export const CAPA_PADRAO = '#C98B86';
 
 export async function criarProjeto(nome: string, campos: Partial<CamposProjeto> = {}): Promise<Id> {
   const t = agora();
@@ -13,7 +15,8 @@ export async function criarProjeto(nome: string, campos: Partial<CamposProjeto> 
     id: novoId(),
     tipo: 'Amigurumi',
     agulha: '',
-    capaCor: '#C98B86',
+    capaCor: CAPA_PADRAO,
+    quantidade: 1,
     ...campos,
     nome: nome.trim() || 'Novo projeto',
     status: 'fazendo',
@@ -36,7 +39,12 @@ export async function listarProjetos(): Promise<Projeto[]> {
 }
 
 export async function editarProjeto(id: Id, campos: CamposProjeto): Promise<void> {
-  await db.projetos.update(id, { ...campos, nome: campos.nome.trim() || 'Projeto', atualizadoEm: agora() });
+  await db.projetos.update(id, {
+    ...campos,
+    nome: campos.nome.trim() || 'Projeto',
+    quantidade: Math.max(1, Math.floor(campos.quantidade) || 1),
+    atualizadoEm: agora()
+  });
 }
 
 async function pausarSeRodando(projetoId: Id, t: number): Promise<void> {
@@ -53,7 +61,7 @@ export async function concluirProjeto(id: Id, descontar: boolean): Promise<void>
     const descontado: FioUsado[] = [];
     if (descontar) {
       const novelos = (await db.novelos.toArray()).filter(ativo);
-      for (const item of calcularDesconto(p.fios, novelos)) {
+      for (const item of calcularDesconto(p.fios, novelos, p.quantidade ?? 1)) {
         await db.novelos.update(item.noveloId, { estoqueG: item.depois, atualizadoEm: t });
         descontado.push({ noveloId: item.noveloId, gramas: item.antes - item.depois });
       }
@@ -187,22 +195,19 @@ export async function listarNovelos(): Promise<Novelo[]> {
   return todos.filter(ativo).sort((a, b) => a.marca.localeCompare(b.marca, 'pt-BR') || a.cor.localeCompare(b.cor, 'pt-BR'));
 }
 
-export type NovoNovelo = Pick<Novelo, 'cor' | 'marca' | 'gramatura' | 'precoCentavos' | 'estoqueG' | 'capaCor'> &
-  Partial<Pick<Novelo, 'familia' | 'linha' | 'fibra' | 'metros' | 'lote' | 'agulha'>>;
+export type NovoNovelo = Pick<Novelo, 'cor' | 'marca' | 'tipo' | 'gramatura' | 'precoCentavos' | 'estoqueG' | 'capaCor' | 'textura'> &
+  Partial<Pick<Novelo, 'lote' | 'agulha'>>;
 
 export async function criarNovelo(n: NovoNovelo): Promise<Id> {
   const t = agora();
   const novelo: Novelo = {
     id: novoId(),
-    familia: '',
-    linha: '',
-    fibra: '',
-    metros: 0,
     lote: '',
     agulha: '',
     ...n,
     cor: n.cor.trim() || 'Novelo',
     marca: n.marca.trim(),
+    tipo: n.tipo.trim(),
     atualizadoEm: t,
     excluidoEm: null
   };
@@ -213,7 +218,13 @@ export async function criarNovelo(n: NovoNovelo): Promise<Id> {
 export type CamposNovelo = Omit<Novelo, 'id' | 'atualizadoEm' | 'excluidoEm' | 'estoqueG'>;
 
 export async function editarNovelo(id: Id, campos: CamposNovelo): Promise<void> {
-  await db.novelos.update(id, { ...campos, cor: campos.cor.trim() || 'Novelo', marca: campos.marca.trim(), atualizadoEm: agora() });
+  await db.novelos.update(id, {
+    ...campos,
+    cor: campos.cor.trim() || 'Novelo',
+    marca: campos.marca.trim(),
+    tipo: campos.tipo.trim(),
+    atualizadoEm: agora()
+  });
 }
 
 export async function definirEstoque(id: Id, gramas: number): Promise<void> {
@@ -243,12 +254,15 @@ export async function descartarRascunho(projetoId: Id | null): Promise<void> {
   await apagarConfig(chaveRascunho(projetoId));
 }
 
-export async function salvarCalculoNoProjeto(projetoId: Id, calculo: Calculo): Promise<void> {
+export async function salvarCalculoNoProjeto(projetoId: Id, calculo: Calculo, precoPorPecaCentavos: number): Promise<void> {
   await db.transaction('rw', db.projetos, db.config, async () => {
+    const fios: FioUsado[] = [];
+    for (const { noveloId, gramas } of calculo.fios) if (noveloId) fios.push({ noveloId, gramas });
     await db.projetos.update(projetoId, {
       calculo,
-      precoCentavos: calculo.totalCentavos,
-      fios: calculo.fios.map(({ noveloId, gramas }) => ({ noveloId, gramas })),
+      precoCentavos: precoPorPecaCentavos,
+      quantidade: Math.max(1, calculo.quantidade ?? 1),
+      fios,
       atualizadoEm: agora()
     });
     await db.config.delete(chaveRascunho(projetoId));

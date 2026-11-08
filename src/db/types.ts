@@ -13,8 +13,12 @@ export interface FioUsado {
   gramas: number;
 }
 
-export interface FioCalculo extends FioUsado {
+export interface FioCalculo {
+  noveloId: Id | null;
+  gramas: number;
   precoPorGramaCentavos: number;
+  nome?: string;
+  valorCentavos?: number;
 }
 
 export interface CustoExtra {
@@ -28,6 +32,7 @@ export interface Calculo {
   valorHoraCentavos: number;
   extras: CustoExtra[];
   margemPct: number;
+  quantidade?: number;
   totalCentavos: number;
   calculadoEm: number;
 }
@@ -37,6 +42,7 @@ export interface Projeto extends Registro {
   tipo: string;
   agulha: string;
   capaCor: string;
+  quantidade: number;
   status: StatusProjeto;
   fios: FioUsado[];
   calculo: Calculo | null;
@@ -54,23 +60,24 @@ export interface Sessao extends Registro {
   editada: boolean;
 }
 
+export type Textura = 'liso' | 'brilho' | 'felpudo';
+
 export interface Novelo extends Registro {
   cor: string;
-  familia: string;
   marca: string;
-  linha: string;
-  fibra: string;
+  tipo: string;
   gramatura: number;
-  metros: number;
   precoCentavos: number;
   lote: string;
   agulha: string;
   estoqueG: number;
   capaCor: string;
+  textura: Textura;
 }
 
 export interface Rascunho {
   fios: (FioCalculo & { chave: string })[];
+  quantidade?: number;
   minutos: number;
   minutosDoCrono: boolean;
   valorHoraCentavos: number;

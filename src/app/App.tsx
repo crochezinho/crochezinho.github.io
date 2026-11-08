@@ -1,7 +1,7 @@
 import { BottomNav } from '../components/BottomNav.tsx';
 import { ErroNaTela } from '../components/ErroNaTela.tsx';
 import { Toast } from '../components/toast.tsx';
-import { Calculadora } from '../screens/calculadora/Calculadora.tsx';
+import { TelaCalcular } from '../screens/calculadora/TelaCalcular.tsx';
 import { Configuracoes } from '../screens/config/Configuracoes.tsx';
 import { Cronometro } from '../screens/cronometro/Cronometro.tsx';
 import { Inicio } from '../screens/inicio/Inicio.tsx';
@@ -28,7 +28,7 @@ export function App() {
       {rota.nome === 'novelos' && <Novelos />}
       {rota.nome === 'novelo' && <NoveloDetalhe key={rota.id} id={rota.id} />}
       {rota.nome === 'noveloForm' && <NoveloForm key={rota.id ?? 'novo'} id={rota.id} />}
-      {rota.nome === 'calcular' && <Calculadora projetoIdRota={rota.projetoId} />}
+      {rota.nome === 'calcular' && <TelaCalcular projetoIdRota={rota.projetoId} />}
       {rota.nome === 'crono' && <Cronometro key={rota.projetoId ?? ''} projetoId={rota.projetoId} />}
       {rota.nome === 'config' && <Configuracoes />}
 

@@ -1,0 +1,122 @@
+.abas-calc {
+  grid-template-columns: repeat(3, 1fr);
+  margin: 0 0 18px;
+}
+
+.vender .cartao-preco {
+  margin-top: 18px;
+}
+.cartao-preco-valor.medidas {
+  font-size: 32px;
+}
+.grade-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.grade-3 .campo-unidade .campo {
+  padding: 0 42px 0 10px;
+}
+.grade-3 .campo-unidade span {
+  right: 12px;
+}
+.legenda-campo {
+  display: block;
+  margin-top: 4px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--texto-apagado);
+}
+.frete-considera {
+  margin-top: 10px;
+}
+
+.aviso-venda {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: var(--raio-m);
+  font-size: 14px;
+  line-height: 1.4;
+  background: var(--superficie);
+  color: var(--texto-2);
+  box-shadow: var(--sombra-cartao);
+}
+.aviso-venda.alerta {
+  background: #f9dcd8;
+  color: #8d2f25;
+  box-shadow: none;
+}
+.aviso-venda.aviso {
+  background: var(--fazendo-bg);
+  color: var(--fazendo-fg);
+  box-shadow: none;
+}
+.aviso-venda.positivo {
+  background: var(--concluido-bg);
+  color: var(--concluido-fg);
+  box-shadow: none;
+}
+
+.resumo-ajustes {
+  margin-left: 6px;
+  font-weight: 600;
+  color: var(--texto-apagado);
+}
+.ficha div.forte dt,
+.ficha div.forte dd {
+  color: var(--texto);
+  font-weight: 800;
+}
+
+.lista-opcoes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.lista-opcoes li {
+  display: grid;
+  gap: 2px;
+  padding: 10px 0;
+}
+.lista-opcoes li + li {
+  border-top: 1px solid var(--divisoria);
+}
+.lista-opcoes strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+.lista-opcoes small {
+  font-size: 13px;
+  color: var(--texto-apagado);
+}
+.lista-opcoes li.escolhida strong {
+  color: var(--rosa-escuro);
+}
+.selo {
+  padding: 2px 8px;
+  border-radius: var(--raio-pill);
+  background: var(--concluido-bg);
+  color: var(--concluido-fg);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.rodape-regras {
+  margin: 24px 4px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--texto-apagado);
+}
+.rodape-regras svg {
+  vertical-align: -2px;
+}
+
+.link-shopee {
+  display: block;
+  margin: 14px auto 0;
+}

@@ -7,12 +7,14 @@ export interface ItemDesconto {
 }
 
 export function calcularDesconto(
-  fios: { noveloId: string; gramas: number }[],
-  estoque: { id: string; estoqueG: number }[]
+  fios: { noveloId: string | null; gramas: number }[],
+  estoque: { id: string; estoqueG: number }[],
+  quantidade = 1
 ): ItemDesconto[] {
+  const q = Math.max(1, Math.floor(quantidade) || 1);
   const porNovelo = new Map<string, number>();
   for (const f of fios) {
-    if (f.gramas > 0) porNovelo.set(f.noveloId, (porNovelo.get(f.noveloId) ?? 0) + f.gramas);
+    if (f.noveloId && f.gramas > 0) porNovelo.set(f.noveloId, (porNovelo.get(f.noveloId) ?? 0) + f.gramas * q);
   }
   const itens: ItemDesconto[] = [];
   for (const [noveloId, gramas] of porNovelo) {

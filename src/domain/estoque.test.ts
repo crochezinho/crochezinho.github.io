@@ -22,6 +22,18 @@ test('desconto do estoque ao concluir', () => {
   ]);
 });
 
+test('desconto com várias peças e fio manual', () => {
+  const itens = calcularDesconto(
+    [
+      { noveloId: 'a', gramas: 30 },
+      { noveloId: null, gramas: 0 }
+    ],
+    [{ id: 'a', estoqueG: 150 }],
+    4
+  );
+  assert.deepEqual(itens, [{ noveloId: 'a', gramas: 120, antes: 150, depois: 30, faltou: 0 }]);
+});
+
 test('estoque em novelos + gramas', () => {
   assert.equal(formatarEstoque(240, 100), '2 novelos + 40 g');
   assert.equal(formatarEstoque(100, 100), '1 novelo');

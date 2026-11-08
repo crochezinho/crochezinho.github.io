@@ -1,16 +1,14 @@
 export interface NoveloLista {
   id: string;
   cor: string;
-  familia: string;
   marca: string;
-  linha: string;
-  fibra: string;
+  tipo: string;
   gramatura: number;
   estoqueG: number;
 }
 
-export function estaAcabando(n: Pick<NoveloLista, 'estoqueG' | 'gramatura'>): boolean {
-  return n.gramatura > 0 ? n.estoqueG < n.gramatura : n.estoqueG <= 0;
+export function nomeDoNovelo(n: Pick<NoveloLista, 'tipo' | 'cor'>): string {
+  return [n.tipo.trim(), n.cor.trim()].filter(Boolean).join(' ') || 'Novelo';
 }
 
 export function novelosInteiros(n: Pick<NoveloLista, 'estoqueG' | 'gramatura'>): number {
@@ -19,58 +17,46 @@ export function novelosInteiros(n: Pick<NoveloLista, 'estoqueG' | 'gramatura'>):
 
 const semAcento = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
-export function filtrar<T extends NoveloLista>(novelos: T[], busca: string, soAcabando: boolean): T[] {
+export function filtrar<T extends NoveloLista>(novelos: T[], busca: string): T[] {
   const termos = semAcento(busca).split(/\s+/).filter(Boolean);
   return novelos.filter((n) => {
-    if (soAcabando && !estaAcabando(n)) return false;
     if (!termos.length) return true;
-    const alvo = semAcento(`${n.cor} ${n.familia} ${n.marca} ${n.linha} ${n.fibra}`);
+    const alvo = semAcento(`${n.cor} ${n.marca} ${n.tipo}`);
     return termos.every((t) => alvo.includes(t));
   });
 }
 
 const comparar = (a: string, b: string) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' });
 
-export interface GrupoMarca<T> {
-  marca: string;
-  linhas: { linha: string; itens: T[] }[];
+export type Agrupamento = 'marca' | 'tipo';
+
+export interface Grupo<T> {
+  nome: string;
+  sub: { nome: string; itens: T[] }[];
   totalInteiros: number;
 }
 
-export function agruparPorMarca<T extends NoveloLista>(novelos: T[]): GrupoMarca<T>[] {
+const SEM = { marca: 'Sem marca', tipo: 'Sem tipo' } as const;
+
+export function agrupar<T extends NoveloLista>(novelos: T[], por: Agrupamento): Grupo<T>[] {
+  const outro: Agrupamento = por === 'marca' ? 'tipo' : 'marca';
+  const sem = SEM[por];
   const mapa = new Map<string, Map<string, T[]>>();
   for (const n of novelos) {
-    const marca = n.marca.trim() || 'Sem marca';
-    const linha = n.linha.trim();
-    if (!mapa.has(marca)) mapa.set(marca, new Map());
-    const linhas = mapa.get(marca)!;
-    if (!linhas.has(linha)) linhas.set(linha, []);
-    linhas.get(linha)!.push(n);
+    const nome = n[por].trim() || sem;
+    const sub = n[outro].trim();
+    if (!mapa.has(nome)) mapa.set(nome, new Map());
+    const subs = mapa.get(nome)!;
+    if (!subs.has(sub)) subs.set(sub, []);
+    subs.get(sub)!.push(n);
   }
   return [...mapa.entries()]
-    .sort(([a], [b]) => (a === 'Sem marca' ? 1 : b === 'Sem marca' ? -1 : comparar(a, b)))
-    .map(([marca, linhas]) => {
-      const lista = [...linhas.entries()]
-        .sort(([a], [b]) => comparar(a, b))
-        .map(([linha, itens]) => ({ linha, itens: [...itens].sort((x, y) => comparar(x.cor, y.cor)) }));
-      const totalInteiros = lista.reduce((s, l) => s + l.itens.reduce((t, i) => t + novelosInteiros(i), 0), 0);
-      return { marca, linhas: lista, totalInteiros };
+    .sort(([a], [b]) => (a === sem ? 1 : b === sem ? -1 : comparar(a, b)))
+    .map(([nome, subs]) => {
+      const sub = [...subs.entries()]
+        .sort(([a], [b]) => (a === '' ? 1 : b === '' ? -1 : comparar(a, b)))
+        .map(([s, itens]) => ({ nome: s, itens: [...itens].sort((x, y) => comparar(x.cor, y.cor)) }));
+      const totalInteiros = sub.reduce((s, l) => s + l.itens.reduce((t, i) => t + novelosInteiros(i), 0), 0);
+      return { nome, sub, totalInteiros };
     });
-}
-
-export interface GrupoCor<T> {
-  familia: string;
-  itens: T[];
-}
-
-export function agruparPorCor<T extends NoveloLista>(novelos: T[]): GrupoCor<T>[] {
-  const mapa = new Map<string, T[]>();
-  for (const n of novelos) {
-    const f = n.familia.trim() || 'Outras';
-    if (!mapa.has(f)) mapa.set(f, []);
-    mapa.get(f)!.push(n);
-  }
-  return [...mapa.entries()]
-    .sort(([a], [b]) => (a === 'Outras' ? 1 : b === 'Outras' ? -1 : comparar(a, b)))
-    .map(([familia, itens]) => ({ familia, itens: [...itens].sort((x, y) => comparar(x.cor, y.cor)) }));
 }

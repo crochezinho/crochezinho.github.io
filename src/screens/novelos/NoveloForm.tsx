@@ -1,29 +1,45 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { AGULHAS, CAPAS, nomeDaCapa } from '../../app/constantes.ts';
+import { AGULHAS } from '../../app/constantes.ts';
 import { href, ir, voltar } from '../../app/router.ts';
 import { CampoDinheiro, CampoInteiro } from '../../components/Campos.tsx';
 import { Icone } from '../../components/Icone.tsx';
 import { SeletorCapa } from '../../components/SeletorCapa.tsx';
 import { toast } from '../../components/toast.tsx';
 import { useLive } from '../../db/hooks.ts';
-import { criarNovelo, editarNovelo, listarNovelos, type CamposNovelo } from '../../db/repo.ts';
+import { CAPA_PADRAO, criarNovelo, editarNovelo, listarNovelos, type CamposNovelo } from '../../db/repo.ts';
+import type { Novelo } from '../../db/types.ts';
 import { formatarEstoque } from '../../domain/estoque.ts';
 
 const VAZIO: CamposNovelo = {
   cor: '',
-  familia: CAPAS[0].nome,
   marca: '',
-  linha: '',
-  fibra: '',
+  tipo: '',
   gramatura: 100,
-  metros: 0,
   precoCentavos: 0,
   lote: '',
   agulha: '',
-  capaCor: CAPAS[0].cor
+  capaCor: CAPA_PADRAO,
+  textura: 'liso'
 };
 
 const unicos = (valores: string[]) => [...new Set(valores.map((v) => v.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+export function ListasNovelo({ novelos }: { novelos: Novelo[] }) {
+  return (
+    <>
+      <datalist id="lista-tipos">
+        {unicos(novelos.map((n) => n.tipo)).map((v) => (
+          <option key={v} value={v} />
+        ))}
+      </datalist>
+      <datalist id="lista-marcas">
+        {unicos(novelos.map((n) => n.marca)).map((v) => (
+          <option key={v} value={v} />
+        ))}
+      </datalist>
+    </>
+  );
+}
 
 export function NoveloForm({ id }: { id: string | null }) {
   const novelos = useLive(listarNovelos);
@@ -54,6 +70,7 @@ export function NoveloForm({ id }: { id: string | null }) {
   const agulhaOutra = c.agulha !== '' && !AGULHAS.includes(c.agulha);
   const valido = c.cor.trim() !== '' && c.gramatura > 0;
   const estoqueInicial = fechados * c.gramatura + abertos;
+  const temDetalhes = !!(c.lote || c.agulha);
 
   const salvar = async (e: Event) => {
     e.preventDefault();
@@ -79,30 +96,33 @@ export function NoveloForm({ id }: { id: string | null }) {
       </header>
 
       <form onSubmit={salvar}>
-        <label class="rotulo" for="nf-cor">
-          Nome da cor
-        </label>
-        <input id="nf-cor" ref={corRef} class="campo" value={c.cor} onInput={(e) => mudar({ cor: e.currentTarget.value })} placeholder="ex: Rosa Chá" autocomplete="off" />
-
         <div class="grade-2">
           <div>
-            <label class="rotulo" for="nf-marca">
-              Marca
+            <label class="rotulo" for="nf-tipo">
+              Tipo
             </label>
-            <input id="nf-marca" class="campo" list="lista-marcas" value={c.marca} onInput={(e) => mudar({ marca: e.currentTarget.value })} placeholder="ex: Círculo" />
+            <input
+              id="nf-tipo"
+              class="campo"
+              list="lista-tipos"
+              value={c.tipo}
+              onInput={(e) => mudar({ tipo: e.currentTarget.value })}
+              placeholder="ex: Chenille"
+              autocomplete="off"
+            />
           </div>
           <div>
-            <label class="rotulo" for="nf-linha">
-              Linha
+            <label class="rotulo" for="nf-cor">
+              Cor
             </label>
-            <input id="nf-linha" class="campo" list="lista-linhas" value={c.linha} onInput={(e) => mudar({ linha: e.currentTarget.value })} placeholder="ex: Amigurumi" />
+            <input id="nf-cor" ref={corRef} class="campo" value={c.cor} onInput={(e) => mudar({ cor: e.currentTarget.value })} placeholder="ex: Rosa Chá" autocomplete="off" />
           </div>
         </div>
 
-        <label class="rotulo" for="nf-fibra">
-          Fibra / composição <span class="opcional">opcional</span>
+        <label class="rotulo" for="nf-marca">
+          Marca
         </label>
-        <input id="nf-fibra" class="campo" list="lista-fibras" value={c.fibra} onInput={(e) => mudar({ fibra: e.currentTarget.value })} placeholder="ex: 100% Algodão" />
+        <input id="nf-marca" class="campo" list="lista-marcas" value={c.marca} onInput={(e) => mudar({ marca: e.currentTarget.value })} placeholder="ex: Círculo" autocomplete="off" />
 
         <div class="grade-2">
           <div>
@@ -112,56 +132,15 @@ export function NoveloForm({ id }: { id: string | null }) {
             <CampoInteiro id="nf-gram" valor={c.gramatura} aoMudar={(v) => mudar({ gramatura: v })} rotulo="Gramatura" sufixo="g" />
           </div>
           <div>
-            <label class="rotulo" for="nf-metros">
-              Metragem <span class="opcional">opcional</span>
-            </label>
-            <CampoInteiro id="nf-metros" valor={c.metros} aoMudar={(v) => mudar({ metros: v })} rotulo="Metragem" sufixo="m" />
-          </div>
-        </div>
-
-        <div class="grade-2">
-          <div>
             <label class="rotulo" for="nf-preco">
-              Preço
+              Preço do novelo
             </label>
             <CampoDinheiro id="nf-preco" centavos={c.precoCentavos} aoMudar={(v) => mudar({ precoCentavos: v })} rotulo="Preço do novelo" />
           </div>
-          <div>
-            <label class="rotulo" for="nf-lote">
-              Lote <span class="opcional">opcional</span>
-            </label>
-            <input id="nf-lote" class="campo" value={c.lote} onInput={(e) => mudar({ lote: e.currentTarget.value })} placeholder="ex: A-2241" />
-          </div>
         </div>
 
-        <p class="rotulo">
-          Agulha sugerida <span class="opcional">opcional</span>
-        </p>
-        <div class="chips" role="radiogroup" aria-label="Agulha sugerida">
-          {AGULHAS.map((a) => (
-            <button
-              type="button"
-              key={a}
-              role="radio"
-              aria-checked={c.agulha === a}
-              class={'chip' + (c.agulha === a ? ' ativo' : '')}
-              onClick={() => mudar({ agulha: c.agulha === a ? '' : a })}
-            >
-              {a}
-            </button>
-          ))}
-        </div>
-        <input
-          class="campo"
-          style={{ marginTop: 10 }}
-          value={agulhaOutra ? c.agulha : ''}
-          onInput={(e) => mudar({ agulha: e.currentTarget.value })}
-          placeholder="outro tamanho (ex: 6 mm)"
-          aria-label="Outro tamanho de agulha"
-        />
-
-        <p class="rotulo">Cor (para agrupar)</p>
-        <SeletorCapa valor={c.capaCor} aoMudar={(cor) => mudar({ capaCor: cor, familia: nomeDaCapa(cor) })} />
+        <p class="rotulo">Capa</p>
+        <SeletorCapa cor={c.capaCor} aoMudarCor={(cor) => mudar({ capaCor: cor })} textura={c.textura} aoMudarTextura={(t) => mudar({ textura: t })} />
 
         {!id && (
           <>
@@ -183,27 +162,44 @@ export function NoveloForm({ id }: { id: string | null }) {
           </>
         )}
 
-        {!valido && <p class="erro">Informe o nome da cor e a gramatura.</p>}
+        <details class="mais-detalhes" open={temDetalhes}>
+          <summary>Mais detalhes (opcional)</summary>
+          <label class="rotulo" for="nf-lote">
+            Lote
+          </label>
+          <input id="nf-lote" class="campo" value={c.lote} onInput={(e) => mudar({ lote: e.currentTarget.value })} placeholder="ex: A-2241" />
+          <p class="rotulo">Agulha sugerida</p>
+          <div class="chips" role="radiogroup" aria-label="Agulha sugerida">
+            {AGULHAS.map((a) => (
+              <button
+                type="button"
+                key={a}
+                role="radio"
+                aria-checked={c.agulha === a}
+                class={'chip' + (c.agulha === a ? ' ativo' : '')}
+                onClick={() => mudar({ agulha: c.agulha === a ? '' : a })}
+              >
+                {a}
+              </button>
+            ))}
+          </div>
+          <input
+            class="campo"
+            style={{ marginTop: 10 }}
+            value={agulhaOutra ? c.agulha : ''}
+            onInput={(e) => mudar({ agulha: e.currentTarget.value })}
+            placeholder="outro tamanho (ex: 6 mm)"
+            aria-label="Outro tamanho de agulha"
+          />
+        </details>
+
+        {!valido && <p class="erro">Informe a cor e a gramatura.</p>}
         <button type="submit" class="botao primario largo" style={{ marginTop: 24 }} disabled={!valido}>
           {id ? 'Salvar alterações' : 'Salvar novelo'}
         </button>
       </form>
 
-      <datalist id="lista-marcas">
-        {unicos(novelos.map((n) => n.marca)).map((v) => (
-          <option key={v} value={v} />
-        ))}
-      </datalist>
-      <datalist id="lista-linhas">
-        {unicos(novelos.filter((n) => !c.marca || n.marca === c.marca).map((n) => n.linha)).map((v) => (
-          <option key={v} value={v} />
-        ))}
-      </datalist>
-      <datalist id="lista-fibras">
-        {unicos(novelos.map((n) => n.fibra)).map((v) => (
-          <option key={v} value={v} />
-        ))}
-      </datalist>
+      <ListasNovelo novelos={novelos} />
     </main>
   );
 }

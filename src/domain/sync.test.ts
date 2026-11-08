@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { normalizarNovelo, normalizarProjeto } from './migracao.ts';
 import { base64ParaTexto, mesclarPacotes, mesclarTabela, textoParaBase64, validarPacote, type Pacote } from './sync.ts';
 
 type R = { id: string; atualizadoEm: number; nome?: string; excluidoEm?: number | null };
@@ -81,4 +82,17 @@ test('validação do pacote', () => {
 test('base64 com acentos ida e volta', () => {
   const t = JSON.stringify({ cor: 'Sálvia', nome: 'Coração de crochê ✿' });
   assert.equal(base64ParaTexto(textoParaBase64(t)), t);
+});
+
+test('migração v1 → v2 de novelos e projetos', () => {
+  const v1 = { id: 'n', atualizadoEm: 1, cor: 'Rosa', linha: 'Amigurumi', familia: 'Rosa', fibra: 'Algodão', metros: 200, capaCor: '#C98B86' };
+  const v2 = normalizarNovelo(v1) as Record<string, unknown>;
+  assert.equal(v2.tipo, 'Amigurumi');
+  assert.equal(v2.textura, 'liso');
+  assert.deepEqual(['linha', 'familia', 'fibra', 'metros'].filter((k) => k in v2), []);
+  assert.deepEqual(normalizarNovelo(v2), v2, 'idempotente');
+  assert.equal((normalizarNovelo({ tipo: 'Chenille', linha: 'X', textura: 'felpudo' }) as { tipo: string }).tipo, 'Chenille');
+  assert.equal((normalizarProjeto({ id: 'p' }) as { quantidade: number }).quantidade, 1);
+  assert.equal((normalizarProjeto({ quantidade: 5 }) as { quantidade: number }).quantidade, 5);
+  assert.equal((normalizarProjeto({ quantidade: 0 }) as { quantidade: number }).quantidade, 1);
 });

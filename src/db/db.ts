@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
+import { normalizarNovelo, normalizarProjeto } from '../domain/migracao.ts';
 import type { Config, Novelo, Projeto, Sessao } from './types';
 
 export class CrochezinhoDB extends Dexie {
@@ -15,6 +16,16 @@ export class CrochezinhoDB extends Dexie {
       novelos: 'id, marca, atualizadoEm',
       config: 'chave'
     });
+    this.version(2)
+      .stores({ novelos: 'id, marca, tipo, atualizadoEm' })
+      .upgrade(async (tx) => {
+        const novelos = await tx.table('novelos').toArray();
+        await tx.table('novelos').bulkPut(novelos.map(normalizarNovelo));
+        const projetos = await tx.table('projetos').toArray();
+        await tx.table('projetos').bulkPut(projetos.map(normalizarProjeto));
+        const agrupar = await tx.table('config').get('novelos.agrupar');
+        if (agrupar && agrupar.valor === 'cor') await tx.table('config').put({ ...agrupar, valor: 'marca' });
+      });
   }
 }
 
