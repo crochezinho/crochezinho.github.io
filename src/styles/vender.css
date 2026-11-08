@@ -120,3 +120,70 @@
   display: block;
   margin: 14px auto 0;
 }
+
+.botao-dicas {
+  margin-top: 18px;
+}
+
+.dicas-intro {
+  margin: 0 4px 4px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--texto-2);
+}
+.dicas-secao {
+  margin-top: 14px;
+}
+.dicas-secao summary span {
+  display: grid;
+  gap: 2px;
+  padding: 8px 0;
+}
+.dicas-secao summary small {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--texto-apagado);
+}
+.dica {
+  padding: 14px 0;
+}
+.dica + .dica {
+  border-top: 1px solid var(--divisoria);
+}
+.dica h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  color: var(--texto);
+}
+.dica p,
+.dica li {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--texto-2);
+}
+.dica ul {
+  margin: 0 0 8px;
+  padding-left: 20px;
+}
+.dica .ficha {
+  margin: 4px 0 10px;
+}
+.dica .formula {
+  padding: 10px 12px;
+  border-radius: var(--raio-m);
+  background: var(--fundo);
+  font-weight: 700;
+  color: var(--texto);
+}
+.dica-fontes {
+  margin: 0;
+  font-size: 12px !important;
+  color: var(--texto-apagado) !important;
+}
+.dica-fontes a {
+  color: var(--rosa-escuro);
+  font-weight: 700;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}

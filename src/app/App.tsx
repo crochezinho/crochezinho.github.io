@@ -11,6 +11,7 @@ import { Novelos } from '../screens/novelos/Novelos.tsx';
 import { ProjetoDetalhe } from '../screens/projetos/ProjetoDetalhe.tsx';
 import { ProjetoForm } from '../screens/projetos/ProjetoForm.tsx';
 import { Projetos } from '../screens/projetos/Projetos.tsx';
+import { DicasShopee } from '../screens/vender/DicasShopee.tsx';
 import { AindaCrochetando } from './AindaCrochetando.tsx';
 import { SyncAutomatico } from './SyncAutomatico.tsx';
 import { ABAS, useRota, type Aba } from './router.ts';
@@ -30,6 +31,7 @@ export function App() {
       {rota.nome === 'noveloForm' && <NoveloForm key={rota.id ?? 'novo'} id={rota.id} />}
       {rota.nome === 'calcular' && <TelaCalcular projetoIdRota={rota.projetoId} />}
       {rota.nome === 'crono' && <Cronometro key={rota.projetoId ?? ''} projetoId={rota.projetoId} />}
+      {rota.nome === 'dicasShopee' && <DicasShopee />}
       {rota.nome === 'config' && <Configuracoes />}
 
       {(ABAS as readonly string[]).includes(rota.nome) && <BottomNav atual={rota.nome as Aba} />}

@@ -1,4 +1,6 @@
+import { href, ir } from '../../app/router.ts';
 import { CampoDecimal, CampoDinheiro, CampoInteiro } from '../../components/Campos.tsx';
+import { Icone } from '../../components/Icone.tsx';
 import { Interruptor } from '../../components/Interruptor.tsx';
 import { brl } from '../../domain/preco.ts';
 import { REGRAS_SHOPEE_EM, avisosShopee, calcShopee, type ParamsShopee } from '../../domain/vendas/shopee.ts';
@@ -124,6 +126,11 @@ export function Shopee() {
         Não inclui Shopee Ads, cobrança extra de frete por peso/medida errados, devoluções e impostos. Taxas de {REGRAS_SHOPEE_EM}: confira
         na Central do Vendedor.
       </p>
+
+      <button class="botao largo botao-dicas" onClick={() => ir(href.dicasShopee)}>
+        <Icone nome="dica" />
+        Dicas para precificar e vender
+      </button>
     </main>
   );
 }

@@ -10,6 +10,7 @@ export type Rota =
   | { nome: 'noveloForm'; id: string | null }
   | { nome: 'calcular'; projetoId: string | null }
   | { nome: 'crono'; projetoId: string | null }
+  | { nome: 'dicasShopee' }
   | { nome: 'config' };
 
 export const ABAS = ['inicio', 'projetos', 'novelos', 'calcular'] as const;
@@ -32,6 +33,8 @@ export function lerRota(hash: string = location.hash): Rota {
       return { nome: 'calcular', projetoId: partes[1] ?? null };
     case 'crono':
       return { nome: 'crono', projetoId: partes[1] ?? null };
+    case 'dicas':
+      return { nome: 'dicasShopee' };
     case 'config':
       return { nome: 'config' };
     default:
@@ -52,6 +55,7 @@ export const href = {
   calcular: '#/calcular',
   calcularPara: (projetoId: string) => `#/calcular/${projetoId}`,
   crono: (projetoId?: string) => (projetoId ? `#/crono/${projetoId}` : '#/crono'),
+  dicasShopee: '#/dicas/shopee',
   config: '#/config'
 };
 

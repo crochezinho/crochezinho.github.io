@@ -61,7 +61,13 @@ const caminhos = {
     </>
   ),
   fechar: <path d="M6 6l12 12M18 6 6 18" />,
-  check: <path d="m5 12.5 4.5 4.5L19 7.5" />
+  check: <path d="m5 12.5 4.5 4.5L19 7.5" />,
+  dica: (
+    <>
+      <path d="M9 18h6M10 21h4" />
+      <path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.4 1.1 2.2v.5h5v-.5c0-.8.4-1.6 1.1-2.2A6 6 0 0 0 12 3z" />
+    </>
+  )
 };
 
 export type NomeIcone = keyof typeof caminhos;
