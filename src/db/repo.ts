@@ -16,8 +16,8 @@ export async function criarProjeto(nome: string, campos: Partial<CamposProjeto> 
     tipo: 'Amigurumi',
     agulha: '',
     capaCor: CAPA_PADRAO,
-    quantidade: 1,
     ...campos,
+    quantidade: Math.max(1, Math.floor(campos.quantidade ?? 1) || 1),
     nome: nome.trim() || 'Novo projeto',
     status: 'fazendo',
     fios: [],
@@ -39,11 +39,11 @@ export async function listarProjetos(): Promise<Projeto[]> {
 }
 
 export async function editarProjeto(id: Id, campos: CamposProjeto): Promise<void> {
-  await db.projetos.update(id, {
-    ...campos,
-    nome: campos.nome.trim() || 'Projeto',
-    quantidade: Math.max(1, Math.floor(campos.quantidade) || 1),
-    atualizadoEm: agora()
+  const quantidade = Math.max(1, Math.floor(campos.quantidade) || 1);
+  await db.transaction('rw', db.projetos, db.config, async () => {
+    await db.projetos.update(id, { ...campos, nome: campos.nome.trim() || 'Projeto', quantidade, atualizadoEm: agora() });
+    const r = await lerRascunho(id);
+    if (r && (r.quantidade ?? 1) !== quantidade) await salvarRascunho(id, { ...r, quantidade });
   });
 }
 
@@ -238,6 +238,48 @@ export async function excluirNovelo(id: Id): Promise<void> {
 
 export async function restaurarNovelo(id: Id): Promise<void> {
   await db.novelos.update(id, { excluidoEm: null, atualizadoEm: agora() });
+}
+
+export interface Apagados {
+  projetos: Id[];
+  sessoes: Id[];
+  novelos: Id[];
+}
+
+export async function apagarEmMassa(o: { projetos: boolean; novelos: boolean }): Promise<Apagados> {
+  const r: Apagados = { projetos: [], sessoes: [], novelos: [] };
+  await db.transaction('rw', db.projetos, db.sessoes, db.novelos, db.config, async () => {
+    const t = agora();
+    const marca = { excluidoEm: t, atualizadoEm: t };
+    if (o.projetos) {
+      for (const p of (await db.projetos.toArray()).filter(ativo)) {
+        await db.projetos.update(p.id, marca);
+        r.projetos.push(p.id);
+      }
+      for (const s of (await db.sessoes.toArray()).filter(ativo)) {
+        await db.sessoes.update(s.id, { ...marca, fim: s.fim ?? t });
+        r.sessoes.push(s.id);
+      }
+      const chaves = (await db.config.toArray()).map((c) => c.chave).filter((c) => c.startsWith('calc.rascunho:') && c !== 'calc.rascunho:avulso');
+      await db.config.bulkDelete([...chaves, 'calc.contexto']);
+    }
+    if (o.novelos) {
+      for (const n of (await db.novelos.toArray()).filter(ativo)) {
+        await db.novelos.update(n.id, marca);
+        r.novelos.push(n.id);
+      }
+    }
+  });
+  return r;
+}
+
+export async function restaurarApagados(a: Apagados): Promise<void> {
+  await db.transaction('rw', db.projetos, db.sessoes, db.novelos, async () => {
+    const volta = { excluidoEm: null, atualizadoEm: agora() };
+    for (const id of a.projetos) await db.projetos.update(id, volta);
+    for (const id of a.sessoes) await db.sessoes.update(id, volta);
+    for (const id of a.novelos) await db.novelos.update(id, volta);
+  });
 }
 
 const chaveRascunho = (projetoId: Id | null) => `calc.rascunho:${projetoId ?? 'avulso'}`;

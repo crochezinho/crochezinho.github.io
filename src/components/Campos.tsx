@@ -53,7 +53,8 @@ export function CampoInteiro({
   sufixo,
   max = 99999,
   id,
-  vazioQuandoZero = true
+  vazioQuandoZero = true,
+  minimo
 }: {
   valor: number;
   aoMudar: (n: number) => void;
@@ -62,7 +63,9 @@ export function CampoInteiro({
   max?: number;
   id?: string;
   vazioQuandoZero?: boolean;
+  minimo?: number;
 }) {
+  const mostrarVazio = minimo !== undefined ? !valor : !valor && vazioQuandoZero;
   return (
     <label class="campo-unidade">
       <input
@@ -72,7 +75,10 @@ export function CampoInteiro({
         pattern="[0-9]*"
         placeholder="0"
         aria-label={rotulo}
-        value={valor || !vazioQuandoZero ? String(valor) : ''}
+        value={mostrarVazio ? '' : String(valor)}
+        onBlur={() => {
+          if (minimo !== undefined && valor < minimo) aoMudar(minimo);
+        }}
         onInput={(e) => {
           const digitos = e.currentTarget.value.replace(/\D/g, '').slice(0, 6);
           const n = Math.min(max, Number(digitos) || 0);

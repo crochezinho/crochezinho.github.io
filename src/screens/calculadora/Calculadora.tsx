@@ -306,13 +306,12 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
         <div class="linha-campo">
           <div class="linha-campo-texto">
             <strong>Peças iguais</strong>
-            <small>{varias ? 'fios e outros custos são por peça' : 'faz mais de uma? aumente aqui'}</small>
           </div>
           <div class="stepper">
             <button aria-label="Menos uma peça" disabled={quantidade <= 1} onClick={() => atualizar({ quantidade: quantidade - 1 })}>
               <Icone nome="menos" tamanho={18} />
             </button>
-            <CampoInteiro valor={quantidade} aoMudar={(q) => atualizar({ quantidade: Math.max(1, q) })} rotulo="Peças iguais" sufixo="" max={9999} vazioQuandoZero={false} />
+            <CampoInteiro valor={r.quantidade ?? 1} aoMudar={(q) => atualizar({ quantidade: q })} rotulo="Peças iguais" sufixo="" max={9999} minimo={1} />
             <button aria-label="Mais uma peça" onClick={() => atualizar({ quantidade: Math.min(9999, quantidade + 1) })}>
               <Icone nome="mais" tamanho={18} />
             </button>
@@ -387,7 +386,7 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
       <div class="cartao-lista">
         <div class="linha-campo">
           <div class="linha-campo-texto">
-            <strong>Horas trabalhadas{varias ? ' (todas as peças)' : ''}</strong>
+            <strong>Horas trabalhadas{varias ? ' (total)' : ''}</strong>
             {projeto &&
               (r.minutosDoCrono ? (
                 <small>do cronômetro</small>

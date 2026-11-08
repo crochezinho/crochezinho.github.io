@@ -5,10 +5,12 @@ import { useInstalacao } from '../../app/instalacao.ts';
 import { href, voltar } from '../../app/router.ts';
 import { CampoDinheiro, CampoInteiro } from '../../components/Campos.tsx';
 import { Icone } from '../../components/Icone.tsx';
+import { Sheet } from '../../components/Sheet.tsx';
 import { toast } from '../../components/toast.tsx';
 import { useLive } from '../../db/hooks.ts';
 import { normalizarRepo, testarConexao } from '../../db/github.ts';
-import { lerConfig, lerPadroesCalculo, salvarConfig } from '../../db/repo.ts';
+import { apagarEmMassa, lerConfig, lerPadroesCalculo, listarNovelos, listarProjetos, restaurarApagados, salvarConfig } from '../../db/repo.ts';
+import { Interruptor } from '../../components/Interruptor.tsx';
 import { CHAVES_SYNC, exportarBackup, importarBackup, lerConexao, salvarConexao, sincronizar } from '../../db/sync.ts';
 
 const LINK_TOKEN = 'https://github.com/settings/personal-access-tokens/new';
@@ -92,8 +94,11 @@ export function Configuracoes() {
       <h2 class="secao-titulo">Diagnóstico</h2>
       <Diagnostico />
 
+      <h2 class="secao-titulo">Apagar dados</h2>
+      <ApagarDados />
+
       <p class="rodape-config">
-        Crochezinho · versão {__VERSAO__}
+        Crochêzinho · versão {__VERSAO__}
         {persistente !== null && (
           <>
             <br />
@@ -229,6 +234,75 @@ function Conectado({ repo, ultimo, erro }: { repo: string; ultimo: number | null
   );
 }
 
+function ApagarDados() {
+  const contagem = useLive(async () => ({ projetos: (await listarProjetos()).length, novelos: (await listarNovelos()).length }));
+  const [confirmando, setConfirmando] = useState(false);
+  const [projetos, setProjetos] = useState(true);
+  const [novelos, setNovelos] = useState(true);
+  const [apagando, setApagando] = useState(false);
+  if (!contagem) return null;
+
+  const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
+  const nada = contagem.projetos === 0 && contagem.novelos === 0;
+  const escolheuAlgo = (projetos && contagem.projetos > 0) || (novelos && contagem.novelos > 0);
+
+  const apagar = async () => {
+    setApagando(true);
+    const a = await apagarEmMassa({ projetos, novelos });
+    setApagando(false);
+    setConfirmando(false);
+    const partes = [a.projetos.length && plural(a.projetos.length, 'projeto', 'projetos'), a.novelos.length && plural(a.novelos.length, 'novelo', 'novelos')].filter(Boolean);
+    toast(`Apagados: ${partes.join(' e ')}`, { rotulo: 'Desfazer', fazer: () => void restaurarApagados(a) });
+  };
+
+  return (
+    <div class="cartao-config">
+      <p class="texto-config">Apaga projetos e/ou novelos de uma vez. Seu nome, valor por hora, margem e a sincronização continuam.</p>
+      <button
+        class="botao perigo largo"
+        disabled={nada}
+        onClick={() => {
+          setProjetos(true);
+          setNovelos(true);
+          setConfirmando(true);
+        }}
+      >
+        {nada ? 'Nada para apagar' : 'Apagar projetos e novelos'}
+      </button>
+
+      <Sheet aberta={confirmando} aoFechar={() => !apagando && setConfirmando(false)} titulo="O que apagar?">
+        <Interruptor
+          ligado={projetos}
+          aoMudar={setProjetos}
+          rotulo={`Projetos (${contagem.projetos})`}
+          detalhe="com os tempos do cronômetro e os cálculos de preço"
+        />
+        <Interruptor ligado={novelos} aoMudar={setNovelos} rotulo={`Novelos (${contagem.novelos})`} detalhe="todo o estoque" />
+        <p class="texto-config" style={{ marginTop: 14 }}>
+          Some em todos os aparelhos sincronizados. Dá para desfazer logo depois; se quiser uma cópia guardada, exporte um backup antes.
+        </p>
+        <div class="ajuste-botoes" style={{ marginTop: 16 }}>
+          <button
+            class="botao"
+            disabled={apagando}
+            onClick={() =>
+              void exportarBackup().then(
+                () => toast('Backup salvo nos downloads'),
+                () => toast('Não foi possível gerar o backup')
+              )
+            }
+          >
+            Exportar backup
+          </button>
+          <button class="botao perigo" disabled={apagando || !escolheuAlgo} onClick={() => void apagar()}>
+            {apagando ? 'Apagando…' : 'Apagar'}
+          </button>
+        </div>
+      </Sheet>
+    </div>
+  );
+}
+
 function Backup({ ultimo }: { ultimo: number | null }) {
   const arquivo = useRef<HTMLInputElement>(null);
 
@@ -299,7 +373,7 @@ function Instalar() {
       <>
         <h2 class="secao-titulo">Instalar</h2>
         <div class="cartao-config">
-          <p class="texto-config">Coloque o Crochezinho na tela inicial, com ícone próprio e funcionando offline.</p>
+          <p class="texto-config">Coloque o Crochêzinho na tela inicial, com ícone próprio e funcionando offline.</p>
           <button class="botao primario largo" onClick={() => void instalar().then((ok) => ok && toast('App instalado'))}>
             Instalar app
           </button>

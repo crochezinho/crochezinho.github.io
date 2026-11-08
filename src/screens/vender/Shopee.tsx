@@ -101,7 +101,7 @@ export function Shopee() {
             <label class="rotulo" for="sh-qtd">
               Itens no pedido
             </label>
-            <CampoInteiro id="sh-qtd" valor={e.qtd} aoMudar={(v) => mudar({ qtd: Math.max(1, v) })} rotulo="Itens no pedido" sufixo="un" max={999} vazioQuandoZero={false} />
+            <CampoInteiro id="sh-qtd" valor={e.qtd} aoMudar={(v) => mudar({ qtd: v })} rotulo="Itens no pedido" sufixo="un" max={999} minimo={1} />
           </div>
           <div>
             <label class="rotulo" for="sh-emb">

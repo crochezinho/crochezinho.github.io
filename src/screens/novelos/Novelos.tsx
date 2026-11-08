@@ -9,17 +9,17 @@ import { formatarEstoque } from '../../domain/estoque.ts';
 import { agrupar, filtrar, novelosInteiros, type Agrupamento } from '../../domain/novelos.ts';
 
 const OPCOES: { valor: Agrupamento; rotulo: string }[] = [
-  { valor: 'marca', rotulo: 'Por marca' },
-  { valor: 'tipo', rotulo: 'Por tipo' }
+  { valor: 'tipo', rotulo: 'Por tipo' },
+  { valor: 'marca', rotulo: 'Por marca' }
 ];
 
 export function Novelos() {
   const novelos = useLive(listarNovelos);
-  const agruparSalvo = useLive(() => lerConfig<Agrupamento>('novelos.agrupar', 'marca'));
+  const agruparSalvo = useLive(() => lerConfig<Agrupamento>('novelos.agrupar', 'tipo'));
   const [busca, setBusca] = useState('');
 
   if (!novelos || !agruparSalvo) return null;
-  const por: Agrupamento = agruparSalvo === 'tipo' ? 'tipo' : 'marca';
+  const por: Agrupamento = agruparSalvo === 'marca' ? 'marca' : 'tipo';
   const visiveis = filtrar(novelos, busca);
   const totalInteiros = novelos.reduce((s, n) => s + novelosInteiros(n), 0);
   const nomeSub = (q: number) => (por === 'marca' ? (q === 1 ? 'tipo' : 'tipos') : q === 1 ? 'marca' : 'marcas');

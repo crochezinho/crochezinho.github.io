@@ -81,8 +81,7 @@ export function ProjetoForm({ id }: { id: string | null }) {
         <label class="rotulo" for="pf-qtd">
           Peças iguais
         </label>
-        <CampoInteiro id="pf-qtd" valor={campos.quantidade} aoMudar={(q) => mudar({ quantidade: Math.max(1, q) })} rotulo="Peças iguais" sufixo="peças" max={9999} vazioQuandoZero={false} />
-        <p class="texto-apagado">Ex.: 10 chaveiros iguais. Na calculadora, fios e outros custos são por peça.</p>
+        <CampoInteiro id="pf-qtd" valor={campos.quantidade} aoMudar={(q) => mudar({ quantidade: q })} rotulo="Peças iguais" sufixo="peças" max={9999} minimo={1} />
 
         <p class="rotulo">Agulha</p>
         <div class="chips" role="radiogroup" aria-label="Agulha">

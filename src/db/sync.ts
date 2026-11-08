@@ -113,7 +113,7 @@ export async function importarBackup(arquivo: File): Promise<{ projetos: number;
   try {
     pacote = validarPacote(JSON.parse(await arquivo.text()));
   } catch (e) {
-    throw new Error(e instanceof SyntaxError ? 'Este arquivo não é um backup do Crochezinho.' : (e as Error).message);
+    throw new Error(e instanceof SyntaxError ? 'Este arquivo não é um backup do Crochêzinho.' : (e as Error).message);
   }
   const m = await mesclarComLocal(pacote as PacoteApp);
   return { projetos: m.paraLocal.projetos.length, novelos: m.paraLocal.novelos.length };

@@ -62,7 +62,7 @@ export function Embalagem() {
           <label class="rotulo" for="em-qtd">
             Peças no pacote
           </label>
-          <CampoInteiro id="em-qtd" valor={e.qtd} aoMudar={(v) => mudar({ qtd: Math.max(1, v) })} rotulo="Peças no pacote" sufixo="un" max={99} vazioQuandoZero={false} />
+          <CampoInteiro id="em-qtd" valor={e.qtd} aoMudar={(v) => mudar({ qtd: v })} rotulo="Peças no pacote" sufixo="un" max={99} minimo={1} />
         </div>
       </div>
 

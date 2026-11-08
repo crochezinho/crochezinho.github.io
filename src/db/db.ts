@@ -24,7 +24,7 @@ export class CrochezinhoDB extends Dexie {
         const projetos = await tx.table('projetos').toArray();
         await tx.table('projetos').bulkPut(projetos.map(normalizarProjeto));
         const agrupar = await tx.table('config').get('novelos.agrupar');
-        if (agrupar && agrupar.valor === 'cor') await tx.table('config').put({ ...agrupar, valor: 'marca' });
+        if (agrupar && agrupar.valor === 'cor') await tx.table('config').delete('novelos.agrupar');
       });
   }
 }

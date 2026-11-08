@@ -92,7 +92,7 @@ export function mesclarPacotes<P extends ComData, S extends ComData, N extends C
 
 export function validarPacote(obj: unknown): Pacote {
   const p = obj as Partial<Pacote> | null;
-  if (!p || typeof p !== 'object' || p.app !== 'crochezinho') throw new Error('Este arquivo não é um backup do Crochezinho.');
+  if (!p || typeof p !== 'object' || p.app !== 'crochezinho') throw new Error('Este arquivo não é um backup do Crochêzinho.');
   if (typeof p.versao !== 'number' || p.versao > VERSAO_PACOTE) throw new Error('Backup de uma versão mais nova do app. Atualize o app e tente de novo.');
   for (const t of ['projetos', 'sessoes', 'novelos', 'config'] as const) {
     if (!Array.isArray(p[t])) throw new Error('Backup incompleto ou corrompido.');

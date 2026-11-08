@@ -45,7 +45,7 @@ if (typeof window !== 'undefined') {
 
 export async function textoDiagnostico(): Promise<string> {
   const linhas: string[] = [];
-  linhas.push(`Crochezinho ${__VERSAO__}`);
+  linhas.push(`Crochêzinho ${__VERSAO__}`);
   linhas.push(`Navegador: ${navigator.userAgent}`);
   linhas.push(`Instalado: ${window.matchMedia?.('(display-mode: standalone)').matches ? 'sim' : 'não'}`);
   linhas.push(`Online: ${navigator.onLine ? 'sim' : 'não'}`);

@@ -60,7 +60,8 @@ const caminhos = {
       <circle cx="12" cy="18.5" r="1.4" fill="currentColor" stroke="none" />
     </>
   ),
-  fechar: <path d="M6 6l12 12M18 6 6 18" />
+  fechar: <path d="M6 6l12 12M18 6 6 18" />,
+  check: <path d="m5 12.5 4.5 4.5L19 7.5" />
 };
 
 export type NomeIcone = keyof typeof caminhos;

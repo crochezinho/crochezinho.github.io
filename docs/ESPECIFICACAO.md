@@ -1,4 +1,4 @@
-# Crochezinho — especificação
+# Crochêzinho — especificação
 
 App pessoal (uma usuária), PWA mobile-first, 100% offline depois da primeira visita.
 Fonte de verdade visual: `design/prototipo-v3.dc.html` (abre no navegador junto com `design/support.js`;
@@ -84,13 +84,18 @@ Abrir o cálculo de um projeto sempre mostra o Preço. O que foi digitado em Sho
 - Novelo = **tipo** (digitado, ex.: Amigurumi, Chenille, Balloon Amigo) + **cor** + **marca**.
   Por extenso, o nome é **tipo + cor** ("Chenille Rosa Chá").
 - Lista "Meus novelos" (cores · novelos), busca sem acento (cor, marca, tipo),
-  agrupar **por marca → tipo** ou **por tipo → marca** (preferência lembrada). Sem filtro "acabando".
+  agrupar **por tipo → marca** (padrão) ou **por marca → tipo** (preferência lembrada). Sem filtro "acabando".
 - Detalhe: estoque com − / + (um novelo por toque) e "ajustar em gramas" (fechados + peso dos abertos,
   com desfazer); ficha (gramatura, agulha, lote, preço, preço/grama); usado em projetos;
   menu ⋮ Editar/Excluir (com desfazer).
-- Formulário: tipo e marca (sugerem os já digitados), cor, gramatura, preço, capa (cor livre + textura
+- Formulário: tipo e marca (sugerem os já digitados), cor, gramatura, preço, capa (cor + textura
   **liso / brilho / felpudo**); lote e agulha em "Mais detalhes". Estoque inicial só na criação.
 - **Estoque em gramas**, exibido como "2 novelos + 40 g".
+
+### Cor da capa (projetos e novelos)
+- Seletor do próprio app (não o do celular): paleta de 36 tons de fio + ajuste fino de tom, intensidade e claridade.
+- Texturas dos novelos: **brilho** = estrelinhas e pontinhos de glitter; **felpudo** = bolinhas macias de pelúcia.
+  Desenhos gerados por `scripts/gerar-texturas.py`.
 
 ### Configurações (engrenagem na Início)
 - Nome ("Oi, Bruna"), valor/hora padrão, margem padrão.
@@ -98,6 +103,9 @@ Abrir o cálculo de um projeto sempre mostra o Preço. O que foi digitado em Sho
   Recusa repositório **público**. Status (verde/erro, "sincronizado há X"), "Sincronizar agora", "Desconectar".
   Automática: ao abrir, ao sair/voltar para o app e quando a internet volta (no máximo a cada 20 s).
 - Backup: Exportar (`crochezinho-backup-AAAA-MM-DD.json`) e Importar (junta, não apaga). "Último backup: há X".
+- **Apagar projetos e novelos**: folha com dois interruptores (Projetos, com sessões e cálculos; Novelos), atalho
+  para exportar backup e "Desfazer" no aviso. Marca como excluído (vai para os outros aparelhos pela sincronização).
+  Configurações (nome, valor/hora, margem, GitHub) não são apagadas.
 - Instalar: passo a passo no iPhone; botão "Instalar app" no Android.
 - Rodapé: versão e se o navegador protegeu os dados contra limpeza.
 - Início mostra um lembrete quando não há sincronização e o último backup tem mais de 14 dias

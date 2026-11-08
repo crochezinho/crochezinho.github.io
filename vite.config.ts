@@ -14,8 +14,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icons/favicon.svg', 'icons/apple-touch-icon.png'],
       manifest: {
-        name: 'Crochezinho',
-        short_name: 'Crochezinho',
+        name: 'Crochêzinho',
+        short_name: 'Crochêzinho',
         description: 'Cronômetro, calculadora de preço e estoque de novelos.',
         lang: 'pt-BR',
         start_url: base,

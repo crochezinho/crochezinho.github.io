@@ -1,4 +1,4 @@
-# Crochezinho
+# Crochêzinho
 
 Cronômetro de projetos, calculadora de preço e estoque de novelos para crochê.
 PWA que funciona offline. Especificação em [docs/ESPECIFICACAO.md](docs/ESPECIFICACAO.md).
