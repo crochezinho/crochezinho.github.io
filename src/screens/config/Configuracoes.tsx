@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { haQuanto } from '../../app/datas.ts';
+import { textoDiagnostico } from '../../app/erros.ts';
 import { useInstalacao } from '../../app/instalacao.ts';
 import { href, voltar } from '../../app/router.ts';
 import { CampoDinheiro, CampoInteiro } from '../../components/Campos.tsx';
@@ -27,7 +28,20 @@ export function Configuracoes() {
     navigator.storage?.persisted?.().then(setPersistente).catch(() => setPersistente(null));
   }, []);
 
-  if (!estado) return <main class="tela" />;
+  if (!estado) {
+    return (
+      <main class="tela tela-sem-abas config">
+        <header class="cabecalho-voltar">
+          <button class="botao-voltar" aria-label="Voltar" onClick={() => voltar(href.inicio)}>
+            <Icone nome="voltar" />
+          </button>
+          <h1>Configurações</h1>
+        </header>
+        <h2 class="secao-titulo">Diagnóstico</h2>
+        <Diagnostico />
+      </main>
+    );
+  }
 
   return (
     <main class="tela tela-sem-abas anim-tela config">
@@ -74,6 +88,9 @@ export function Configuracoes() {
       <Backup ultimo={estado.backupEm} />
 
       <Instalar />
+
+      <h2 class="secao-titulo">Diagnóstico</h2>
+      <Diagnostico />
 
       <p class="rodape-config">
         Crochezinho · versão {__VERSAO__}
@@ -291,4 +308,32 @@ function Instalar() {
     );
   }
   return null;
+}
+
+function Diagnostico() {
+  const [texto, setTexto] = useState<string | null>(null);
+  const ver = async () => setTexto(await textoDiagnostico());
+  const copiar = async () => {
+    const t = texto ?? (await textoDiagnostico());
+    try {
+      await navigator.clipboard.writeText(t);
+      toast('Diagnóstico copiado');
+    } catch {
+      window.prompt('Copie o texto abaixo:', t);
+    }
+  };
+  return (
+    <div class="cartao-config">
+      <p class="texto-config">Se algo não funcionar, copie isto e envie para quem está te ajudando. Não inclui seus dados nem o token.</p>
+      {texto && <pre class="diagnostico">{texto}</pre>}
+      <div class="ajuste-botoes">
+        <button class="botao" onClick={() => void ver()}>
+          {texto ? 'Atualizar' : 'Ver diagnóstico'}
+        </button>
+        <button class="botao primario" onClick={() => void copiar()}>
+          Copiar
+        </button>
+      </div>
+    </div>
+  );
 }

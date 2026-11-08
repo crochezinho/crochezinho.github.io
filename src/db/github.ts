@@ -32,15 +32,28 @@ export function normalizarRepo(texto: string): string | null {
   return /^[\w.-]+\/[\w.-]+$/.test(limpo) ? limpo : null;
 }
 
+export const LIMITE_MS = 20_000;
+
 async function chamar(c: ConexaoGitHub, caminho: string, init: RequestInit = {}): Promise<Response> {
+  const controle = new AbortController();
+  const relogio = setTimeout(() => controle.abort(), LIMITE_MS);
   let resp: Response;
   try {
-    resp = await fetch(`${API}/repos/${c.repo}${caminho}`, { ...init, headers: { ...cabecalhos(c.token), ...(init.headers ?? {}) }, cache: 'no-store' });
+    resp = await fetch(`${API}/repos/${c.repo}${caminho}`, {
+      ...init,
+      headers: { ...cabecalhos(c.token), ...(init.headers ?? {}) },
+      cache: 'no-store',
+      signal: controle.signal
+    });
   } catch {
+    if (controle.signal.aborted) throw new ErroGitHub('O GitHub não respondeu a tempo. Confira a internet (Wi-Fi ou dados) e tente de novo.', 0);
     throw new ErroGitHub('Sem conexão com a internet.', 0);
+  } finally {
+    clearTimeout(relogio);
   }
   if (resp.status === 401) throw new ErroGitHub('Token inválido ou expirado. Gere um novo e conecte de novo.', 401);
-  if (resp.status === 403) throw new ErroGitHub('O token não tem permissão de escrita neste repositório (Contents: Read and write).', 403);
+  if (resp.status === 403)
+    throw new ErroGitHub('O token não tem permissão neste repositório. Confira "Contents: Read and write" e se ele foi criado na conta crochezinho.', 403);
   return resp;
 }
 

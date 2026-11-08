@@ -112,3 +112,44 @@
   font-size: 13px;
   color: var(--texto-apagado);
 }
+
+.erro-tela {
+  position: fixed;
+  top: calc(8px + env(safe-area-inset-top));
+  left: 8px;
+  right: 8px;
+  z-index: 70;
+  padding: 12px 14px;
+  border-radius: var(--raio-m);
+  background: var(--rosa-escuro);
+  color: #fff;
+  font-size: 14px;
+  box-shadow: 0 12px 24px -12px rgba(0, 0, 0, 0.5);
+}
+.erro-tela p {
+  margin: 0 0 8px;
+  word-break: break-word;
+}
+.erro-tela-acoes {
+  display: flex;
+  gap: 8px;
+}
+.erro-tela-acoes button {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: var(--raio-pill);
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+}
+.diagnostico {
+  margin: 0 0 12px;
+  padding: 12px;
+  border-radius: var(--raio-m);
+  background: var(--fundo);
+  font: 12px/1.5 ui-monospace, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--texto-2);
+}

@@ -1,4 +1,5 @@
 import { BottomNav } from '../components/BottomNav.tsx';
+import { ErroNaTela } from '../components/ErroNaTela.tsx';
 import { Toast } from '../components/toast.tsx';
 import { Calculadora } from '../screens/calculadora/Calculadora.tsx';
 import { Configuracoes } from '../screens/config/Configuracoes.tsx';
@@ -34,6 +35,7 @@ export function App() {
       {(ABAS as readonly string[]).includes(rota.nome) && <BottomNav atual={rota.nome as Aba} />}
       <AindaCrochetando />
       <SyncAutomatico />
+      <ErroNaTela />
       <Toast />
     </div>
   );

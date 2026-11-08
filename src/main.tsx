@@ -19,9 +19,11 @@ import './styles/novelos.css';
 import './styles/config.css';
 
 import { App } from './app/App';
-import { pedirArmazenamentoPersistente } from './db/db';
+import { reportarErro } from './app/erros';
+import { db, pedirArmazenamentoPersistente } from './db/db';
 
 registerSW({ immediate: true });
 void pedirArmazenamentoPersistente();
+db.open().catch((e) => reportarErro(e, 'não foi possível abrir o armazenamento do app'));
 
 render(<App />, document.getElementById('app')!);
