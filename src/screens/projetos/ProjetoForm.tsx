@@ -11,7 +11,7 @@ import { CAPA_PADRAO, criarProjeto, editarProjeto, type CamposProjeto } from '..
 export function ProjetoForm({ id }: { id: string | null }) {
   const dados = useDadosCrono();
   const projeto = id ? dados?.projetos.find((p) => p.id === id) : undefined;
-  const [campos, setCampos] = useState<CamposProjeto>({ nome: '', tipo: TIPOS[0], agulha: '', capaCor: CAPA_PADRAO, quantidade: 1, cliente: '', entregaEm: null });
+  const [campos, setCampos] = useState<CamposProjeto>({ nome: '', tipo: TIPOS[0], agulha: '', capaCor: CAPA_PADRAO, quantidade: 1, cliente: '', entregaEm: null, fotoId: null });
   const [carregado, setCarregado] = useState(!id);
   const nomeRef = useRef<HTMLInputElement>(null);
 
@@ -24,7 +24,8 @@ export function ProjetoForm({ id }: { id: string | null }) {
         capaCor: projeto.capaCor,
         quantidade: projeto.quantidade ?? 1,
         cliente: projeto.cliente ?? '',
-        entregaEm: projeto.entregaEm ?? null
+        entregaEm: projeto.entregaEm ?? null,
+        fotoId: projeto.fotoId ?? null
       });
       setCarregado(true);
     }
@@ -149,7 +150,7 @@ export function ProjetoForm({ id }: { id: string | null }) {
         />
 
         <p class="rotulo">Capa</p>
-        <SeletorCapa cor={campos.capaCor} aoMudarCor={(c) => mudar({ capaCor: c })} />
+        <SeletorCapa cor={campos.capaCor} aoMudarCor={(c) => mudar({ capaCor: c })} fotoId={campos.fotoId} aoMudarFoto={(f) => mudar({ fotoId: f })} />
 
         <button type="submit" class="botao primario largo" style={{ marginTop: 28 }}>
           {id ? 'Salvar alterações' : 'Criar projeto'}

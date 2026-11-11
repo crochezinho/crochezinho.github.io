@@ -1,12 +1,13 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { normalizarNovelo, normalizarProjeto } from '../domain/migracao.ts';
-import type { Config, Novelo, Projeto, Sessao } from './types';
+import type { Config, Foto, Novelo, Projeto, Sessao } from './types';
 
 export class CrochezinhoDB extends Dexie {
   projetos!: EntityTable<Projeto, 'id'>;
   sessoes!: EntityTable<Sessao, 'id'>;
   novelos!: EntityTable<Novelo, 'id'>;
   config!: EntityTable<Config, 'chave'>;
+  fotos!: EntityTable<Foto, 'id'>;
 
   constructor() {
     super('crochezinho');
@@ -31,6 +32,14 @@ export class CrochezinhoDB extends Dexie {
       .upgrade(async (tx) => {
         const projetos = await tx.table('projetos').toArray();
         await tx.table('projetos').bulkPut(projetos.map(normalizarProjeto));
+      });
+    this.version(4)
+      .stores({ fotos: 'id' })
+      .upgrade(async (tx) => {
+        const projetos = await tx.table('projetos').toArray();
+        await tx.table('projetos').bulkPut(projetos.map(normalizarProjeto));
+        const novelos = await tx.table('novelos').toArray();
+        await tx.table('novelos').bulkPut(novelos.map(normalizarNovelo));
       });
   }
 }

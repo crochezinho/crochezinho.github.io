@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { estiloCapa } from '../../app/capa.ts';
+import { Capa } from '../../components/Capa.tsx';
 import { SeletorCapa } from '../../components/SeletorCapa.tsx';
 import { CampoDinheiro, CampoInteiro } from '../../components/Campos.tsx';
 import { Icone } from '../../components/Icone.tsx';
@@ -110,7 +110,7 @@ function FioSheetAberta({
         <ul class="lista" style={{ marginTop: 12 }}>
           {filtrados.map((n) => (
             <li key={n.id} class="linha-projeto" onClick={() => escolher(n)}>
-              <span class="capa capa-p" style={estiloCapa(n.capaCor, n.textura)} />
+              <Capa class="capa capa-p" cor={n.capaCor} textura={n.textura} fotoId={n.fotoId} />
               <span class="linha-projeto-texto">
                 <strong>{nomeDoNovelo(n)}</strong>
                 <small>
@@ -135,7 +135,7 @@ function FioSheetAberta({
   return (
     <Sheet aberta={aberta} aoFechar={aoFechar} titulo={titulo}>
       <div class="linha-projeto" style={{ marginTop: 8 }}>
-        <span class="capa capa-p" style={estiloCapa(novelo.capaCor, novelo.textura)} />
+        <Capa class="capa capa-p" cor={novelo.capaCor} textura={novelo.textura} fotoId={novelo.fotoId} />
         <span class="linha-projeto-texto">
           <strong>{nomeDoNovelo(novelo)}</strong>
           <small>{[novelo.marca, `${novelo.gramatura} g`, `${brl(ppg)}/g`].filter(Boolean).join(' · ')}</small>
@@ -257,7 +257,7 @@ function NovoNovelo({ novelos, aoCancelar, aoCriar }: { novelos: Novelo[]; aoCan
     if (!valido) return;
     const novo = { cor, marca, tipo, gramatura, precoCentavos: preco, estoqueG: quantos * gramatura, capaCor: capa, textura };
     const id = await criarNovelo(novo);
-    aoCriar({ ...novo, id, cor: cor.trim(), marca: marca.trim(), tipo: tipo.trim(), lote: '', agulha: '', atualizadoEm: Date.now(), excluidoEm: null });
+    aoCriar({ ...novo, id, cor: cor.trim(), marca: marca.trim(), tipo: tipo.trim(), lote: '', agulha: '', fotoId: null, atualizadoEm: Date.now(), excluidoEm: null });
   };
 
   return (

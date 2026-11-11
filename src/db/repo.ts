@@ -5,7 +5,7 @@ import type { Calculo, FioUsado, Id, Novelo, Projeto, Rascunho, Sessao } from '.
 const agora = () => Date.now();
 const ativo = <T extends { excluidoEm: number | null }>(r: T) => !r.excluidoEm;
 
-export type CamposProjeto = Pick<Projeto, 'nome' | 'tipo' | 'agulha' | 'capaCor' | 'quantidade' | 'cliente' | 'entregaEm'>;
+export type CamposProjeto = Pick<Projeto, 'nome' | 'tipo' | 'agulha' | 'capaCor' | 'quantidade' | 'cliente' | 'entregaEm' | 'fotoId'>;
 
 export const CAPA_PADRAO = '#C98B86';
 
@@ -19,6 +19,7 @@ export async function criarProjeto(nome: string, campos: Partial<CamposProjeto> 
     cliente: '',
     entregaEm: null,
     entregueEm: null,
+    fotoId: null,
     ...campos,
     quantidade: Math.max(1, Math.floor(campos.quantidade ?? 1) || 1),
     nome: nome.trim() || 'Novo projeto',
@@ -61,7 +62,7 @@ export async function duplicarProjeto(id: Id, quantidade: number): Promise<Id> {
   const p = await db.projetos.get(id);
   if (!p) throw new Error('Projeto não encontrado.');
   const q = Math.max(1, Math.floor(quantidade) || 1);
-  const novoProjetoId = await criarProjeto(p.nome, { tipo: p.tipo, agulha: p.agulha, capaCor: p.capaCor, quantidade: q });
+  const novoProjetoId = await criarProjeto(p.nome, { tipo: p.tipo, agulha: p.agulha, capaCor: p.capaCor, fotoId: p.fotoId ?? null, quantidade: q });
   await db.projetos.update(novoProjetoId, { fios: p.fios.map((f) => ({ ...f })) });
   if (p.calculo) {
     const novelos = await db.novelos.toArray();
@@ -236,12 +237,13 @@ export async function listarNovelos(): Promise<Novelo[]> {
 }
 
 export type NovoNovelo = Pick<Novelo, 'cor' | 'marca' | 'tipo' | 'gramatura' | 'precoCentavos' | 'estoqueG' | 'capaCor' | 'textura'> &
-  Partial<Pick<Novelo, 'lote' | 'agulha'>>;
+  Partial<Pick<Novelo, 'lote' | 'agulha' | 'fotoId'>>;
 
 export async function criarNovelo(n: NovoNovelo): Promise<Id> {
   const t = agora();
   const novelo: Novelo = {
     id: novoId(),
+    fotoId: null,
     lote: '',
     agulha: '',
     ...n,

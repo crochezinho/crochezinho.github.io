@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
-import { corValida, estiloCapa } from '../../app/capa.ts';
+import { Capa } from '../../components/Capa.tsx';
+import { corValida } from '../../app/capa.ts';
 import { useDadosCrono } from '../../app/dados.ts';
 import { diaCurto } from '../../app/datas.ts';
 import { useAgora } from '../../app/hooks.ts';
@@ -95,14 +96,20 @@ export function ProjetoDetalhe({ id }: { id: string }) {
 
   return (
     <main class="detalhe anim-tela">
-      <div class="detalhe-faixa" style={{ background: `linear-gradient(160deg, ${corValida(projeto.capaCor)}, ${corValida(projeto.capaCor)}cc)` }}>
+      <Capa
+        class="detalhe-faixa"
+        tag="div"
+        cor={projeto.capaCor}
+        fotoId={projeto.fotoId}
+        semFoto={{ background: `linear-gradient(160deg, ${corValida(projeto.capaCor)}, ${corValida(projeto.capaCor)}cc)` }}
+      >
         <button class="botao-voltar claro" aria-label="Voltar" onClick={() => voltar(href.projetos)}>
           <Icone nome="voltar" />
         </button>
         <button class="botao-voltar claro" aria-label="Mais opções" onClick={() => setMenu(true)}>
           <Icone nome="opcoes" />
         </button>
-      </div>
+      </Capa>
 
       <div class="detalhe-corpo">
         <section class="detalhe-cartao">
@@ -162,7 +169,7 @@ export function ProjetoDetalhe({ id }: { id: string }) {
               const n = novelo(f.noveloId);
               return (
                 <span key={i} class="chip-fio">
-                  <i style={n ? estiloCapa(n.capaCor, n.textura) : { background: 'var(--divisoria)' }} />
+                  {n ? <Capa tag="i" cor={n.capaCor} textura={n.textura} fotoId={n.fotoId} /> : <i style={{ background: 'var(--divisoria)' }} />}
                   {n ? nomeDoNovelo(n) : 'Fio removido'} · {f.gramas} g
                 </span>
               );
@@ -252,7 +259,7 @@ function ResumoEstoque({ fios, novelos, quantidade }: { fios: FioUsado[]; novelo
           const n = novelos.find((x) => x.id === i.noveloId)!;
           return (
             <li key={i.noveloId}>
-              <i style={estiloCapa(n.capaCor, n.textura)} />
+              <Capa tag="i" cor={n.capaCor} textura={n.textura} fotoId={n.fotoId} />
               <span>
                 {nomeDoNovelo(n)}: precisa {i.precisa} g, tem {i.tem} g · <b>faltam {i.falta} g</b>
                 {i.novelosAComprar > 0 && ` (${i.novelosAComprar} ${i.novelosAComprar === 1 ? 'novelo' : 'novelos'})`}
@@ -350,7 +357,7 @@ function ConcluirAberta({
               const n = novelos.find((x) => x.id === it.noveloId)!;
               return (
                 <li key={it.noveloId}>
-                  <span class="capa capa-p" style={estiloCapa(n.capaCor, n.textura)} />
+                  <Capa class="capa capa-p" cor={n.capaCor} textura={n.textura} fotoId={n.fotoId} />
                   <span class="linha-projeto-texto">
                     <strong>
                       {nomeDoNovelo(n)} <span class="menos">−{it.gramas} g</span>

@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { estiloCapa } from '../../app/capa.ts';
+import { Capa } from '../../components/Capa.tsx';
 import { href, ir } from '../../app/router.ts';
 import { Icone } from '../../components/Icone.tsx';
 import { useLive } from '../../db/hooks.ts';
@@ -112,9 +112,9 @@ function BlocoNovelo({ n }: { n: Novelo }) {
   const inteiros = novelosInteiros(n);
   return (
     <button class="bloco-novelo" onClick={() => ir(href.novelo(n.id))}>
-      <span class="bloco-cor" style={estiloCapa(n.capaCor, n.textura)}>
+      <Capa class="bloco-cor" cor={n.capaCor} textura={n.textura} fotoId={n.fotoId}>
         <span class="bloco-qtd">{inteiros > 0 ? inteiros : `${Math.max(0, n.estoqueG)} g`}</span>
-      </span>
+      </Capa>
       <strong>{n.cor}</strong>
       <small>{formatarEstoque(n.estoqueG, n.gramatura)}</small>
     </button>

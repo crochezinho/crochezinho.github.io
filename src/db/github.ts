@@ -87,3 +87,27 @@ export async function gravarRemoto(c: ConexaoGitHub, pacote: Pacote, sha: string
   if (resp.status === 409 || resp.status === 422) throw new ErroGitHub('Os dados mudaram em outro aparelho durante a sincronização.', 409);
   if (!resp.ok) throw new ErroGitHub(`O GitHub respondeu com erro ${resp.status}.`, resp.status);
 }
+
+const caminhoFoto = (id: string) => `/contents/fotos/${encodeURIComponent(id)}.jpg`;
+
+async function blobParaBase64(blob: Blob): Promise<string> {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+
+export async function enviarFoto(c: ConexaoGitHub, id: string, blob: Blob, aparelho: string): Promise<void> {
+  const corpo = { message: `Foto (${aparelho})`, content: await blobParaBase64(blob) };
+  const resp = await chamar(c, caminhoFoto(id), { method: 'PUT', body: JSON.stringify(corpo), headers: { 'Content-Type': 'application/json' } });
+  if (resp.status === 422 || resp.status === 409) return;
+  if (!resp.ok) throw new ErroGitHub(`O GitHub respondeu com erro ${resp.status} ao enviar uma foto.`, resp.status);
+}
+
+export async function baixarFoto(c: ConexaoGitHub, id: string): Promise<Blob | null> {
+  const resp = await chamar(c, caminhoFoto(id), { headers: { Accept: 'application/vnd.github.raw' } });
+  if (resp.status === 404) return null;
+  if (!resp.ok) throw new ErroGitHub(`O GitHub respondeu com erro ${resp.status} ao baixar uma foto.`, resp.status);
+  const b = await resp.blob();
+  return b.type === 'image/jpeg' ? b : new Blob([b], { type: 'image/jpeg' });
+}

@@ -108,6 +108,15 @@ Abrir o cálculo de um projeto sempre mostra o Preço. O que foi digitado em Sho
   **liso / brilho / felpudo**); lote e agulha em "Mais detalhes". Estoque inicial só na criação.
 - **Estoque em gramas**, exibido como "2 novelos + 40 g".
 
+### Foto (projetos e novelos)
+- Uma foto por projeto e por novelo ("Adicionar foto" → câmera ou galeria; "Trocar foto"; "Tirar foto").
+  Com foto, ela é a capa em todo lugar (listas, topo do detalhe, calculadora); a cor fica guardada e volta sem a foto.
+- O app reduz a foto (lado maior 1200 px, JPEG ~150–250 KB) e guarda no aparelho, na tabela `fotos`, fora do pacote.
+- Sincronização: cada foto é um arquivo `fotos/<id>.jpg` no repositório privado, enviado antes do `dados.json`;
+  os outros aparelhos baixam quando a foto aparece na tela. Uma foto nunca muda (trocar = foto nova); fotos
+  substituídas ficam no repositório (não são apagadas, pois "Fazer de novo" pode reaproveitar a mesma).
+- O backup em arquivo (Exportar) não leva as fotos.
+
 ### Cor da capa (projetos e novelos)
 - Seletor do próprio app (não o do celular): paleta de 36 tons de fio + ajuste fino de tom, intensidade e claridade.
 - Texturas dos novelos: **brilho** = estrelinhas e pontinhos de glitter; **felpudo** = bolinhas macias de pelúcia.
@@ -136,7 +145,7 @@ Abrir o cálculo de um projeto sempre mostra o Preço. O que foi digitado em Sho
 
 ## Fora do escopo
 Contador de carreiras/pontos e metas, conquistas, retrospectiva, ganhos, Nuvemshop, lista de compras,
-perfil com foto/bio, notificações push, anexo de receita, foto de capa, cartão de visita.
+perfil com foto/bio, notificações push, anexo de receita, cartão de visita.
 
 ## Modelo de dados
 Ver `src/db/types.ts` e `src/db/db.ts`. IDs UUID, dinheiro em centavos, datas em ms.

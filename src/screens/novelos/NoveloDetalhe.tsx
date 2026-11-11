@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { estiloCapa } from '../../app/capa.ts';
+import { Capa } from '../../components/Capa.tsx';
 import { useDadosCrono } from '../../app/dados.ts';
 import { href, ir, voltar } from '../../app/router.ts';
 import { CampoInteiro } from '../../components/Campos.tsx';
@@ -62,14 +62,14 @@ export function NoveloDetalhe({ id }: { id: string }) {
 
   return (
     <main class="detalhe anim-tela">
-      <div class="detalhe-faixa novelo" style={estiloCapa(n.capaCor, n.textura)}>
+      <Capa class="detalhe-faixa novelo" tag="div" cor={n.capaCor} textura={n.textura} fotoId={n.fotoId}>
         <button class="botao-voltar claro" aria-label="Voltar" onClick={() => voltar(href.novelos)}>
           <Icone nome="voltar" />
         </button>
         <button class="botao-voltar claro" aria-label="Mais opções" onClick={() => setMenu(true)}>
           <Icone nome="opcoes" />
         </button>
-      </div>
+      </Capa>
 
       <div class="detalhe-corpo">
         <section class="detalhe-cartao">
@@ -118,7 +118,7 @@ export function NoveloDetalhe({ id }: { id: string }) {
           <div class="chips">
             {usadoEm.map((p) => (
               <button key={p.id} class="chip-fio" onClick={() => ir(href.projeto(p.id))}>
-                <i style={estiloCapa(p.capaCor)} />
+                <Capa tag="i" cor={p.capaCor} fotoId={p.fotoId} />
                 {p.nome}
               </button>
             ))}

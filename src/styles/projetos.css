@@ -371,3 +371,8 @@
   display: block;
   margin: 14px auto 0;
 }
+
+.detalhe-faixa.tem-foto {
+  height: 300px;
+  transition: height 0.2s;
+}

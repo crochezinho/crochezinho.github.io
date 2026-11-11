@@ -1,7 +1,7 @@
 import { CONFIG_SINCRONIZADA, VERSAO_PACOTE, mesclarPacotes, validarPacote, type Pacote } from '../domain/sync.ts';
 import { normalizarNovelo, normalizarProjeto } from '../domain/migracao.ts';
-import { db } from './db.ts';
-import { ErroGitHub, gravarRemoto, lerRemoto, type ConexaoGitHub } from './github.ts';
+import { db, novoId } from './db.ts';
+import { ErroGitHub, baixarFoto, enviarFoto, gravarRemoto, lerRemoto, type ConexaoGitHub } from './github.ts';
 import { lerConfig, salvarConfig, apagarConfig } from './repo.ts';
 import type { Novelo, Projeto, Sessao } from './types.ts';
 
@@ -78,6 +78,7 @@ async function executar(tentativa = 1): Promise<ResultadoSync> {
   const conexao = await lerConexao();
   if (!conexao) return { ok: 'sem-conexao' };
   try {
+    await enviarFotosPendentes(conexao);
     const { pacote: remoto, sha } = await lerRemoto(conexao);
     const m = await mesclarComLocal(remoto as PacoteApp | null);
     if (m.remotoMudou) await gravarRemoto(conexao, m.pacote, sha, nomeDoAparelho());
@@ -91,6 +92,38 @@ async function executar(tentativa = 1): Promise<ResultadoSync> {
     await salvarConfig(CHAVES_SYNC.erro, erro);
     return { ok: false, erro };
   }
+}
+
+async function fotosEmUso(): Promise<Set<string>> {
+  const [projetos, novelos] = await Promise.all([db.projetos.toArray(), db.novelos.toArray()]);
+  const ids = new Set<string>();
+  for (const r of [...projetos, ...novelos]) if (!r.excluidoEm && r.fotoId) ids.add(r.fotoId);
+  return ids;
+}
+
+async function enviarFotosPendentes(conexao: ConexaoGitHub): Promise<void> {
+  const emUso = await fotosEmUso();
+  const pendentes = (await db.fotos.toArray()).filter((f) => !f.enviada && emUso.has(f.id));
+  for (const f of pendentes) {
+    await enviarFoto(conexao, f.id, f.blob, nomeDoAparelho());
+    await db.fotos.update(f.id, { enviada: true });
+  }
+}
+
+export async function guardarFoto(blob: Blob): Promise<string> {
+  const id = novoId();
+  await db.fotos.add({ id, blob, criadoEm: Date.now(), enviada: false });
+  return id;
+}
+
+export async function obterFoto(id: string): Promise<Blob | null> {
+  const local = await db.fotos.get(id);
+  if (local) return local.blob;
+  const conexao = await lerConexao();
+  if (!conexao) return null;
+  const blob = await baixarFoto(conexao, id);
+  if (blob) await db.fotos.put({ id, blob, criadoEm: Date.now(), enviada: true });
+  return blob;
 }
 
 export async function exportarBackup(): Promise<void> {

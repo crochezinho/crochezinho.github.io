@@ -39,6 +39,7 @@ export interface Calculo {
 
 export interface Projeto extends Registro {
   nome: string;
+  fotoId: Id | null;
   tipo: string;
   agulha: string;
   capaCor: string;
@@ -66,6 +67,7 @@ export interface Sessao extends Registro {
 export type Textura = 'liso' | 'brilho' | 'felpudo';
 
 export interface Novelo extends Registro {
+  fotoId: Id | null;
   cor: string;
   marca: string;
   tipo: string;
@@ -86,6 +88,13 @@ export interface Rascunho {
   valorHoraCentavos: number;
   extras: (CustoExtra & { chave: string })[];
   margemPct: number;
+}
+
+export interface Foto {
+  id: Id;
+  blob: Blob;
+  criadoEm: number;
+  enviada: boolean;
 }
 
 export interface Config {

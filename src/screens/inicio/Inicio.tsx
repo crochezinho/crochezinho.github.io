@@ -1,5 +1,5 @@
 import { useDadosCrono, projetoDaVez } from '../../app/dados.ts';
-import { estiloCapa } from '../../app/capa.ts';
+import { Capa } from '../../components/Capa.tsx';
 import { diaMes, haQuanto } from '../../app/datas.ts';
 import { useAgora } from '../../app/hooks.ts';
 import { href, ir } from '../../app/router.ts';
@@ -98,7 +98,7 @@ export function Inicio() {
           <ul class="lista">
             {emAndamento.map((p) => (
               <li key={p.id} class="linha-projeto" onClick={() => ir(href.projeto(p.id))}>
-                <span class="capa" style={estiloCapa(p.capaCor)} />
+                <Capa class="capa" cor={p.capaCor} fotoId={p.fotoId} />
                 <span class="linha-projeto-texto">
                   <strong>{p.nome}</strong>
                   <small>{[p.cliente && `para ${p.cliente}`, formatarTotal(totalDoProjeto(sessoes, p.id, agora))].filter(Boolean).join(' · ')}</small>

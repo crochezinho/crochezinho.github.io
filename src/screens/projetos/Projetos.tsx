@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
+import { Capa } from '../../components/Capa.tsx';
 import { useDadosCrono } from '../../app/dados.ts';
-import { estiloCapa } from '../../app/capa.ts';
 import { useAgora } from '../../app/hooks.ts';
 import { href, ir } from '../../app/router.ts';
 import { Icone } from '../../components/Icone.tsx';
@@ -32,7 +32,7 @@ export function Projetos() {
 
   const linha = (p: Projeto) => (
     <li key={p.id} class="linha-projeto" onClick={() => ir(href.projeto(p.id))}>
-      <span class="capa" style={estiloCapa(p.capaCor)} />
+      <Capa class="capa" cor={p.capaCor} fotoId={p.fotoId} />
       <span class="linha-projeto-texto">
         <strong>{p.nome}</strong>
         <small>

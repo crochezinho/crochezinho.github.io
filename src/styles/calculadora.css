@@ -553,3 +553,18 @@
   font-size: 12px;
   color: var(--texto-apagado);
 }
+
+.capa-amostra.com-foto {
+  height: 180px;
+}
+.acoes-foto {
+  display: flex;
+  gap: 8px;
+}
+.acoes-foto .botao {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}

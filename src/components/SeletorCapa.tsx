@@ -1,31 +1,76 @@
-import { useState } from 'preact/hooks';
+import { useRef, useState } from 'preact/hooks';
 import { PALETA, TEXTURAS, corValida, estiloCapa, hexParaHsl, hslParaHex, type Hsl } from '../app/capa.ts';
+import { adicionarFoto } from '../app/foto.ts';
 import type { Textura } from '../db/types.ts';
+import { Capa } from './Capa.tsx';
+import { toast } from './toast.tsx';
 import { Icone } from './Icone.tsx';
 
 export function SeletorCapa({
   cor,
   aoMudarCor,
   textura,
-  aoMudarTextura
+  aoMudarTextura,
+  fotoId,
+  aoMudarFoto
 }: {
   cor: string;
   aoMudarCor: (cor: string) => void;
   textura?: Textura;
   aoMudarTextura?: (t: Textura) => void;
+  fotoId?: string | null;
+  aoMudarFoto?: (id: string | null) => void;
 }) {
   const valor = corValida(cor).toUpperCase();
   const [aberto, setAberto] = useState(false);
+  const [preparando, setPreparando] = useState(false);
+  const arquivo = useRef<HTMLInputElement>(null);
+  const comFoto = !!fotoId && !!aoMudarFoto;
+
+  const escolherFoto = async (e: Event) => {
+    const input = e.currentTarget as HTMLInputElement;
+    const f = input.files?.[0];
+    input.value = '';
+    if (!f || !aoMudarFoto) return;
+    setPreparando(true);
+    try {
+      aoMudarFoto(await adicionarFoto(f));
+      setAberto(false);
+    } catch (err) {
+      toast((err as Error).message);
+    } finally {
+      setPreparando(false);
+    }
+  };
 
   return (
     <div class="seletor-capa">
-      <button type="button" class="capa-amostra" style={estiloCapa(valor, textura)} aria-expanded={aberto} onClick={() => setAberto(!aberto)}>
-        <span class="capa-amostra-dica">{aberto ? 'Pronto' : 'Trocar a cor'}</span>
-      </button>
+      {comFoto ? (
+        <Capa class="capa-amostra com-foto" cor={valor} fotoId={fotoId} tag="div" />
+      ) : (
+        <button type="button" class="capa-amostra" style={estiloCapa(valor, textura)} aria-expanded={aberto} onClick={() => setAberto(!aberto)}>
+          <span class="capa-amostra-dica">{aberto ? 'Pronto' : 'Trocar a cor'}</span>
+        </button>
+      )}
 
-      {aberto && <PainelCor valor={valor} aoMudar={aoMudarCor} />}
+      {aoMudarFoto && (
+        <div class="acoes-foto">
+          <button type="button" class="botao" disabled={preparando} onClick={() => arquivo.current?.click()}>
+            <Icone nome="camera" tamanho={18} />
+            {preparando ? 'Preparando…' : comFoto ? 'Trocar foto' : 'Adicionar foto'}
+          </button>
+          {comFoto && (
+            <button type="button" class="botao" onClick={() => aoMudarFoto(null)}>
+              Tirar foto
+            </button>
+          )}
+          <input ref={arquivo} type="file" accept="image/*" hidden onChange={(e) => void escolherFoto(e)} />
+        </div>
+      )}
 
-      {textura && aoMudarTextura && (
+      {!comFoto && aberto && <PainelCor valor={valor} aoMudar={aoMudarCor} />}
+
+      {!comFoto && textura && aoMudarTextura && (
         <div class="texturas" role="radiogroup" aria-label="Textura">
           {TEXTURAS.map((t) => (
             <button
@@ -42,6 +87,7 @@ export function SeletorCapa({
           ))}
         </div>
       )}
+      {comFoto && <p class="texto-apagado">Com foto, ela é a capa. A cor volta se você tirar a foto.</p>}
     </div>
   );
 }

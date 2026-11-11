@@ -10,6 +10,7 @@ export function normalizarNovelo<T>(n: T): T {
   delete o.familia;
   delete o.fibra;
   delete o.metros;
+  if (typeof o.fotoId !== 'string') o.fotoId = null;
   return o as T;
 }
 
@@ -18,6 +19,7 @@ export function normalizarProjeto<T>(p: T): T {
   if (typeof o.cliente !== 'string') o.cliente = '';
   if (typeof o.entregaEm !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(o.entregaEm)) o.entregaEm = null;
   if (typeof o.entregueEm !== 'number') o.entregueEm = null;
+  if (typeof o.fotoId !== 'string') o.fotoId = null;
   const q = Number(o.quantidade);
   o.quantidade = Number.isFinite(q) && q >= 1 ? Math.floor(q) : 1;
   return o as T;

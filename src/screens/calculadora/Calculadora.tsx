@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { estiloCapa } from '../../app/capa.ts';
+import { Capa } from '../../components/Capa.tsx';
 import { useDadosCrono } from '../../app/dados.ts';
 import { diaCurto } from '../../app/datas.ts';
 import { useAgora } from '../../app/hooks.ts';
@@ -273,9 +273,13 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
       </header>
 
       <button class="contexto" onClick={() => setTrocando(true)}>
-        <span class="capa capa-p" style={projeto ? estiloCapa(projeto.capaCor) : { background: 'var(--rosa-suave)' }}>
-          {!projeto && <Icone nome="calcular" />}
-        </span>
+        {projeto ? (
+          <Capa class="capa capa-p" cor={projeto.capaCor} fotoId={projeto.fotoId} />
+        ) : (
+          <span class="capa capa-p" style={{ background: 'var(--rosa-suave)' }}>
+            <Icone nome="calcular" />
+          </span>
+        )}
         <span class="linha-projeto-texto">
           <small>{projeto ? 'Calculando para' : 'Calculando'}</small>
           <strong>{projeto ? projeto.nome : 'Cálculo avulso'}</strong>
@@ -357,8 +361,10 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
           return (
             <div key={f.chave} class="linha-fio">
               <button class="linha-fio-principal" onClick={() => setFioSheet({ chave: f.chave })}>
-                {f.noveloId ? (
-                  <span class="capa capa-p" style={n ? estiloCapa(n.capaCor, n.textura) : { background: 'var(--divisoria)' }} />
+                {n ? (
+                  <Capa class="capa capa-p" cor={n.capaCor} textura={n.textura} fotoId={n.fotoId} />
+                ) : f.noveloId ? (
+                  <span class="capa capa-p" style={{ background: 'var(--divisoria)' }} />
                 ) : (
                   <span class="capa capa-p" style={{ background: 'var(--divisoria)' }}>
                     <Icone nome="calcular" tamanho={18} />
@@ -549,7 +555,7 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
             .sort((a, b) => (a.status === b.status ? 0 : a.status === 'fazendo' ? -1 : 1))
             .map((p) => (
               <li key={p.id} class={'linha-projeto' + (p.id === projeto?.id ? ' selecionada' : '')} onClick={() => void trocarContexto(p.id)}>
-                <span class="capa capa-p" style={estiloCapa(p.capaCor)} />
+                <Capa class="capa capa-p" cor={p.capaCor} fotoId={p.fotoId} />
                 <span class="linha-projeto-texto">
                   <strong>{p.nome}</strong>
                   <small>{p.precoCentavos !== null ? brl(p.precoCentavos) : 'sem preço'}{p.status === 'concluido' ? ' · concluído' : ''}</small>

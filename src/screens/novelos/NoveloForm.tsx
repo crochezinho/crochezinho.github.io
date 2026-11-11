@@ -19,7 +19,8 @@ const VAZIO: CamposNovelo = {
   lote: '',
   agulha: '',
   capaCor: CAPA_PADRAO,
-  textura: 'liso'
+  textura: 'liso',
+  fotoId: null
 };
 
 const unicos = (valores: string[]) => [...new Set(valores.map((v) => v.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
@@ -140,7 +141,14 @@ export function NoveloForm({ id }: { id: string | null }) {
         </div>
 
         <p class="rotulo">Capa</p>
-        <SeletorCapa cor={c.capaCor} aoMudarCor={(cor) => mudar({ capaCor: cor })} textura={c.textura} aoMudarTextura={(t) => mudar({ textura: t })} />
+        <SeletorCapa
+          cor={c.capaCor}
+          aoMudarCor={(cor) => mudar({ capaCor: cor })}
+          textura={c.textura}
+          aoMudarTextura={(t) => mudar({ textura: t })}
+          fotoId={c.fotoId}
+          aoMudarFoto={(f) => mudar({ fotoId: f })}
+        />
 
         {!id && (
           <>
