@@ -2,17 +2,16 @@ import { useState } from 'preact/hooks';
 import { Capa } from '../../components/Capa.tsx';
 import { useDadosCrono } from '../../app/dados.ts';
 import { href, ir, voltar } from '../../app/router.ts';
-import { CampoInteiro } from '../../components/Campos.tsx';
 import { Icone } from '../../components/Icone.tsx';
 import { Sheet } from '../../components/Sheet.tsx';
 import { toast } from '../../components/toast.tsx';
 import { useLive } from '../../db/hooks.ts';
 import { definirEstoque, excluirNovelo, listarNovelos, restaurarNovelo } from '../../db/repo.ts';
 import type { Novelo } from '../../db/types.ts';
-import { DescontoEmbalagem, usePesoEmbalagem } from '../../components/DescontoEmbalagem.tsx';
+import { usePesoEmbalagem } from '../../components/DescontoEmbalagem.tsx';
+import { PesagensNovelo, totalDasPesagens } from '../../components/PesagensNovelo.tsx';
 import { formatarEstoque, formatarGramas } from '../../domain/estoque.ts';
-import { nomeDoNovelo, novelosInteiros } from '../../domain/novelos.ts';
-import { contaDaEmbalagem, descontarEmbalagem } from '../../domain/pesagem.ts';
+import { nomeDoNovelo } from '../../domain/novelos.ts';
 import { brl, precoPorGrama } from '../../domain/preco.ts';
 
 export function NoveloDetalhe({ id }: { id: string }) {
@@ -152,69 +151,44 @@ function AjustarEstoque(props: Parameters<typeof AjustarEstoqueAberto>[0]) {
 }
 
 function AjustarEstoqueAberto({ aberta, aoFechar, n }: { aberta: boolean; aoFechar: () => void; n: Novelo }) {
-  const [inteiros, setInteiros] = useState(() => novelosInteiros(n));
-  const [gramas, setGramas] = useState(() => Math.max(0, n.estoqueG) - novelosInteiros(n) * n.gramatura);
-  const [comEmbalagem, setComEmbalagem] = useState(false);
-  const [mexeuNoInterruptor, setMexeuNoInterruptor] = useState(false);
-  const [abertosNovelos, setAbertosNovelos] = useState(1);
+  const [pesos, setPesos] = useState<number[]>([0]);
+  const [comEmbalagem, setComEmbalagem] = useState(true);
   const embalagemG = usePesoEmbalagem(n.tipo);
+  const total = totalDasPesagens(pesos, comEmbalagem, embalagemG);
+  const pesou = pesos.some((p) => p > 0);
 
-  const descontar = comEmbalagem && embalagemG > 0 && gramas > 0;
-  const gramasLiquido = descontar ? descontarEmbalagem(gramas, abertosNovelos, embalagemG) : gramas;
-  const total = inteiros * n.gramatura + gramasLiquido;
-
-  const mudarGramas = (g: number) => {
-    setGramas(g);
-    if (!mexeuNoInterruptor) setComEmbalagem(true);
-  };
-
-  const salvar = async () => {
+  const salvar = async (novo: number) => {
     const antes = n.estoqueG;
-    await definirEstoque(n.id, total);
+    await definirEstoque(n.id, novo);
     aoFechar();
-    toast(`Estoque: ${formatarEstoque(total)}`, { rotulo: 'Desfazer', fazer: () => void definirEstoque(n.id, antes) });
+    toast(`Estoque: ${formatarEstoque(novo)}`, { rotulo: 'Desfazer', fazer: () => void definirEstoque(n.id, antes) });
   };
 
   return (
-    <Sheet aberta={aberta} aoFechar={aoFechar} titulo="Ajustar estoque" subtitulo={`Novelos fechados de ${n.gramatura} g e o que sobrou dos abertos.`}>
-      <div class="grade-2">
-        <div>
-          <label class="rotulo" for="ae-inteiros">
-            Novelos fechados
-          </label>
-          <CampoInteiro id="ae-inteiros" valor={inteiros} aoMudar={setInteiros} rotulo="Novelos fechados" sufixo="un" max={9999} vazioQuandoZero={false} />
-        </div>
-        <div>
-          <label class="rotulo" for="ae-gramas">
-            Abertos (peso)
-          </label>
-          <CampoInteiro id="ae-gramas" valor={gramas} aoMudar={mudarGramas} rotulo="Peso dos novelos abertos" sufixo="g" max={99999} vazioQuandoZero={false} />
-        </div>
-      </div>
-      {gramas > 0 && (
-        <DescontoEmbalagem
-          tipo={n.tipo}
-          embalagemG={embalagemG}
-          ligado={comEmbalagem}
-          aoLigar={(v) => {
-            setComEmbalagem(v);
-            setMexeuNoInterruptor(true);
-          }}
-          novelos={abertosNovelos}
-          aoMudarNovelos={setAbertosNovelos}
-          oQue="por novelo aberto"
-        />
-      )}
-      <div class="resumo-fio">
-        <span>
-          Total
-          {descontar && <small class="resumo-conta">abertos: {contaDaEmbalagem(gramas, abertosNovelos, embalagemG)} = {formatarGramas(gramasLiquido)}</small>}
-        </span>
-        <strong class="resumo-fio-valor">{formatarEstoque(total)}</strong>
-      </div>
-      <button class="botao primario largo" onClick={() => void salvar()}>
+    <Sheet
+      aberta={aberta}
+      aoFechar={aoFechar}
+      titulo="Ajustar estoque"
+      subtitulo={`Hoje: ${formatarEstoque(n.estoqueG)}. Pese um novelo de cada vez; o total substitui o estoque.`}
+    >
+      <PesagensNovelo
+        tipo={n.tipo}
+        gramatura={n.gramatura}
+        embalagemG={embalagemG}
+        pesos={pesos}
+        aoMudar={setPesos}
+        comEmbalagem={comEmbalagem}
+        aoLigar={setComEmbalagem}
+        rotuloTotal="Novo estoque"
+      />
+      <button class="botao primario largo" disabled={!pesou} onClick={() => void salvar(total)}>
         Salvar estoque
       </button>
+      {n.estoqueG > 0 && (
+        <button class="link-pequeno link-centro" onClick={() => void salvar(0)}>
+          acabou, zerar estoque
+        </button>
+      )}
     </Sheet>
   );
 }

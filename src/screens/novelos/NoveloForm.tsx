@@ -2,16 +2,16 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { AGULHAS } from '../../app/constantes.ts';
 import { href, ir, voltar } from '../../app/router.ts';
 import { CampoDinheiro, CampoInteiro } from '../../components/Campos.tsx';
-import { DescontoEmbalagem, usePesoEmbalagem } from '../../components/DescontoEmbalagem.tsx';
+import { usePesoEmbalagem } from '../../components/DescontoEmbalagem.tsx';
+import { PesagensNovelo, totalDasPesagens } from '../../components/PesagensNovelo.tsx';
 import { Icone } from '../../components/Icone.tsx';
 import { SeletorCapa } from '../../components/SeletorCapa.tsx';
 import { toast } from '../../components/toast.tsx';
 import { useLive } from '../../db/hooks.ts';
 import { CAPA_PADRAO, criarNovelo, editarNovelo, listarNovelos, type CamposNovelo } from '../../db/repo.ts';
 import type { Novelo } from '../../db/types.ts';
-import { formatarEstoque, formatarGramas } from '../../domain/estoque.ts';
+import { formatarEstoque } from '../../domain/estoque.ts';
 import { grafiaExistente, noveloRepetido, sugerirMarca } from '../../domain/novelos.ts';
-import { contaDaEmbalagem, descontarEmbalagem } from '../../domain/pesagem.ts';
 
 const VAZIO: CamposNovelo = {
   cor: '',
@@ -49,12 +49,10 @@ export function NoveloForm({ id }: { id: string | null }) {
   const novelos = useLive(listarNovelos);
   const novelo = id ? novelos?.find((n) => n.id === id) : undefined;
   const [c, setC] = useState<CamposNovelo>(VAZIO);
-  const [fechados, setFechados] = useState(1);
-  const [abertos, setAbertos] = useState(0);
+  const [pesos, setPesos] = useState<number[]>([0]);
   const [carregado, setCarregado] = useState(!id);
   const [marcaAuto, setMarcaAuto] = useState(false);
   const [comEmbalagem, setComEmbalagem] = useState(true);
-  const [abertosNovelos, setAbertosNovelos] = useState(1);
   const corRef = useRef<HTMLInputElement>(null);
   const embalagemG = usePesoEmbalagem(c.tipo);
 
@@ -85,9 +83,7 @@ export function NoveloForm({ id }: { id: string | null }) {
   };
   const agulhaOutra = c.agulha !== '' && !AGULHAS.includes(c.agulha);
   const valido = c.cor.trim() !== '' && c.gramatura > 0;
-  const descontar = !id && abertos > 0 && embalagemG > 0 && comEmbalagem;
-  const abertosLiquido = descontar ? descontarEmbalagem(abertos, abertosNovelos, embalagemG) : abertos;
-  const estoqueInicial = fechados * c.gramatura + abertosLiquido;
+  const estoqueInicial = totalDasPesagens(pesos, comEmbalagem, embalagemG);
   const repetido = noveloRepetido(novelos, c.tipo, c.cor, c.marca, id);
   const temDetalhes = !!(c.lote || c.agulha);
 
@@ -207,35 +203,16 @@ export function NoveloForm({ id }: { id: string | null }) {
 
         {!id && (
           <>
-            <div class="grade-2">
-              <div>
-                <label class="rotulo" for="nf-fechados">
-                  Novelos fechados
-                </label>
-                <CampoInteiro id="nf-fechados" valor={fechados} aoMudar={setFechados} rotulo="Novelos fechados" sufixo="un" max={9999} vazioQuandoZero={false} />
-              </div>
-              <div>
-                <label class="rotulo" for="nf-abertos">
-                  Abertos (peso)
-                </label>
-                <CampoInteiro id="nf-abertos" valor={abertos} aoMudar={setAbertos} rotulo="Peso dos novelos abertos" sufixo="g" max={99999} />
-              </div>
-            </div>
-            {abertos > 0 && (
-              <DescontoEmbalagem
-                tipo={c.tipo}
-                embalagemG={embalagemG}
-                ligado={comEmbalagem}
-                aoLigar={setComEmbalagem}
-                novelos={abertosNovelos}
-                aoMudarNovelos={setAbertosNovelos}
-                oQue="por novelo aberto"
-              />
-            )}
-            <p class="texto-apagado">
-              Em estoque: <b>{formatarEstoque(estoqueInicial)}</b>
-              {descontar && ` · abertos: ${contaDaEmbalagem(abertos, abertosNovelos, embalagemG)} = ${formatarGramas(abertosLiquido)}`}
-            </p>
+            <p class="rotulo">Estoque · pese um novelo de cada vez</p>
+            <PesagensNovelo
+              tipo={c.tipo}
+              gramatura={c.gramatura}
+              embalagemG={embalagemG}
+              pesos={pesos}
+              aoMudar={setPesos}
+              comEmbalagem={comEmbalagem}
+              aoLigar={setComEmbalagem}
+            />
           </>
         )}
 

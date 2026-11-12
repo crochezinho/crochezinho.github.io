@@ -24,6 +24,16 @@ export function descontarEmbalagem(pesado: number, novelos: number, embalagemG: 
   return Math.max(0, Math.round(pesado - Math.max(0, novelos) * Math.max(0, embalagemG)));
 }
 
+export function estoqueDasPesagens(pesos: number[], embalagemG: number): number {
+  return pesos.filter((p) => p > 0).reduce((s, p) => s + descontarEmbalagem(p, 1, embalagemG), 0);
+}
+
+export function contaDasPesagens(pesos: number[], embalagemG: number): string {
+  const validos = pesos.filter((p) => p > 0);
+  const soma = validos.reduce((s, p) => s + p, 0);
+  return embalagemG > 0 && validos.length ? contaDaEmbalagem(soma, validos.length, embalagemG) : `${numeroG(soma)} g`;
+}
+
 export const numeroG = (g: number) => g.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
 
 export function contaDaEmbalagem(pesado: number, novelos: number, embalagemG: number): string {

@@ -105,11 +105,11 @@ Abrir o cálculo de um projeto sempre mostra o Preço. O que foi digitado em Sho
   agrupar **por tipo → marca** (padrão) ou **por marca → tipo** (preferência lembrada). Dentro de cada grupo,
   os novelos usados em mais projetos vêm primeiro. Sem filtro "acabando". Grupos ignoram maiúsculas e acentos
   ("chenille" = "Chenille"); ao sair do campo, o tipo/marca digitado vira a grafia que já existe.
-- Detalhe: estoque em gramas com − / + (uma gramatura por toque) e "ajustar estoque" (fechados + peso dos abertos,
-  com desconto da embalagem e desfazer); ficha (gramatura, agulha, lote, preço, preço/grama); usado em projetos;
+- Detalhe: estoque em gramas com − / + (uma gramatura por toque) e "ajustar estoque" (pesagem um por um, ver
+  abaixo; o total substitui o estoque; "acabou, zerar estoque"; desfazer); ficha (gramatura, agulha, lote, preço, preço/grama); usado em projetos;
   menu ⋮ Editar/Excluir (com desfazer).
 - Formulário: tipo e marca (sugerem os já digitados), cor, gramatura, preço, capa (cor + textura
-  **liso / brilho / felpudo**); lote e agulha em "Mais detalhes". Estoque inicial só na criação.
+  **liso / brilho / felpudo**); lote e agulha em "Mais detalhes". Estoque inicial só na criação (pesagem um por um).
 - **Marca automática**: ao digitar tipo/cor, a marca vazia é preenchida com a do novelo de mesmo tipo + cor, ou a
   mais usada no tipo. Se tipo + cor + marca já existem: "Você já tem esse novelo" com atalho para ele.
 - **Estoque sempre em gramas** ("1.240 g"), nunca "2 novelos + 40 g".
@@ -117,12 +117,12 @@ Abrir o cálculo de um projeto sempre mostra o Preço. O que foi digitado em Sho
 ### Peso da embalagem
 - Configurações → **Embalagens**: um peso (g, aceita decimal) por tipo de novelo; a lista mostra os tipos já usados.
   Sincroniza (uma config por tipo, `embalagem.<tipo sem acento>`).
-- Onde se digita um peso de balança aparece **"Pesei com embalagem"** (só se o tipo tiver peso cadastrado):
-  - cadastro do novelo, "Abertos (peso)": ligado por padrão; pergunta quantos novelos estavam na balança;
-  - "Ajustar estoque": liga sozinho quando se digita um peso novo (o valor já preenchido é o do estoque, sem embalagem);
-  - calculadora, "Pesei o que sobrou": desconta do que sobrou; se "pesava antes" for digitado, desconta dele também
-    (o valor padrão é a gramatura do rótulo, já sem embalagem).
-- Mostra a conta ("312 g − 3 × 5 g = 297 g"). Novelos fechados contam pela gramatura do rótulo.
+- **Pesagem um por um** (cadastro do novelo e "Ajustar estoque"): cada linha é um novelo, com o peso que a balança
+  mostrou (com embalagem). "+ Outro novelo" abre uma linha vazia; "+ Fechado (65 g)" já preenche gramatura + embalagem,
+  para não precisar pesar novelo fechado. Estoque = soma − uma embalagem por linha preenchida
+  ("170 g − 3 × 15 g" = 125 g). "Pesei com embalagem" vem ligado (só aparece se o tipo tiver peso cadastrado).
+- Calculadora, "Pesei o que sobrou": desconta a embalagem do que sobrou; se "pesava antes" for digitado, desconta dele
+  também (o valor padrão é a gramatura do rótulo, já sem embalagem).
 
 ### Foto (projetos e novelos)
 - Uma foto por projeto e por novelo ("Adicionar foto" → câmera ou galeria; "Trocar"; "Ajustar"; "Tirar").

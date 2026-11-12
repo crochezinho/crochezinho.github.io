@@ -1,6 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chaveEmbalagem, contaDaEmbalagem, descontarEmbalagem, lerPesos, pesoDaEmbalagem, tiposDosNovelos } from './pesagem.ts';
+import {
+  chaveEmbalagem,
+  contaDaEmbalagem,
+  contaDasPesagens,
+  descontarEmbalagem,
+  estoqueDasPesagens,
+  lerPesos,
+  pesoDaEmbalagem,
+  tiposDosNovelos
+} from './pesagem.ts';
 
 test('a chave ignora maiúsculas, acentos e espaços', () => {
   assert.equal(chaveEmbalagem(' Chenille '), 'embalagem.chenille');
@@ -26,6 +35,16 @@ test('desconta uma embalagem por novelo pesado', () => {
   assert.equal(descontarEmbalagem(100, 0, 5), 100);
   assert.equal(contaDaEmbalagem(312, 3, 5), '312 g − 3 × 5 g');
   assert.equal(contaDaEmbalagem(48, 1, 2.5), '48 g − 2,5 g');
+});
+
+test('pesagens um por um: uma embalagem por novelo', () => {
+  assert.equal(estoqueDasPesagens([65, 65, 40], 15), 125);
+  assert.equal(contaDasPesagens([65, 65, 40], 15), '170 g − 3 × 15 g');
+  assert.equal(estoqueDasPesagens([65, 0, 40], 15), 75);
+  assert.equal(estoqueDasPesagens([10], 15), 0);
+  assert.equal(estoqueDasPesagens([65, 40], 0), 105);
+  assert.equal(contaDasPesagens([65, 40], 0), '105 g');
+  assert.equal(estoqueDasPesagens([], 15), 0);
 });
 
 test('tipos dos novelos sem repetir grafias', () => {
