@@ -3,13 +3,24 @@ import { haQuanto } from '../../app/datas.ts';
 import { textoDiagnostico } from '../../app/erros.ts';
 import { useInstalacao } from '../../app/instalacao.ts';
 import { href, voltar } from '../../app/router.ts';
-import { CampoDinheiro, CampoInteiro } from '../../components/Campos.tsx';
+import { CampoDecimal, CampoDinheiro, CampoInteiro } from '../../components/Campos.tsx';
+import { tiposDosNovelos } from '../../domain/pesagem.ts';
 import { Icone } from '../../components/Icone.tsx';
 import { Sheet } from '../../components/Sheet.tsx';
 import { toast } from '../../components/toast.tsx';
 import { useLive } from '../../db/hooks.ts';
 import { normalizarRepo, testarConexao } from '../../db/github.ts';
-import { apagarEmMassa, lerConfig, lerPadroesCalculo, listarNovelos, listarProjetos, restaurarApagados, salvarConfig } from '../../db/repo.ts';
+import {
+  apagarEmMassa,
+  lerConfig,
+  lerPadroesCalculo,
+  listarNovelos,
+  listarPesosEmbalagem,
+  listarProjetos,
+  restaurarApagados,
+  salvarConfig,
+  salvarPesoEmbalagem
+} from '../../db/repo.ts';
 import { Interruptor } from '../../components/Interruptor.tsx';
 import { CHAVES_SYNC, exportarBackup, importarBackup, lerConexao, salvarConexao, sincronizar } from '../../db/sync.ts';
 
@@ -79,6 +90,9 @@ export function Configuracoes() {
         </div>
       </div>
 
+      <h2 class="secao-titulo">Embalagens</h2>
+      <Embalagens />
+
       <h2 class="secao-titulo">Sincronização</h2>
       {estado.conexao ? (
         <Conectado repo={estado.conexao.repo} ultimo={estado.ultimoSync} erro={estado.erroSync} />
@@ -107,6 +121,33 @@ export function Configuracoes() {
         )}
       </p>
     </main>
+  );
+}
+
+function Embalagens() {
+  const dados = useLive(async () => ({ novelos: await listarNovelos(), pesos: await listarPesosEmbalagem() }));
+  if (!dados) return null;
+  const tipos = tiposDosNovelos(dados.novelos);
+  if (!tipos.length) {
+    return <p class="texto-apagado">Quando você cadastrar novelos com tipo (Chenille, Amigurumi…), eles aparecem aqui para informar o peso da embalagem.</p>;
+  }
+  return (
+    <>
+      <p class="texto-apagado secao-ajuda">Peso de uma embalagem vazia (etiqueta, cone…). Quando você pesar novelos abertos com ela, o app desconta.</p>
+      <div class="cartao-lista">
+        {tipos.map(({ tipo, chave }) => (
+          <div class="linha-campo" key={chave}>
+            <div class="linha-campo-texto">
+              <strong>{tipo}</strong>
+              <small>{dados.pesos.get(chave) ? 'por novelo' : 'sem embalagem'}</small>
+            </div>
+            <div class="campo-estreito">
+              <CampoDecimal valor={dados.pesos.get(chave) ?? 0} aoMudar={(g) => void salvarPesoEmbalagem(tipo, g)} rotulo={`Peso da embalagem de ${tipo}`} sufixo="g" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 

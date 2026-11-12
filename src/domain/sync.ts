@@ -2,6 +2,12 @@ export const VERSAO_PACOTE = 2;
 
 export const CONFIG_SINCRONIZADA = ['nome', 'valorHoraCentavos', 'margemPct'];
 
+export const PREFIXO_EMBALAGEM = 'embalagem.';
+
+export function ehConfigSincronizada(chave: string): boolean {
+  return CONFIG_SINCRONIZADA.includes(chave) || chave.startsWith(PREFIXO_EMBALAGEM);
+}
+
 interface ComData {
   id: string;
   atualizadoEm: number;
@@ -70,8 +76,8 @@ export function mesclarPacotes<P extends ComData, S extends ComData, N extends C
   const sessoes = mesclarTabela(local.sessoes, r.sessoes, porId, porData);
   const novelos = mesclarTabela(local.novelos, r.novelos, porId, porData);
   const config = mesclarTabela(
-    local.config.filter((c) => CONFIG_SINCRONIZADA.includes(c.chave)),
-    r.config.filter((c) => CONFIG_SINCRONIZADA.includes(c.chave)),
+    local.config.filter((c) => ehConfigSincronizada(c.chave)),
+    r.config.filter((c) => ehConfigSincronizada(c.chave)),
     (c) => c.chave,
     (c) => c.atualizadoEm ?? 0
   );

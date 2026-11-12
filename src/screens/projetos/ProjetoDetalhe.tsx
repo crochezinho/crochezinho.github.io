@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { Capa } from '../../components/Capa.tsx';
 import { corValida } from '../../app/capa.ts';
 import { useDadosCrono } from '../../app/dados.ts';
@@ -12,7 +12,19 @@ import { SeloPrazo } from '../../components/SeloPrazo.tsx';
 import { Sheet } from '../../components/Sheet.tsx';
 import { toast } from '../../components/toast.tsx';
 import { useLive } from '../../db/hooks.ts';
-import { concluirProjeto, duplicarProjeto, excluirProjeto, iniciar, listarNovelos, marcarEntregue, reabrirProjeto, restaurarProjeto } from '../../db/repo.ts';
+import {
+  concluirProjeto,
+  duplicarProjeto,
+  excluirProjeto,
+  iniciar,
+  listarNovelos,
+  marcarEntregue,
+  reabrirProjeto,
+  restaurarProjeto,
+  salvarAnotacoes,
+  salvarReceita
+} from '../../db/repo.ts';
+import { lerLink, origemDoLink } from '../../domain/receita.ts';
 import type { FioUsado, Novelo, Projeto } from '../../db/types.ts';
 import { calcularDesconto, conferirEstoque, formatarEstoque } from '../../domain/estoque.ts';
 import { diaDaEntrega } from '../../domain/prazo.ts';
@@ -28,6 +40,7 @@ export function ProjetoDetalhe({ id }: { id: string }) {
   const [concluindo, setConcluindo] = useState(false);
   const [reabrindo, setReabrindo] = useState(false);
   const [repetindo, setRepetindo] = useState(false);
+  const [editandoReceita, setEditandoReceita] = useState(false);
 
   const projeto = dados?.projetos.find((p) => p.id === id);
   const rodando = !!projeto && dados?.aberta?.projetoId === projeto.id;
@@ -186,6 +199,41 @@ export function ProjetoDetalhe({ id }: { id: string }) {
         )}
         {!concluido && <ResumoEstoque fios={projeto.fios} novelos={novelos} quantidade={quantidade} />}
 
+        <div class="secao-cabecalho">
+          <h2 class="secao-titulo">Receita</h2>
+          {projeto.receitaUrl && (
+            <button class="link-pequeno" onClick={() => setEditandoReceita(true)}>
+              trocar
+            </button>
+          )}
+        </div>
+        {projeto.receitaUrl ? (
+          <a class="cartao-acao" href={projeto.receitaUrl} target="_blank" rel="noopener noreferrer">
+            <span class="cartao-acao-icone">
+              <Icone nome="receita" />
+            </span>
+            <span class="linha-projeto-texto">
+              <strong>Abrir receita</strong>
+              <small>{origemDoLink(projeto.receitaUrl)}</small>
+            </span>
+            <Icone nome="abrir" tamanho={18} />
+          </a>
+        ) : (
+          <button class="cartao-acao vazio-tracejado" onClick={() => setEditandoReceita(true)}>
+            <span class="cartao-acao-icone">
+              <Icone nome="receita" />
+            </span>
+            <span class="linha-projeto-texto">
+              <strong>Adicionar link da receita</strong>
+              <small>cole o link do PDF no Google Drive</small>
+            </span>
+            <Icone nome="mais" tamanho={18} />
+          </button>
+        )}
+
+        <h2 class="secao-titulo">Anotações</h2>
+        <Anotacoes key={projeto.id} projeto={projeto} />
+
         {encomenda && fase === 'pronta' && (
           <button class="botao primario largo detalhe-fim" onClick={() => void entregar(true)}>
             Marcar como entregue
@@ -235,7 +283,99 @@ export function ProjetoDetalhe({ id }: { id: string }) {
       <ConcluirSheet aberta={concluindo} aoFechar={() => setConcluindo(false)} projeto={projeto} novelos={novelos} rodando={rodando} encomenda={encomenda} />
       <ReabrirSheet aberta={reabrindo} aoFechar={() => setReabrindo(false)} projeto={projeto} novelos={novelos} />
       <FazerDeNovoSheet aberta={repetindo} aoFechar={() => setRepetindo(false)} projeto={projeto} novelos={novelos} />
+      <ReceitaSheet aberta={editandoReceita} aoFechar={() => setEditandoReceita(false)} projeto={projeto} />
     </main>
+  );
+}
+
+function Anotacoes({ projeto }: { projeto: Projeto }) {
+  const [texto, setTexto] = useState(projeto.anotacoes ?? '');
+  const espera = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const salvo = useRef(projeto.anotacoes ?? '');
+  const campo = useRef<HTMLTextAreaElement>(null);
+
+  const salvar = (valor: string) => {
+    if (espera.current) clearTimeout(espera.current);
+    espera.current = null;
+    if (valor === salvo.current) return;
+    salvo.current = valor;
+    void salvarAnotacoes(projeto.id, valor);
+  };
+
+  const ajustarAltura = () => {
+    const el = campo.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight + 2}px`;
+  };
+  useEffect(ajustarAltura, [texto]);
+
+  useEffect(() => {
+    const remoto = projeto.anotacoes ?? '';
+    if (remoto !== salvo.current && document.activeElement !== campo.current) {
+      salvo.current = remoto;
+      setTexto(remoto);
+    }
+  }, [projeto.anotacoes]);
+
+  useEffect(() => () => espera.current !== null && salvar(campo.current?.value ?? texto), []);
+
+  return (
+    <textarea
+      ref={campo}
+      class="campo anotacoes"
+      rows={3}
+      value={texto}
+      placeholder="Carreiras, ajustes na receita, o que a cliente pediu…"
+      aria-label="Anotações do projeto"
+      onInput={(e) => {
+        const v = e.currentTarget.value;
+        setTexto(v);
+        if (espera.current) clearTimeout(espera.current);
+        espera.current = setTimeout(() => salvar(v), 700);
+      }}
+      onBlur={(e) => salvar(e.currentTarget.value)}
+    />
+  );
+}
+
+function ReceitaSheet(props: Parameters<typeof ReceitaAberta>[0]) {
+  return props.aberta ? <ReceitaAberta {...props} /> : null;
+}
+
+function ReceitaAberta({ aberta, aoFechar, projeto }: { aberta: boolean; aoFechar: () => void; projeto: Projeto }) {
+  const [texto, setTexto] = useState(projeto.receitaUrl ?? '');
+  const link = lerLink(texto);
+  const invalido = texto.trim() !== '' && !link;
+
+  const salvar = async (url: string) => {
+    await salvarReceita(projeto.id, url);
+    aoFechar();
+    toast(url ? 'Receita salva' : 'Link da receita removido');
+  };
+
+  return (
+    <Sheet aberta={aberta} aoFechar={aoFechar} titulo="Link da receita" subtitulo="No Drive: Compartilhar → Copiar link. O PDF abre no app do Drive.">
+      <input
+        class="campo"
+        type="url"
+        inputMode="url"
+        autocomplete="off"
+        placeholder="https://drive.google.com/…"
+        aria-label="Link da receita"
+        value={texto}
+        onInput={(e) => setTexto(e.currentTarget.value)}
+      />
+      {invalido && <p class="erro">Isso não parece um link.</p>}
+      <button class="botao primario largo" style={{ marginTop: 16 }} disabled={!link} onClick={() => void salvar(link)}>
+        Salvar link
+      </button>
+      {projeto.receitaUrl && (
+        <button class="link-pequeno link-centro" onClick={() => void salvar('')}>
+          tirar o link da receita
+        </button>
+      )}
+    </Sheet>
   );
 }
 
@@ -363,7 +503,7 @@ function ConcluirAberta({
                       {nomeDoNovelo(n)} <span class="menos">−{it.gramas} g</span>
                     </strong>
                     <small>
-                      fica {formatarEstoque(it.depois, n.gramatura)}
+                      fica {formatarEstoque(it.depois)}
                       {it.faltou > 0 ? ` · faltavam ${it.faltou} g no estoque` : ''}
                     </small>
                   </span>

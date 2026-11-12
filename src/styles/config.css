@@ -153,3 +153,8 @@
   word-break: break-word;
   color: var(--texto-2);
 }
+
+.secao-ajuda {
+  margin: -4px 0 10px;
+  font-size: 13px;
+}

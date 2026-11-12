@@ -17,6 +17,8 @@ export function normalizarNovelo<T>(n: T): T {
 export function normalizarProjeto<T>(p: T): T {
   const o = { ...(p as Solto) };
   if (typeof o.cliente !== 'string') o.cliente = '';
+  if (typeof o.anotacoes !== 'string') o.anotacoes = '';
+  if (typeof o.receitaUrl !== 'string') o.receitaUrl = '';
   if (typeof o.entregaEm !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(o.entregaEm)) o.entregaEm = null;
   if (typeof o.entregueEm !== 'number') o.entregueEm = null;
   if (typeof o.fotoId !== 'string') o.fotoId = null;

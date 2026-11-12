@@ -1,4 +1,4 @@
-import { CONFIG_SINCRONIZADA, VERSAO_PACOTE, mesclarPacotes, validarPacote, type Pacote } from '../domain/sync.ts';
+import { VERSAO_PACOTE, ehConfigSincronizada, mesclarPacotes, validarPacote, type Pacote } from '../domain/sync.ts';
 import { normalizarNovelo, normalizarProjeto } from '../domain/migracao.ts';
 import { db, novoId } from './db.ts';
 import { ErroGitHub, baixarFoto, enviarFoto, gravarRemoto, lerRemoto, type ConexaoGitHub } from './github.ts';
@@ -23,7 +23,7 @@ export async function montarPacote(): Promise<PacoteApp> {
     projetos,
     sessoes,
     novelos,
-    config: config.filter((c) => CONFIG_SINCRONIZADA.includes(c.chave))
+    config: config.filter((c) => ehConfigSincronizada(c.chave))
   };
 }
 

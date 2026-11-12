@@ -1,5 +1,7 @@
 import { db, novoId } from './db.ts';
 import { calcularDesconto } from '../domain/estoque.ts';
+import { chaveEmbalagem, lerPesos, type PesosEmbalagem } from '../domain/pesagem.ts';
+import { PREFIXO_EMBALAGEM } from '../domain/sync.ts';
 import type { Calculo, FioUsado, Id, Novelo, Projeto, Rascunho, Sessao } from './types.ts';
 
 const agora = () => Date.now();
@@ -9,7 +11,7 @@ export type CamposProjeto = Pick<Projeto, 'nome' | 'tipo' | 'agulha' | 'capaCor'
 
 export const CAPA_PADRAO = '#C98B86';
 
-export async function criarProjeto(nome: string, campos: Partial<CamposProjeto> = {}): Promise<Id> {
+export async function criarProjeto(nome: string, campos: Partial<CamposProjeto & Pick<Projeto, 'anotacoes' | 'receitaUrl'>> = {}): Promise<Id> {
   const t = agora();
   const projeto: Projeto = {
     id: novoId(),
@@ -20,6 +22,8 @@ export async function criarProjeto(nome: string, campos: Partial<CamposProjeto> 
     entregaEm: null,
     entregueEm: null,
     fotoId: null,
+    anotacoes: '',
+    receitaUrl: '',
     ...campos,
     quantidade: Math.max(1, Math.floor(campos.quantidade ?? 1) || 1),
     nome: nome.trim() || 'Novo projeto',
@@ -58,11 +62,27 @@ export async function editarProjeto(id: Id, campos: CamposProjeto): Promise<void
   });
 }
 
+export async function salvarAnotacoes(id: Id, anotacoes: string): Promise<void> {
+  await db.projetos.update(id, { anotacoes, atualizadoEm: agora() });
+}
+
+export async function salvarReceita(id: Id, receitaUrl: string): Promise<void> {
+  await db.projetos.update(id, { receitaUrl, atualizadoEm: agora() });
+}
+
 export async function duplicarProjeto(id: Id, quantidade: number): Promise<Id> {
   const p = await db.projetos.get(id);
   if (!p) throw new Error('Projeto não encontrado.');
   const q = Math.max(1, Math.floor(quantidade) || 1);
-  const novoProjetoId = await criarProjeto(p.nome, { tipo: p.tipo, agulha: p.agulha, capaCor: p.capaCor, fotoId: p.fotoId ?? null, quantidade: q });
+  const novoProjetoId = await criarProjeto(p.nome, {
+    tipo: p.tipo,
+    agulha: p.agulha,
+    capaCor: p.capaCor,
+    fotoId: p.fotoId ?? null,
+    anotacoes: p.anotacoes ?? '',
+    receitaUrl: p.receitaUrl ?? '',
+    quantidade: q
+  });
   await db.projetos.update(novoProjetoId, { fios: p.fios.map((f) => ({ ...f })) });
   if (p.calculo) {
     const novelos = await db.novelos.toArray();
@@ -214,6 +234,15 @@ export async function salvarConfig(chave: string, valor: unknown): Promise<void>
 
 export async function apagarConfig(chave: string): Promise<void> {
   await db.config.delete(chave);
+}
+
+export async function listarPesosEmbalagem(): Promise<PesosEmbalagem> {
+  return lerPesos(await db.config.where('chave').startsWith(PREFIXO_EMBALAGEM).toArray());
+}
+
+export async function salvarPesoEmbalagem(tipo: string, gramas: number): Promise<void> {
+  if (!tipo.trim()) return;
+  await salvarConfig(chaveEmbalagem(tipo), Math.max(0, gramas));
 }
 
 export const PADRAO_VALOR_HORA = 800;

@@ -2,13 +2,16 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { AGULHAS } from '../../app/constantes.ts';
 import { href, ir, voltar } from '../../app/router.ts';
 import { CampoDinheiro, CampoInteiro } from '../../components/Campos.tsx';
+import { DescontoEmbalagem, usePesoEmbalagem } from '../../components/DescontoEmbalagem.tsx';
 import { Icone } from '../../components/Icone.tsx';
 import { SeletorCapa } from '../../components/SeletorCapa.tsx';
 import { toast } from '../../components/toast.tsx';
 import { useLive } from '../../db/hooks.ts';
 import { CAPA_PADRAO, criarNovelo, editarNovelo, listarNovelos, type CamposNovelo } from '../../db/repo.ts';
 import type { Novelo } from '../../db/types.ts';
-import { formatarEstoque } from '../../domain/estoque.ts';
+import { formatarEstoque, formatarGramas } from '../../domain/estoque.ts';
+import { grafiaExistente, noveloRepetido, sugerirMarca } from '../../domain/novelos.ts';
+import { contaDaEmbalagem, descontarEmbalagem } from '../../domain/pesagem.ts';
 
 const VAZIO: CamposNovelo = {
   cor: '',
@@ -49,7 +52,11 @@ export function NoveloForm({ id }: { id: string | null }) {
   const [fechados, setFechados] = useState(1);
   const [abertos, setAbertos] = useState(0);
   const [carregado, setCarregado] = useState(!id);
+  const [marcaAuto, setMarcaAuto] = useState(false);
+  const [comEmbalagem, setComEmbalagem] = useState(true);
+  const [abertosNovelos, setAbertosNovelos] = useState(1);
   const corRef = useRef<HTMLInputElement>(null);
+  const embalagemG = usePesoEmbalagem(c.tipo);
 
   useEffect(() => {
     if (novelo && !carregado) {
@@ -68,9 +75,20 @@ export function NoveloForm({ id }: { id: string | null }) {
   }
 
   const mudar = (parte: Partial<CamposNovelo>) => setC((a) => ({ ...a, ...parte }));
+  const mudarTipoCor = (parte: Pick<Partial<CamposNovelo>, 'tipo' | 'cor'>) => {
+    const tipo = parte.tipo ?? c.tipo;
+    const cor = parte.cor ?? c.cor;
+    if (c.marca.trim() && !marcaAuto) return mudar(parte);
+    const outros = novelos.filter((n) => n.id !== id);
+    mudar({ ...parte, marca: sugerirMarca(outros, tipo, cor) });
+    setMarcaAuto(true);
+  };
   const agulhaOutra = c.agulha !== '' && !AGULHAS.includes(c.agulha);
   const valido = c.cor.trim() !== '' && c.gramatura > 0;
-  const estoqueInicial = fechados * c.gramatura + abertos;
+  const descontar = !id && abertos > 0 && embalagemG > 0 && comEmbalagem;
+  const abertosLiquido = descontar ? descontarEmbalagem(abertos, abertosNovelos, embalagemG) : abertos;
+  const estoqueInicial = fechados * c.gramatura + abertosLiquido;
+  const repetido = noveloRepetido(novelos, c.tipo, c.cor, c.marca, id);
   const temDetalhes = !!(c.lote || c.agulha);
 
   const salvar = async (e: Event) => {
@@ -107,7 +125,11 @@ export function NoveloForm({ id }: { id: string | null }) {
               class="campo"
               list="lista-tipos"
               value={c.tipo}
-              onInput={(e) => mudar({ tipo: e.currentTarget.value })}
+              onInput={(e) => mudarTipoCor({ tipo: e.currentTarget.value })}
+              onBlur={() => {
+                const igual = grafiaExistente(novelos, 'tipo', c.tipo);
+                if (igual && igual !== c.tipo) mudar({ tipo: igual });
+              }}
               placeholder="ex: Chenille"
               autocomplete="off"
             />
@@ -116,14 +138,47 @@ export function NoveloForm({ id }: { id: string | null }) {
             <label class="rotulo" for="nf-cor">
               Cor
             </label>
-            <input id="nf-cor" ref={corRef} class="campo" value={c.cor} onInput={(e) => mudar({ cor: e.currentTarget.value })} placeholder="ex: Rosa Chá" autocomplete="off" />
+            <input
+              id="nf-cor"
+              ref={corRef}
+              class="campo"
+              value={c.cor}
+              onInput={(e) => mudarTipoCor({ cor: e.currentTarget.value })}
+              placeholder="ex: Rosa Chá"
+              autocomplete="off"
+            />
           </div>
         </div>
 
         <label class="rotulo" for="nf-marca">
           Marca
         </label>
-        <input id="nf-marca" class="campo" list="lista-marcas" value={c.marca} onInput={(e) => mudar({ marca: e.currentTarget.value })} placeholder="ex: Círculo" autocomplete="off" />
+        <input
+          id="nf-marca"
+          class="campo"
+          list="lista-marcas"
+          value={c.marca}
+          onInput={(e) => {
+            mudar({ marca: e.currentTarget.value });
+            setMarcaAuto(false);
+          }}
+          onBlur={() => {
+            const igual = grafiaExistente(novelos, 'marca', c.marca);
+            if (igual && igual !== c.marca) mudar({ marca: igual });
+          }}
+          placeholder="ex: Círculo"
+          autocomplete="off"
+        />
+        {repetido && (
+          <div class="aviso-repetido" role="status">
+            <span>
+              Você já tem esse novelo{repetido.estoqueG > 0 ? ` (${formatarEstoque(repetido.estoqueG)} em estoque)` : ''}.
+            </span>
+            <button type="button" class="botao-texto" onClick={() => ir(href.novelo(repetido.id))}>
+              Ver novelo
+            </button>
+          </div>
+        )}
 
         <div class="grade-2">
           <div>
@@ -166,7 +221,21 @@ export function NoveloForm({ id }: { id: string | null }) {
                 <CampoInteiro id="nf-abertos" valor={abertos} aoMudar={setAbertos} rotulo="Peso dos novelos abertos" sufixo="g" max={99999} />
               </div>
             </div>
-            <p class="texto-apagado">Em estoque: {formatarEstoque(estoqueInicial, c.gramatura)}</p>
+            {abertos > 0 && (
+              <DescontoEmbalagem
+                tipo={c.tipo}
+                embalagemG={embalagemG}
+                ligado={comEmbalagem}
+                aoLigar={setComEmbalagem}
+                novelos={abertosNovelos}
+                aoMudarNovelos={setAbertosNovelos}
+                oQue="por novelo aberto"
+              />
+            )}
+            <p class="texto-apagado">
+              Em estoque: <b>{formatarEstoque(estoqueInicial)}</b>
+              {descontar && ` · abertos: ${contaDaEmbalagem(abertos, abertosNovelos, embalagemG)} = ${formatarGramas(abertosLiquido)}`}
+            </p>
           </>
         )}
 

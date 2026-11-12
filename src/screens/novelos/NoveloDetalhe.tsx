@@ -9,8 +9,10 @@ import { toast } from '../../components/toast.tsx';
 import { useLive } from '../../db/hooks.ts';
 import { definirEstoque, excluirNovelo, listarNovelos, restaurarNovelo } from '../../db/repo.ts';
 import type { Novelo } from '../../db/types.ts';
-import { formatarEstoque } from '../../domain/estoque.ts';
+import { DescontoEmbalagem, usePesoEmbalagem } from '../../components/DescontoEmbalagem.tsx';
+import { formatarEstoque, formatarGramas } from '../../domain/estoque.ts';
 import { nomeDoNovelo, novelosInteiros } from '../../domain/novelos.ts';
+import { contaDaEmbalagem, descontarEmbalagem } from '../../domain/pesagem.ts';
 import { brl, precoPorGrama } from '../../domain/preco.ts';
 
 export function NoveloDetalhe({ id }: { id: string }) {
@@ -36,8 +38,6 @@ export function NoveloDetalhe({ id }: { id: string }) {
   }
 
   const nome = nomeDoNovelo(n);
-  const inteiros = novelosInteiros(n);
-  const sobra = Math.max(0, n.estoqueG) - inteiros * n.gramatura;
   const usadoEm = dados.projetos.filter((p) => p.fios.some((f) => f.noveloId === n.id));
 
   const mudarEstoque = (delta: number) => {
@@ -81,22 +81,19 @@ export function NoveloDetalhe({ id }: { id: string }) {
               Em estoque
             </p>
             <div class="estoque-linha">
-              <button class="estoque-botao" aria-label="Tirar um novelo" disabled={n.estoqueG < n.gramatura} onClick={() => mudarEstoque(-1)}>
+              <button class="estoque-botao" aria-label={`Tirar um novelo (${n.gramatura} g)`} disabled={n.estoqueG < n.gramatura} onClick={() => mudarEstoque(-1)}>
                 <Icone nome="menos" />
               </button>
               <div class="estoque-valor" aria-live="polite">
-                <strong>{inteiros}</strong>
-                <span>
-                  {inteiros === 1 ? 'novelo' : 'novelos'}
-                  {sobra > 0 ? ` + ${sobra} g` : ''}
-                </span>
+                <strong>{formatarGramas(Math.max(0, n.estoqueG))}</strong>
+                {n.gramatura > 0 && <span>± {n.gramatura} g a cada novelo</span>}
               </div>
-              <button class="estoque-botao mais" aria-label="Somar um novelo" disabled={n.gramatura <= 0} onClick={() => mudarEstoque(1)}>
+              <button class="estoque-botao mais" aria-label={`Somar um novelo (${n.gramatura} g)`} disabled={n.gramatura <= 0} onClick={() => mudarEstoque(1)}>
                 <Icone nome="mais" />
               </button>
             </div>
             <button class="link-pequeno estoque-ajustar" onClick={() => setAjustando(true)}>
-              ajustar em gramas
+              ajustar estoque
             </button>
           </div>
         </section>
@@ -157,14 +154,25 @@ function AjustarEstoque(props: Parameters<typeof AjustarEstoqueAberto>[0]) {
 function AjustarEstoqueAberto({ aberta, aoFechar, n }: { aberta: boolean; aoFechar: () => void; n: Novelo }) {
   const [inteiros, setInteiros] = useState(() => novelosInteiros(n));
   const [gramas, setGramas] = useState(() => Math.max(0, n.estoqueG) - novelosInteiros(n) * n.gramatura);
+  const [comEmbalagem, setComEmbalagem] = useState(false);
+  const [mexeuNoInterruptor, setMexeuNoInterruptor] = useState(false);
+  const [abertosNovelos, setAbertosNovelos] = useState(1);
+  const embalagemG = usePesoEmbalagem(n.tipo);
 
-  const total = inteiros * n.gramatura + gramas;
+  const descontar = comEmbalagem && embalagemG > 0 && gramas > 0;
+  const gramasLiquido = descontar ? descontarEmbalagem(gramas, abertosNovelos, embalagemG) : gramas;
+  const total = inteiros * n.gramatura + gramasLiquido;
+
+  const mudarGramas = (g: number) => {
+    setGramas(g);
+    if (!mexeuNoInterruptor) setComEmbalagem(true);
+  };
 
   const salvar = async () => {
     const antes = n.estoqueG;
     await definirEstoque(n.id, total);
     aoFechar();
-    toast(`Estoque: ${formatarEstoque(total, n.gramatura)}`, { rotulo: 'Desfazer', fazer: () => void definirEstoque(n.id, antes) });
+    toast(`Estoque: ${formatarEstoque(total)}`, { rotulo: 'Desfazer', fazer: () => void definirEstoque(n.id, antes) });
   };
 
   return (
@@ -180,12 +188,29 @@ function AjustarEstoqueAberto({ aberta, aoFechar, n }: { aberta: boolean; aoFech
           <label class="rotulo" for="ae-gramas">
             Abertos (peso)
           </label>
-          <CampoInteiro id="ae-gramas" valor={gramas} aoMudar={setGramas} rotulo="Peso dos novelos abertos" sufixo="g" max={99999} vazioQuandoZero={false} />
+          <CampoInteiro id="ae-gramas" valor={gramas} aoMudar={mudarGramas} rotulo="Peso dos novelos abertos" sufixo="g" max={99999} vazioQuandoZero={false} />
         </div>
       </div>
+      {gramas > 0 && (
+        <DescontoEmbalagem
+          tipo={n.tipo}
+          embalagemG={embalagemG}
+          ligado={comEmbalagem}
+          aoLigar={(v) => {
+            setComEmbalagem(v);
+            setMexeuNoInterruptor(true);
+          }}
+          novelos={abertosNovelos}
+          aoMudarNovelos={setAbertosNovelos}
+          oQue="por novelo aberto"
+        />
+      )}
       <div class="resumo-fio">
-        <span>Total</span>
-        <strong class="resumo-fio-valor">{formatarEstoque(total, n.gramatura)}</strong>
+        <span>
+          Total
+          {descontar && <small class="resumo-conta">abertos: {contaDaEmbalagem(gramas, abertosNovelos, embalagemG)} = {formatarGramas(gramasLiquido)}</small>}
+        </span>
+        <strong class="resumo-fio-valor">{formatarEstoque(total)}</strong>
       </div>
       <button class="botao primario largo" onClick={() => void salvar()}>
         Salvar estoque

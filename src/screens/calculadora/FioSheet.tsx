@@ -2,12 +2,14 @@ import { useState } from 'preact/hooks';
 import { Capa } from '../../components/Capa.tsx';
 import { SeletorCapa } from '../../components/SeletorCapa.tsx';
 import { CampoDinheiro, CampoInteiro } from '../../components/Campos.tsx';
+import { DescontoEmbalagem, usePesoEmbalagem } from '../../components/DescontoEmbalagem.tsx';
 import { Icone } from '../../components/Icone.tsx';
 import { Sheet } from '../../components/Sheet.tsx';
 import { CAPA_PADRAO, criarNovelo } from '../../db/repo.ts';
 import type { Novelo, Textura } from '../../db/types.ts';
 import { formatarEstoque } from '../../domain/estoque.ts';
 import { nomeDoNovelo } from '../../domain/novelos.ts';
+import { descontarEmbalagem } from '../../domain/pesagem.ts';
 import { brl, custoDoFio, gramasUsadas, precoPorGrama } from '../../domain/preco.ts';
 import { ListasNovelo } from '../novelos/NoveloForm.tsx';
 
@@ -51,11 +53,15 @@ function FioSheetAberta({
   const [antes, setAntes] = useState(() => novelos.find((n) => n.id === inicial?.noveloId)?.gramatura ?? 0);
   const [sobrou, setSobrou] = useState(0);
   const [usei, setUsei] = useState(inicial?.gramas ?? 0);
+  const [comEmbalagem, setComEmbalagem] = useState(true);
+  const [antesPesado, setAntesPesado] = useState(false);
 
   const novelo = novelos.find((n) => n.id === noveloId);
+  const embalagemG = usePesoEmbalagem(novelo?.tipo ?? '');
   const escolher = (n: Novelo) => {
     setNoveloId(n.id);
     setAntes(n.gramatura);
+    setAntesPesado(false);
     setSobrou(0);
     setPasso('escolher');
   };
@@ -114,7 +120,7 @@ function FioSheetAberta({
               <span class="linha-projeto-texto">
                 <strong>{nomeDoNovelo(n)}</strong>
                 <small>
-                  {[n.marca, `${brl(precoPorGrama(n.precoCentavos, n.gramatura))}/g`, formatarEstoque(n.estoqueG, n.gramatura)]
+                  {[n.marca, `${brl(precoPorGrama(n.precoCentavos, n.gramatura))}/g`, formatarEstoque(n.estoqueG)]
                     .filter(Boolean)
                     .join(' · ')}
                 </small>
@@ -129,8 +135,11 @@ function FioSheetAberta({
   }
 
   const ppg = inicial && inicial.noveloId === noveloId ? inicial.precoPorGramaCentavos : precoPorGrama(novelo.precoCentavos, novelo.gramatura);
-  const gramas = modo === 'sobrou' ? gramasUsadas(antes, sobrou) : usei;
-  const sobrouDemais = modo === 'sobrou' && sobrou > antes;
+  const descontar = modo === 'sobrou' && embalagemG > 0 && comEmbalagem;
+  const sobrouLiquido = descontar && sobrou > 0 ? descontarEmbalagem(sobrou, 1, embalagemG) : sobrou;
+  const antesLiquido = descontar && antesPesado ? descontarEmbalagem(antes, 1, embalagemG) : antes;
+  const gramas = modo === 'sobrou' ? gramasUsadas(antesLiquido, sobrouLiquido) : usei;
+  const sobrouDemais = modo === 'sobrou' && sobrouLiquido > antesLiquido;
 
   return (
     <Sheet aberta={aberta} aoFechar={aoFechar} titulo={titulo}>
@@ -160,7 +169,16 @@ function FioSheetAberta({
             <label class="rotulo" for="fio-antes">
               Pesava antes
             </label>
-            <CampoInteiro id="fio-antes" valor={antes} aoMudar={setAntes} rotulo="Pesava antes, em gramas" sufixo="g" />
+            <CampoInteiro
+              id="fio-antes"
+              valor={antes}
+              aoMudar={(g) => {
+                setAntes(g);
+                setAntesPesado(true);
+              }}
+              rotulo="Pesava antes, em gramas"
+              sufixo="g"
+            />
           </div>
           <div>
             <label class="rotulo" for="fio-sobrou">
@@ -176,6 +194,15 @@ function FioSheetAberta({
           </label>
           <CampoInteiro id="fio-usei" valor={usei} aoMudar={setUsei} rotulo={`Gramas usadas${porPeca}`} sufixo="g" />
         </>
+      )}
+      {modo === 'sobrou' && (
+        <DescontoEmbalagem
+          tipo={novelo.tipo}
+          embalagemG={embalagemG}
+          ligado={comEmbalagem}
+          aoLigar={setComEmbalagem}
+          oQue={antesPesado ? 'de cada pesagem' : 'do que sobrou'}
+        />
       )}
       {sobrouDemais && <p class="erro">O que sobrou não pode pesar mais que antes.</p>}
       {varias && modo === 'sobrou' && <p class="texto-apagado">Pese o que sobrou depois de fazer uma peça.</p>}

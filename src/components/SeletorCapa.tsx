@@ -1,8 +1,9 @@
 import { useRef, useState } from 'preact/hooks';
 import { PALETA, TEXTURAS, corValida, estiloCapa, hexParaHsl, hslParaHex, type Hsl } from '../app/capa.ts';
-import { adicionarFoto } from '../app/foto.ts';
+import { lerFoto, salvarFoto } from '../app/foto.ts';
 import type { Textura } from '../db/types.ts';
 import { Capa } from './Capa.tsx';
+import { EditorFoto } from './EditorFoto.tsx';
 import { toast } from './toast.tsx';
 import { Icone } from './Icone.tsx';
 
@@ -24,22 +25,38 @@ export function SeletorCapa({
   const valor = corValida(cor).toUpperCase();
   const [aberto, setAberto] = useState(false);
   const [preparando, setPreparando] = useState(false);
+  const [editando, setEditando] = useState<Blob | null>(null);
   const arquivo = useRef<HTMLInputElement>(null);
   const comFoto = !!fotoId && !!aoMudarFoto;
 
-  const escolherFoto = async (e: Event) => {
+  const escolherFoto = (e: Event) => {
     const input = e.currentTarget as HTMLInputElement;
     const f = input.files?.[0];
     input.value = '';
-    if (!f || !aoMudarFoto) return;
+    if (f) setEditando(f);
+  };
+
+  const ajustarAtual = async () => {
+    if (!fotoId) return;
     setPreparando(true);
     try {
-      aoMudarFoto(await adicionarFoto(f));
+      const atual = await lerFoto(fotoId);
+      if (atual) setEditando(atual);
+      else toast('A foto ainda não chegou neste aparelho. Tente de novo daqui a pouco.');
+    } finally {
+      setPreparando(false);
+    }
+  };
+
+  const usarRecorte = async (recorte: Blob) => {
+    if (!aoMudarFoto) return;
+    try {
+      aoMudarFoto(await salvarFoto(recorte));
+      setEditando(null);
       setAberto(false);
     } catch (err) {
       toast((err as Error).message);
-    } finally {
-      setPreparando(false);
+      throw err;
     }
   };
 
@@ -55,18 +72,24 @@ export function SeletorCapa({
 
       {aoMudarFoto && (
         <div class="acoes-foto">
-          <button type="button" class="botao" disabled={preparando} onClick={() => arquivo.current?.click()}>
+          <button type="button" class="botao" onClick={() => arquivo.current?.click()}>
             <Icone nome="camera" tamanho={18} />
-            {preparando ? 'Preparando…' : comFoto ? 'Trocar foto' : 'Adicionar foto'}
+            {comFoto ? 'Trocar' : 'Adicionar foto'}
           </button>
           {comFoto && (
-            <button type="button" class="botao" onClick={() => aoMudarFoto(null)}>
-              Tirar foto
-            </button>
+            <>
+              <button type="button" class="botao" disabled={preparando} onClick={() => void ajustarAtual()}>
+                {preparando ? 'Abrindo…' : 'Ajustar'}
+              </button>
+              <button type="button" class="botao" onClick={() => aoMudarFoto(null)}>
+                Tirar
+              </button>
+            </>
           )}
-          <input ref={arquivo} type="file" accept="image/*" hidden onChange={(e) => void escolherFoto(e)} />
+          <input ref={arquivo} type="file" accept="image/*" hidden onChange={escolherFoto} />
         </div>
       )}
+      {editando && <EditorFoto foto={editando} aoCancelar={() => setEditando(null)} aoPronto={usarRecorte} />}
 
       {!comFoto && aberto && <PainelCor valor={valor} aoMudar={aoMudarCor} />}
 

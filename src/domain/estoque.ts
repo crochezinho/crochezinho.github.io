@@ -46,13 +46,11 @@ export function conferirEstoque(
   });
 }
 
-export function formatarEstoque(estoqueG: number, gramatura: number): string {
+export function formatarGramas(g: number): string {
+  return `${Math.round(g).toLocaleString('pt-BR')} g`;
+}
+
+export function formatarEstoque(estoqueG: number): string {
   const g = Math.max(0, Math.round(estoqueG));
-  if (g === 0) return 'sem estoque';
-  if (gramatura <= 0) return `${g} g`;
-  const inteiros = Math.floor(g / gramatura);
-  const resto = g - inteiros * gramatura;
-  const n = inteiros === 1 ? '1 novelo' : `${inteiros} novelos`;
-  if (inteiros === 0) return `${resto} g`;
-  return resto ? `${n} + ${resto} g` : n;
+  return g === 0 ? 'sem estoque' : formatarGramas(g);
 }

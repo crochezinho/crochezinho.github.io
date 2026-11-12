@@ -34,13 +34,12 @@ test('desconto com várias peças e fio manual', () => {
   assert.deepEqual(itens, [{ noveloId: 'a', gramas: 120, antes: 150, depois: 30, faltou: 0 }]);
 });
 
-test('estoque em novelos + gramas', () => {
-  assert.equal(formatarEstoque(240, 100), '2 novelos + 40 g');
-  assert.equal(formatarEstoque(100, 100), '1 novelo');
-  assert.equal(formatarEstoque(300, 100), '3 novelos');
-  assert.equal(formatarEstoque(40, 100), '40 g');
-  assert.equal(formatarEstoque(0, 100), 'sem estoque');
-  assert.equal(formatarEstoque(55, 0), '55 g');
+test('estoque sempre em gramas', () => {
+  assert.equal(formatarEstoque(240), '240 g');
+  assert.equal(formatarEstoque(100), '100 g');
+  assert.equal(formatarEstoque(1240), '1.240 g');
+  assert.equal(formatarEstoque(0), 'sem estoque');
+  assert.equal(formatarEstoque(-5), 'sem estoque');
 });
 
 test('quanto fio preciso: por peça × peças contra o estoque', () => {

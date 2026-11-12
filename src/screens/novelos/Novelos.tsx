@@ -5,8 +5,8 @@ import { Icone } from '../../components/Icone.tsx';
 import { useLive } from '../../db/hooks.ts';
 import { lerConfig, listarNovelos, listarProjetos, salvarConfig } from '../../db/repo.ts';
 import type { Novelo } from '../../db/types.ts';
-import { formatarEstoque } from '../../domain/estoque.ts';
-import { agrupar, contarUso, filtrar, novelosInteiros, type Agrupamento } from '../../domain/novelos.ts';
+import { formatarEstoque, formatarGramas } from '../../domain/estoque.ts';
+import { agrupar, contarUso, filtrar, type Agrupamento } from '../../domain/novelos.ts';
 
 const OPCOES: { valor: Agrupamento; rotulo: string }[] = [
   { valor: 'tipo', rotulo: 'Por tipo' },
@@ -23,7 +23,7 @@ export function Novelos() {
   const uso = contarUso(projetos);
   const por: Agrupamento = agruparSalvo === 'marca' ? 'marca' : 'tipo';
   const visiveis = filtrar(novelos, busca);
-  const totalInteiros = novelos.reduce((s, n) => s + novelosInteiros(n), 0);
+  const totalG = novelos.reduce((s, n) => s + Math.max(0, n.estoqueG), 0);
   const nomeSub = (q: number) => (por === 'marca' ? (q === 1 ? 'tipo' : 'tipos') : q === 1 ? 'marca' : 'marcas');
 
   return (
@@ -33,7 +33,7 @@ export function Novelos() {
           <h1 class="titulo-grande">Meus novelos</h1>
           {novelos.length > 0 && (
             <p class="subtitulo">
-              {novelos.length} {novelos.length === 1 ? 'cor' : 'cores'} · {totalInteiros} {totalInteiros === 1 ? 'novelo' : 'novelos'}
+              {novelos.length} {novelos.length === 1 ? 'cor' : 'cores'} · {formatarGramas(totalG)}
             </p>
           )}
         </div>
@@ -81,7 +81,7 @@ export function Novelos() {
                     <h2>{g.nome}</h2>
                     <span class="grupo-resumo">
                       {subs > 0 && `${subs} ${nomeSub(subs)} · `}
-                      {g.totalInteiros} {g.totalInteiros === 1 ? 'novelo' : 'novelos'}
+                      {formatarGramas(g.totalG)}
                     </span>
                   </div>
                   {g.sub.map((s) => (
@@ -109,14 +109,11 @@ export function Novelos() {
 }
 
 function BlocoNovelo({ n }: { n: Novelo }) {
-  const inteiros = novelosInteiros(n);
   return (
     <button class="bloco-novelo" onClick={() => ir(href.novelo(n.id))}>
-      <Capa class="bloco-cor" cor={n.capaCor} textura={n.textura} fotoId={n.fotoId}>
-        <span class="bloco-qtd">{inteiros > 0 ? inteiros : `${Math.max(0, n.estoqueG)} g`}</span>
-      </Capa>
+      <Capa class="bloco-cor" cor={n.capaCor} textura={n.textura} fotoId={n.fotoId} />
       <strong>{n.cor}</strong>
-      <small>{formatarEstoque(n.estoqueG, n.gramatura)}</small>
+      <small>{formatarEstoque(n.estoqueG)}</small>
     </button>
   );
 }

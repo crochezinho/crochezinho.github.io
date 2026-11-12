@@ -85,33 +85,51 @@ Abrir o cálculo de um projeto sempre mostra o Preço. O que foi digitado em Sho
   aparece como "Marcar como pronta".
 - Detalhe: tempo, preço, "Começar/Continuar cronômetro" (já inicia e abre o crono), cartão de preço
   (abre a calculadora do projeto), fios usados (editados pela calculadora), menu ⋮ com Editar/Excluir.
+- **Receita**: link colado (ex.: PDF no Google Drive; acha o link mesmo com texto junto). Cartão "Abrir receita"
+  abre fora do app (no app do Drive, já logado). Sem prévia do PDF: os arquivos ficam privados no Drive.
+- **Anotações**: texto livre no detalhe, salvo enquanto se digita; sincroniza com os outros aparelhos.
 - "Concluir projeto" → folha com o que sai de cada novelo (gramas por peça × peças) e o que fica; interruptor para não descontar;
   pausa o crono se estiver rodando. "Desfazer" no aviso reabre e devolve o estoque.
 - "Reabrir projeto" → oferece devolver ao estoque o que foi descontado.
 - **Quanto fio preciso?** No projeto em andamento, abaixo dos fios: "Tem fio para as N peças" ou, por novelo,
   quanto precisa (por peça × peças), quanto tem, quanto falta e quantos novelos comprar. Fios manuais ficam de fora.
 - **Fazer de novo** (menu ⋮, e botão no projeto concluído): escolhe as peças, mostra a conferência do estoque e cria
-  um projeto novo com nome, tipo, agulha, capa e fios por peça; cronômetro zerado. Se o original tinha cálculo, o novo
+  um projeto novo com nome, tipo, agulha, capa, receita, anotações e fios por peça; cronômetro zerado. Se o original tinha cálculo, o novo
   começa com um cálculo em andamento com os mesmos fios (preço atual do novelo), outros custos, valor/hora e margem.
 - Excluir com "desfazer". Sessões de projetos excluídos não entram nas contas.
 
 ### Novelos
 - Novelo = **tipo** (digitado, ex.: Amigurumi, Chenille, Balloon Amigo) + **cor** + **marca**.
   Por extenso, o nome é **tipo + cor** ("Chenille Rosa Chá").
-- Lista "Meus novelos" (cores · novelos), busca sem acento (cor, marca, tipo),
+- Lista "Meus novelos" (cores · gramas), busca sem acento (cor, marca, tipo),
   agrupar **por tipo → marca** (padrão) ou **por marca → tipo** (preferência lembrada). Dentro de cada grupo,
-  os novelos usados em mais projetos vêm primeiro. Sem filtro "acabando".
-- Detalhe: estoque com − / + (um novelo por toque) e "ajustar em gramas" (fechados + peso dos abertos,
-  com desfazer); ficha (gramatura, agulha, lote, preço, preço/grama); usado em projetos;
+  os novelos usados em mais projetos vêm primeiro. Sem filtro "acabando". Grupos ignoram maiúsculas e acentos
+  ("chenille" = "Chenille"); ao sair do campo, o tipo/marca digitado vira a grafia que já existe.
+- Detalhe: estoque em gramas com − / + (uma gramatura por toque) e "ajustar estoque" (fechados + peso dos abertos,
+  com desconto da embalagem e desfazer); ficha (gramatura, agulha, lote, preço, preço/grama); usado em projetos;
   menu ⋮ Editar/Excluir (com desfazer).
 - Formulário: tipo e marca (sugerem os já digitados), cor, gramatura, preço, capa (cor + textura
   **liso / brilho / felpudo**); lote e agulha em "Mais detalhes". Estoque inicial só na criação.
-- **Estoque em gramas**, exibido como "2 novelos + 40 g".
+- **Marca automática**: ao digitar tipo/cor, a marca vazia é preenchida com a do novelo de mesmo tipo + cor, ou a
+  mais usada no tipo. Se tipo + cor + marca já existem: "Você já tem esse novelo" com atalho para ele.
+- **Estoque sempre em gramas** ("1.240 g"), nunca "2 novelos + 40 g".
+
+### Peso da embalagem
+- Configurações → **Embalagens**: um peso (g, aceita decimal) por tipo de novelo; a lista mostra os tipos já usados.
+  Sincroniza (uma config por tipo, `embalagem.<tipo sem acento>`).
+- Onde se digita um peso de balança aparece **"Pesei com embalagem"** (só se o tipo tiver peso cadastrado):
+  - cadastro do novelo, "Abertos (peso)": ligado por padrão; pergunta quantos novelos estavam na balança;
+  - "Ajustar estoque": liga sozinho quando se digita um peso novo (o valor já preenchido é o do estoque, sem embalagem);
+  - calculadora, "Pesei o que sobrou": desconta do que sobrou; se "pesava antes" for digitado, desconta dele também
+    (o valor padrão é a gramatura do rótulo, já sem embalagem).
+- Mostra a conta ("312 g − 3 × 5 g = 297 g"). Novelos fechados contam pela gramatura do rótulo.
 
 ### Foto (projetos e novelos)
-- Uma foto por projeto e por novelo ("Adicionar foto" → câmera ou galeria; "Trocar foto"; "Tirar foto").
+- Uma foto por projeto e por novelo ("Adicionar foto" → câmera ou galeria; "Trocar"; "Ajustar"; "Tirar").
   Com foto, ela é a capa em todo lugar (listas, topo do detalhe, calculadora); a cor fica guardada e volta sem a foto.
-- O app reduz a foto (lado maior 1200 px, JPEG ~150–250 KB) e guarda no aparelho, na tabela `fotos`, fora do pacote.
+- **Editor de corte 4:3** (tela cheia): arrastar posiciona, dois dedos / barra de zoom aproximam (até 4×), botão gira
+  90°. "Ajustar" reabre a foto atual no editor (o recorte vira uma foto nova). Topo do detalhe em 4:3.
+- Foto final: JPEG até 1200 × 900 px (~150–250 KB), guardada no aparelho, na tabela `fotos`, fora do pacote.
 - Sincronização: cada foto é um arquivo `fotos/<id>.jpg` no repositório privado, enviado antes do `dados.json`;
   os outros aparelhos baixam quando a foto aparece na tela. Uma foto nunca muda (trocar = foto nova); fotos
   substituídas ficam no repositório (não são apagadas, pois "Fazer de novo" pode reaproveitar a mesma).
@@ -123,7 +141,7 @@ Abrir o cálculo de um projeto sempre mostra o Preço. O que foi digitado em Sho
   Desenhos gerados por `scripts/gerar-texturas.py`.
 
 ### Configurações (engrenagem na Início)
-- Nome ("Oi, Bruna"), valor/hora padrão, margem padrão.
+- Nome ("Oi, Bruna"), valor/hora padrão, margem padrão, pesos das embalagens.
 - Sincronização GitHub: repositório (`usuario/crochezinho-data` ou URL) + token fine-grained.
   Recusa repositório **público**. Status (verde/erro, "sincronizado há X"), "Sincronizar agora", "Desconectar".
   Automática: ao abrir, ao sair/voltar para o app e quando a internet volta (no máximo a cada 20 s).
@@ -138,17 +156,19 @@ Abrir o cálculo de um projeto sempre mostra o Preço. O que foi digitado em Sho
 
 ### Sincronização — detalhes
 - Arquivo `dados.json` no repositório privado (API Contents do GitHub), com projetos, sessões, novelos
-  (incluindo excluídos, marcados com `excluidoEm`) e as configs `nome`, `valorHoraCentavos`, `margemPct`.
+  (incluindo excluídos, marcados com `excluidoEm`) e as configs `nome`, `valorHoraCentavos`, `margemPct`
+  e `embalagem.*`.
 - Mesclagem por registro: vence o `atualizadoEm` mais recente. Exclusões não ressuscitam.
 - Token, rascunhos da calculadora e preferências de tela **ficam só no aparelho**.
 - Conflito (outro aparelho gravou no meio): relê, mescla e tenta de novo (até 3 vezes).
 
 ## Fora do escopo
 Contador de carreiras/pontos e metas, conquistas, retrospectiva, ganhos, Nuvemshop, lista de compras,
-perfil com foto/bio, notificações push, anexo de receita, cartão de visita.
+perfil com foto/bio, notificações push, anexo/prévia do PDF da receita (só o link), cartão de visita.
 
 ## Modelo de dados
 Ver `src/db/types.ts` e `src/db/db.ts`. IDs UUID, dinheiro em centavos, datas em ms.
 Versão 2 do banco e do pacote de sincronização: novelo com `tipo`/`textura` (sem `linha`, `familia`, `fibra`,
 `metros`), projeto com `quantidade`, fio do cálculo com `valorCentavos` (manual). Dados antigos são convertidos
-ao abrir o app e ao receber de outro aparelho ou backup (`src/domain/migracao.ts`).
+ao abrir o app e ao receber de outro aparelho ou backup (`src/domain/migracao.ts`). Banco v5: projeto com
+`anotacoes` e `receitaUrl` ("" quando vazios).

@@ -71,6 +71,14 @@ test('pacotes: remoto vazio, config filtrada e só chaves sincronizadas', () => 
   assert.equal(mesclarPacotes(local, null, 1).remotoMudou, true);
 });
 
+test('pesos de embalagem viajam, um por tipo, sem um aparelho apagar o do outro', () => {
+  const local = pacote({ config: [{ chave: 'embalagem.chenille', valor: 5, atualizadoEm: 4 }] });
+  const remoto = pacote({ config: [{ chave: 'embalagem.amigurumi', valor: 3, atualizadoEm: 6 }] });
+  const m = mesclarPacotes(local, remoto, 99);
+  assert.deepEqual(m.pacote.config.map((c) => `${c.chave}=${c.valor}`).sort(), ['embalagem.amigurumi=3', 'embalagem.chenille=5']);
+  assert.deepEqual(m.paraLocal.config.map((c) => c.chave), ['embalagem.amigurumi']);
+});
+
 test('validação do pacote', () => {
   assert.throws(() => validarPacote({ app: 'outro' }), /não é um backup/);
   assert.throws(() => validarPacote({ ...pacote({}), versao: 99 }), /versão mais nova/);
@@ -92,7 +100,16 @@ test('migração v1 → v2 de novelos e projetos', () => {
   assert.deepEqual(['linha', 'familia', 'fibra', 'metros'].filter((k) => k in v2), []);
   assert.deepEqual(normalizarNovelo(v2), v2, 'idempotente');
   assert.equal((normalizarNovelo({ tipo: 'Chenille', linha: 'X', textura: 'felpudo' }) as { tipo: string }).tipo, 'Chenille');
-  assert.deepEqual(normalizarProjeto({ id: 'p' }), { id: 'p', cliente: '', entregaEm: null, entregueEm: null, fotoId: null, quantidade: 1 });
+  assert.deepEqual(normalizarProjeto({ id: 'p' }), {
+    id: 'p',
+    cliente: '',
+    anotacoes: '',
+    receitaUrl: '',
+    entregaEm: null,
+    entregueEm: null,
+    fotoId: null,
+    quantidade: 1
+  });
   assert.equal((normalizarProjeto({ entregaEm: '2026-11-20' }) as { entregaEm: string }).entregaEm, '2026-11-20');
   assert.equal((normalizarProjeto({ entregaEm: 'amanhã' }) as { entregaEm: null }).entregaEm, null);
   assert.equal((normalizarProjeto({ quantidade: 5 }) as { quantidade: number }).quantidade, 5);

@@ -44,6 +44,8 @@ export interface Projeto extends Registro {
   agulha: string;
   capaCor: string;
   quantidade: number;
+  anotacoes: string;
+  receitaUrl: string;
   cliente: string;
   entregaEm: string | null;
   entregueEm: number | null;

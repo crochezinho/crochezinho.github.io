@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { agrupar, contarUso, filtrar, nomeDoNovelo, novelosInteiros, type NoveloLista } from './novelos.ts';
+import { agrupar, contarUso, filtrar, grafiaExistente, nomeDoNovelo, noveloRepetido, novelosInteiros, sugerirMarca, type NoveloLista } from './novelos.ts';
 
 const n = (id: string, cor: string, marca: string, tipo: string, gramatura: number, estoqueG: number): NoveloLista => ({
   id,
@@ -39,11 +39,11 @@ test('busca ignora acentos e combina termos', () => {
 
 test('agrupa por marca → tipo, "Sem marca" por último', () => {
   assert.deepEqual(
-    agrupar(lista, 'marca').map((g) => [g.nome, g.sub.map((s) => [s.nome, s.itens.map((i) => i.cor)]), g.totalInteiros]),
+    agrupar(lista, 'marca').map((g) => [g.nome, g.sub.map((s) => [s.nome, s.itens.map((i) => i.cor)]), g.totalG]),
     [
-      ['Círculo', [['Amigurumi', ['Rosa Chá']], ['Chenille', ['Mel', 'Terracota']]], 5],
-      ['Pingouin', [['Chenille', ['Sálvia']]], 5],
-      ['Sem marca', [['', ['Avulso']]], 1]
+      ['Círculo', [['Amigurumi', ['Rosa Chá']], ['Chenille', ['Mel', 'Terracota']]], 580],
+      ['Pingouin', [['Chenille', ['Sálvia']]], 500],
+      ['Sem marca', [['', ['Avulso']]], 50]
     ]
   );
 });
@@ -55,6 +55,39 @@ test('agrupa por tipo → marca, "Sem tipo" por último', () => {
       ['Amigurumi', [['Círculo', ['Rosa Chá']]]],
       ['Chenille', [['Círculo', ['Mel', 'Terracota']], ['Pingouin', ['Sálvia']]]],
       ['Sem tipo', [['', ['Avulso']]]]
+    ]
+  );
+});
+
+test('sugere a marca do mesmo novelo, senão a mais usada no tipo', () => {
+  assert.equal(sugerirMarca(lista, 'chenille', 'Sálvia'), 'Pingouin');
+  assert.equal(sugerirMarca(lista, 'Chenille', 'Lilás'), 'Círculo');
+  assert.equal(sugerirMarca(lista, 'Chenille', ''), 'Círculo');
+  assert.equal(sugerirMarca(lista, 'Barbante', 'Cru'), '');
+  assert.equal(sugerirMarca(lista, '', 'Mel'), '');
+});
+
+test('usa a grafia que já existe', () => {
+  assert.equal(grafiaExistente(lista, 'tipo', 'chenille '), 'Chenille');
+  assert.equal(grafiaExistente(lista, 'marca', 'circulo'), 'Círculo');
+  assert.equal(grafiaExistente(lista, 'tipo', 'Barbante'), '');
+});
+
+test('acha novelo repetido (tipo + cor + marca)', () => {
+  assert.equal(noveloRepetido(lista, 'chenille', 'mel', 'circulo')?.id, '3');
+  assert.equal(noveloRepetido(lista, 'Chenille', 'Mel', 'Pingouin'), undefined);
+  assert.equal(noveloRepetido(lista, 'Chenille', 'Mel', 'Círculo', '3'), undefined);
+  assert.equal(noveloRepetido(lista, '', 'Avulso', '')?.id, '5');
+});
+
+test('agrupa sem ligar para maiúsculas e acentos; mostra a grafia mais usada', () => {
+  const grafias = [...lista, n('6', 'Azul', 'circulo', 'chenille ', 100, 100)];
+  assert.deepEqual(
+    agrupar(grafias, 'tipo').map((g) => [g.nome, g.sub.map((s) => [s.nome, s.itens.length]), g.totalG]),
+    [
+      ['Amigurumi', [['Círculo', 1]], 40],
+      ['Chenille', [['Círculo', 3], ['Pingouin', 1]], 1140],
+      ['Sem tipo', [['', 1]], 50]
     ]
   );
 });
