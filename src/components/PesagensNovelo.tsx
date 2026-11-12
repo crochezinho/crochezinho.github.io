@@ -35,27 +35,31 @@ export function PesagensNovelo({
 
   return (
     <div class="pesagens">
-      {vazio && <p class="texto-apagado pesagens-vazio">Quantos novelos você tem deste fio? Fechados contam pela gramatura; os abertos você pesa.</p>}
-
-      {f > 0 && (
-        <div class="pesagem-fechados">
-          <span class="pesagem-nome">
-            {f === 1 ? 'Fechado' : 'Fechados'}
-            <small>
-              {f === 1 ? '#1' : `#1 a #${f}`} · {numeroG(gramatura)} g cada
-            </small>
-          </span>
-          <div class="stepper">
-            <button type="button" aria-label="Menos um fechado" onClick={() => mudarFechados(f - 1)}>
-              <Icone nome="menos" tamanho={18} />
-            </button>
-            <CampoInteiro valor={f} aoMudar={mudarFechados} rotulo="Novelos fechados" sufixo="" max={999} vazioQuandoZero={false} />
-            <button type="button" aria-label="Mais um fechado" onClick={() => mudarFechados(f + 1)}>
-              <Icone nome="mais" tamanho={18} />
-            </button>
-          </div>
+      <div class="pesagem-grupo">
+        <span class="pesagem-nome">
+          Fechados
+          <small>{gramatura > 0 ? `${f > 1 ? `#1 a #${f} · ` : f === 1 ? '#1 · ' : ''}${numeroG(gramatura)} g cada` : 'informe a gramatura'}</small>
+        </span>
+        <div class="stepper">
+          <button type="button" aria-label="Menos um fechado" disabled={f <= 0} onClick={() => mudarFechados(f - 1)}>
+            <Icone nome="menos" tamanho={18} />
+          </button>
+          <CampoInteiro valor={f} aoMudar={mudarFechados} rotulo="Novelos fechados" sufixo="" max={999} vazioQuandoZero={false} />
+          <button type="button" aria-label="Mais um fechado" disabled={gramatura <= 0} onClick={() => mudarFechados(f + 1)}>
+            <Icone nome="mais" tamanho={18} />
+          </button>
         </div>
-      )}
+      </div>
+
+      <div class="pesagem-grupo">
+        <span class="pesagem-nome">
+          Abertos
+          <small>pese cada um na balança</small>
+        </span>
+        <button type="button" class="botao pesagem-mais" onClick={novoAberto}>
+          <Icone nome="mais" tamanho={16} /> Aberto
+        </button>
+      </div>
 
       {pesagens.abertos.length > 0 && (
         <ul class="pesagens-lista">
@@ -86,15 +90,6 @@ export function PesagensNovelo({
           ))}
         </ul>
       )}
-
-      <div class="pesagens-acoes">
-        <button type="button" class="botao" disabled={gramatura <= 0} onClick={() => mudarFechados(f + 1)}>
-          <Icone nome="mais" tamanho={16} /> Fechado{gramatura > 0 ? ` (${numeroG(gramatura)} g)` : ''}
-        </button>
-        <button type="button" class="botao" onClick={novoAberto}>
-          <Icone nome="mais" tamanho={16} /> Aberto (pesar)
-        </button>
-      </div>
 
       {pesagens.abertos.length > 0 && (
         <DescontoEmbalagem tipo={tipo} embalagemG={embalagemG} ligado={comEmbalagem} aoLigar={aoLigar} oQue="de cada novelo aberto" />

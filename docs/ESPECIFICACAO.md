@@ -139,8 +139,8 @@ Abrir o cálculo de um projeto sempre mostra o Preço. O que foi digitado em Sho
   (**#1, #2…**, número fixo), cada um com o seu peso e "fechado"/"aberto". O estoque é a soma. O número de um novelo
   que acabou nunca volta a ser usado (`ultimoNumero` no cadastro).
 - Detalhe: total em gramas e a lista dos novelos (#n, fechado/aberto, "em uso: Projeto", peso). Tocar num novelo
-  → pesar de novo (foco direto no campo; "87 g → 64 g (−23 g)") ou "este novelo acabou". "+ Fechado (50 g)" e
-  "+ Aberto (pesar)" acrescentam (mesma ordem e nomes do formulário). Novelo em uso num fio por gramas avisa que
+  → pesar de novo (foco direto no campo; "87 g → 64 g (−23 g)") ou "este novelo acabou". "+ Fechado" e "+ Aberto"
+  acrescentam; ficam **acima** da lista, para o botão não descer a cada toque (o novelo novo entra embaixo). Novelo em uso num fio por gramas avisa que
   repesar e concluir desconta duas vezes (com atalho para o projeto).
   Tudo com desfazer. Ficha (gramatura, agulha, lote, preço, preço/grama); usado em projetos; menu ⋮ Editar/Excluir.
   Mudar a gramatura no cadastro muda o peso dos fechados.
@@ -162,9 +162,10 @@ Abrir o cálculo de um projeto sempre mostra o Preço. O que foi digitado em Sho
   onde se pesa ("pesou com a embalagem? descontar o peso dela"), inclusive no primeiro novelo de um tipo.
 - Não confundir com a **embalagem de envio** (aba Calcular → Embalagem, e o custo dela na Shopee).
 - A **gramatura** é a linha que vem no novelo; a embalagem nunca entra nela.
-- **Estoque do cadastro**: começa vazio. **Fechados** num contador ("Fechados [−] 2 [+] · #1 a #2 · 50 g cada", contam
-  a gramatura, sem balança e sem embalagem) e uma linha por **aberto** ("#3 · __ g", o que a balança mostrou; o app
-  tira uma embalagem por aberto). Ex.: 50 g de linha, embalagem 15 g, dois fechados e um aberto de 40 g →
+- **Estoque do cadastro**: começa vazio. **Fechados** num contador sempre visível ("Fechados [−] 2 [+] · #1 a #2 ·
+  50 g cada", contam a gramatura, sem balança e sem embalagem) e **Abertos** com o botão "+ Aberto" no cabeçalho: cada
+  toque cria uma linha embaixo ("#3 · __ g", o que a balança mostrou; o app tira uma embalagem por aberto). Os
+  controles nunca mudam de lugar ao tocar. Ex.: 50 g de linha, embalagem 15 g, dois fechados e um aberto de 40 g →
   "2 fechados × 50 g + 40 g − 15 g" = 125 g. "Pesei com embalagem" vem ligado e só aparece com aberto e peso
   cadastrado para o tipo.
 - "Pesei o que sobrou": o peso de antes aparece como informação (do estoque, já sem embalagem; sem novelo físico, um

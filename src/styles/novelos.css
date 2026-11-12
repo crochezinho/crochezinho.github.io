@@ -386,9 +386,10 @@ button.chip-fio {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  margin-top: 10px;
+  margin: 10px 0;
 }
 .unidades-acoes .botao {
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   justify-content: center;

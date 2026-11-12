@@ -742,11 +742,20 @@
   display: grid;
   gap: 10px;
 }
-.pesagens-vazio {
-  margin: 0;
+.pesagem-mais {
+  white-space: nowrap;
+  min-height: 40px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 14px;
+  flex-shrink: 0;
 }
-.pesagem-fechados {
+.stepper > button:disabled {
+  opacity: 0.4;
+}
+.pesagem-grupo {
   display: flex;
   align-items: center;
   justify-content: space-between;

@@ -92,6 +92,20 @@ export function NoveloDetalhe({ id }: { id: string }) {
               <strong>{formatarGramas(Math.max(0, n.estoqueG))}</strong>
             </div>
 
+            <div class="unidades-acoes">
+              <button
+                class="botao"
+                aria-label={n.gramatura > 0 ? `Mais um novelo fechado, de ${n.gramatura} g` : 'Mais um novelo fechado'}
+                disabled={n.gramatura <= 0}
+                onClick={() => void mudar(`Novelo fechado de ${n.gramatura} g adicionado`, (us, piso) => novaUnidade(us, n.gramatura, true, novoId(), piso))}
+              >
+                <Icone nome="mais" tamanho={16} /> Fechado
+              </button>
+              <button class="botao" aria-label="Mais um novelo aberto (pesar)" onClick={() => setPesando({ unidade: null })}>
+                <Icone nome="mais" tamanho={16} /> Aberto
+              </button>
+            </div>
+
             {unidades.length > 0 ? (
               <ul class="unidades">
                 {unidades.map((u) => (
@@ -112,18 +126,6 @@ export function NoveloDetalhe({ id }: { id: string }) {
               <p class="texto-apagado">Nenhum novelo em estoque.</p>
             )}
 
-            <div class="unidades-acoes">
-              <button
-                class="botao"
-                disabled={n.gramatura <= 0}
-                onClick={() => void mudar(`Novelo fechado de ${n.gramatura} g adicionado`, (us, piso) => novaUnidade(us, n.gramatura, true, novoId(), piso))}
-              >
-                <Icone nome="mais" tamanho={16} /> Fechado{n.gramatura > 0 ? ` (${n.gramatura} g)` : ''}
-              </button>
-              <button class="botao" onClick={() => setPesando({ unidade: null })}>
-                <Icone nome="mais" tamanho={16} /> Aberto (pesar)
-              </button>
-            </div>
           </div>
         </section>
 
