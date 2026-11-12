@@ -1,6 +1,6 @@
 @keyframes scr {
-  from { transform: translateY(10px); }
-  to { transform: none; }
+  from { top: 10px; }
+  to { top: 0; }
 }
 @keyframes toastin {
   from { opacity: 0; transform: translate(-50%, 16px); }
@@ -25,6 +25,7 @@
 }
 
 .anim-tela {
+  position: relative;
   animation: scr 0.32s cubic-bezier(0.22, 0.7, 0.3, 1);
 }
 
