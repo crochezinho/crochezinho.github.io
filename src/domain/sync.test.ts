@@ -115,3 +115,17 @@ test('migração v1 → v2 de novelos e projetos', () => {
   assert.equal((normalizarProjeto({ quantidade: 5 }) as { quantidade: number }).quantidade, 5);
   assert.equal((normalizarProjeto({ quantidade: 0 }) as { quantidade: number }).quantidade, 1);
 });
+
+test('migração v6: estoque antigo vira novelos físicos, igual em todo aparelho e idempotente', () => {
+  const antigo = { id: 'n1', estoqueG: 240, gramatura: 100 };
+  const a = normalizarNovelo(antigo) as unknown as { unidades: { id: string; numero: number; pesoG: number; fechado: boolean }[]; estoqueG: number };
+  assert.deepEqual(a.unidades, [
+    { id: 'n1-u1', numero: 1, pesoG: 100, fechado: true },
+    { id: 'n1-u2', numero: 2, pesoG: 100, fechado: true },
+    { id: 'n1-u3', numero: 3, pesoG: 40, fechado: false }
+  ]);
+  assert.deepEqual(normalizarNovelo(antigo), a);
+  assert.deepEqual(normalizarNovelo(a), a);
+  const b = normalizarNovelo({ ...a, estoqueG: 999 }) as unknown as { estoqueG: number };
+  assert.equal(b.estoqueG, 240);
+});

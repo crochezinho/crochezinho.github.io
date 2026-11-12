@@ -63,6 +63,7 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(67, 53, 47, 0.18);
 }
 
 .linha-preco {
@@ -283,6 +284,11 @@
   background: var(--fazendo-bg);
   color: var(--fazendo-fg);
 }
+.estoque-resumo.a-pesar {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--divisoria);
+  color: var(--texto-2);
+}
 .estoque-resumo ul {
   list-style: none;
   margin: 8px 0 0;
@@ -399,4 +405,107 @@ a.cartao-acao {
   overflow: hidden;
   line-height: 1.45;
   font: inherit;
+}
+
+.detalhe-faixa,
+.capa-amostra.com-foto {
+  position: relative;
+}
+.detalhe-faixa > .botao-voltar {
+  position: relative;
+  z-index: 1;
+}
+.detalhe-corpo {
+  position: relative;
+  z-index: 1;
+}
+.faixa-ver-foto {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  cursor: zoom-in;
+}
+.ver-foto {
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: max(16px, env(safe-area-inset-top)) 0 max(16px, env(safe-area-inset-bottom));
+  background: rgba(20, 15, 14, 0.96);
+  color: #fff;
+  cursor: zoom-out;
+  animation: editor-entra 0.18s ease-out;
+}
+.ver-foto img {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100dvh - 140px);
+  object-fit: contain;
+}
+.ver-foto-fechar {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  right: 14px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+.ver-foto-titulo {
+  margin: 0;
+  padding: 0 var(--gutter);
+  font-weight: 700;
+  text-align: center;
+}
+.ver-foto-aviso {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.chip-fio.a-pesar {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--divisoria);
+}
+.pesar-no-fim {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.pesar-no-fim .rotulo {
+  margin-bottom: 0;
+}
+.sobra-fio {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--raio-m);
+  background: var(--superficie);
+  box-shadow: var(--sombra-cartao);
+}
+.sobra-fio .linha-projeto {
+  padding: 0;
+  box-shadow: none;
+  background: none;
+}
+.sobra-linha {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.sobra-conta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--texto-2);
+}
+.sobra-fio .desconto-embalagem {
+  margin-top: 0;
 }

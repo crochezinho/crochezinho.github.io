@@ -107,9 +107,9 @@ export function Shopee() {
           </div>
           <div>
             <label class="rotulo" for="sh-emb">
-              Embalagem por item
+              Embalagem de envio, por item
             </label>
-            <CampoDinheiro id="sh-emb" centavos={e.embalagemCentavos} aoMudar={(v) => mudar({ embalagemCentavos: v })} rotulo="Embalagem por item" />
+            <CampoDinheiro id="sh-emb" centavos={e.embalagemCentavos} aoMudar={(v) => mudar({ embalagemCentavos: v })} rotulo="Custo da embalagem de envio, por item" />
           </div>
         </div>
         <div style={{ marginTop: 14 }}>

@@ -90,7 +90,7 @@ export function Configuracoes() {
         </div>
       </div>
 
-      <h2 class="secao-titulo">Embalagens</h2>
+      <h2 class="secao-titulo">Embalagem dos novelos</h2>
       <Embalagens />
 
       <h2 class="secao-titulo">Sincronização</h2>
@@ -133,7 +133,7 @@ function Embalagens() {
   }
   return (
     <>
-      <p class="texto-apagado secao-ajuda">Peso de uma embalagem vazia (etiqueta, cone…). Quando você pesar novelos abertos com ela, o app desconta.</p>
+      <p class="texto-apagado secao-ajuda">Peso de uma embalagem vazia do fio (etiqueta, cone…), por tipo. Quando você pesa um novelo aberto com ela, o app desconta.</p>
       <div class="cartao-lista">
         {tipos.map(({ tipo, chave }) => (
           <div class="linha-campo" key={chave}>
@@ -363,7 +363,8 @@ function Backup({ ultimo }: { ultimo: number | null }) {
   return (
     <div class="cartao-config">
       <p class="texto-config">
-        Um arquivo com todos os seus dados. Importar junta com o que já existe, sem apagar nada.
+        Um arquivo com seus projetos, novelos e configurações. As fotos não vão no arquivo (com a sincronização, elas ficam no GitHub). Importar junta
+        com o que já existe, sem apagar nada.
         <br />
         <strong>Último backup: {ultimo ? haQuanto(ultimo) : 'nunca'}</strong>
       </p>

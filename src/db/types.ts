@@ -1,3 +1,7 @@
+import type { Unidade } from '../domain/unidades.ts';
+
+export type { Unidade };
+
 export type Id = string;
 
 export interface Registro {
@@ -11,12 +15,25 @@ export type StatusProjeto = 'fazendo' | 'concluido';
 export interface FioUsado {
   noveloId: Id;
   gramas: number;
+  unidadeId?: Id | null;
+  aPesar?: boolean;
+  antesG?: number;
+}
+
+export interface FioDescontado {
+  noveloId: Id;
+  gramas: number;
+  unidade?: Unidade;
+  criada?: boolean;
 }
 
 export interface FioCalculo {
   noveloId: Id | null;
   gramas: number;
   precoPorGramaCentavos: number;
+  unidadeId?: Id | null;
+  aPesar?: boolean;
+  antesG?: number;
   nome?: string;
   valorCentavos?: number;
 }
@@ -55,7 +72,8 @@ export interface Projeto extends Registro {
   precoCentavos: number | null;
   criadoEm: number;
   concluidoEm: number | null;
-  descontado?: FioUsado[];
+  descontado?: FioDescontado[];
+  fiosAntesDeConcluir?: FioUsado[];
 }
 
 export interface Sessao extends Registro {
@@ -77,7 +95,9 @@ export interface Novelo extends Registro {
   precoCentavos: number;
   lote: string;
   agulha: string;
+  unidades: Unidade[];
   estoqueG: number;
+  ultimoNumero?: number;
   capaCor: string;
   textura: Textura;
 }

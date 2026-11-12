@@ -1,4 +1,4 @@
-export const VERSAO_PACOTE = 2;
+export const VERSAO_PACOTE = 3;
 
 export const CONFIG_SINCRONIZADA = ['nome', 'valorHoraCentavos', 'margemPct'];
 

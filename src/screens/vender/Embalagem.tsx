@@ -31,8 +31,8 @@ export function Embalagem() {
       <AbasCalcular atual="embalagem" />
       <header class="cabecalho">
         <div>
-          <h1 class="titulo-grande">Embalagem</h1>
-          <p class="subtitulo">Peso e medidas para cadastrar na Shopee</p>
+          <h1 class="titulo-grande">Embalagem de envio</h1>
+          <p class="subtitulo">Peso e medidas do pacote para cadastrar na Shopee</p>
         </div>
       </header>
 

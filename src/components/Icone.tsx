@@ -81,6 +81,13 @@ const caminhos = {
       <path d="M4.5 4v4h4" />
     </>
   ),
+  combinar: (
+    <>
+      <rect x="3.5" y="5" width="5.5" height="14" rx="2" />
+      <rect x="9.25" y="5" width="5.5" height="14" rx="2" />
+      <rect x="15" y="5" width="5.5" height="14" rx="2" />
+    </>
+  ),
   dica: (
     <>
       <path d="M9 18h6M10 21h4" />

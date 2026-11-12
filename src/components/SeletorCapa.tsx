@@ -4,6 +4,7 @@ import { lerFoto, salvarFoto } from '../app/foto.ts';
 import type { Textura } from '../db/types.ts';
 import { Capa } from './Capa.tsx';
 import { EditorFoto } from './EditorFoto.tsx';
+import { VerFoto } from './VerFoto.tsx';
 import { toast } from './toast.tsx';
 import { Icone } from './Icone.tsx';
 
@@ -13,7 +14,8 @@ export function SeletorCapa({
   textura,
   aoMudarTextura,
   fotoId,
-  aoMudarFoto
+  aoMudarFoto,
+  compacto = false
 }: {
   cor: string;
   aoMudarCor: (cor: string) => void;
@@ -21,11 +23,15 @@ export function SeletorCapa({
   aoMudarTextura?: (t: Textura) => void;
   fotoId?: string | null;
   aoMudarFoto?: (id: string | null) => void;
+  compacto?: boolean;
 }) {
+  const semCor = compacto && !cor;
   const valor = corValida(cor).toUpperCase();
   const [aberto, setAberto] = useState(false);
   const [preparando, setPreparando] = useState(false);
   const [editando, setEditando] = useState<Blob | null>(null);
+  const [vendo, setVendo] = useState(false);
+  const [versaoPaleta, setVersaoPaleta] = useState(0);
   const arquivo = useRef<HTMLInputElement>(null);
   const comFoto = !!fotoId && !!aoMudarFoto;
 
@@ -60,36 +66,100 @@ export function SeletorCapa({
     }
   };
 
+  const fotoAcoes = aoMudarFoto && (
+    <div class={'acoes-foto' + (compacto ? ' compactas' : '')}>
+      <button type="button" class="botao" onClick={() => arquivo.current?.click()}>
+        <Icone nome="camera" tamanho={18} />
+        {comFoto ? 'Trocar' : compacto ? 'Usar uma foto' : 'Adicionar foto'}
+      </button>
+      {comFoto && (
+        <>
+          <button type="button" class="botao" disabled={preparando} onClick={() => void ajustarAtual()}>
+            {preparando ? 'Abrindo…' : 'Ajustar'}
+          </button>
+          <button type="button" class="botao" onClick={() => aoMudarFoto(null)}>
+            Tirar
+          </button>
+        </>
+      )}
+      <input ref={arquivo} type="file" accept="image/*" hidden onChange={escolherFoto} />
+    </div>
+  );
+  const extras = (
+    <>
+      {vendo && fotoId && <VerFoto fotoId={fotoId} titulo="Foto da capa" aoFechar={() => setVendo(false)} />}
+      {editando && <EditorFoto foto={editando} aoCancelar={() => setEditando(null)} aoPronto={usarRecorte} />}
+    </>
+  );
+
+  if (compacto) {
+    const naPaleta = PALETA.includes(valor);
+    return (
+      <div class="seletor-capa compacto">
+        {comFoto ? (
+          <Capa class="capa-amostra com-foto" cor={valor} fotoId={fotoId} tag="div">
+            <button type="button" class="faixa-ver-foto" aria-label="Ver foto" onClick={() => setVendo(true)} />
+          </Capa>
+        ) : (
+          <>
+            <div class="paleta-faixa" role="radiogroup" aria-label="Cor do fio">
+              {!semCor && !naPaleta && <Amostra cor={valor} ativa aoEscolher={() => setAberto(true)} />}
+              {PALETA.map((c) => (
+                <Amostra
+                  key={c}
+                  cor={c}
+                  ativa={!semCor && c === valor}
+                  aoEscolher={() => {
+                    aoMudarCor(c);
+                    setVersaoPaleta((v) => v + 1);
+                  }}
+                />
+              ))}
+            </div>
+            <button type="button" class="link-pequeno" onClick={() => setAberto(!aberto)}>
+              {aberto ? 'fechar o ajuste fino' : 'não achou a cor? ajuste fino'}
+            </button>
+            {aberto && <PainelCor key={versaoPaleta} valor={valor} aoMudar={aoMudarCor} semPaleta />}
+            {textura && aoMudarTextura && (
+              <div class="texturas compactas" role="radiogroup" aria-label="Textura">
+                {TEXTURAS.map((t) => (
+                  <button
+                    type="button"
+                    key={t.valor}
+                    role="radio"
+                    aria-checked={textura === t.valor}
+                    class={'textura-opcao' + (textura === t.valor ? ' ativa' : '')}
+                    onClick={() => aoMudarTextura(t.valor)}
+                  >
+                    <span style={semCor ? { background: 'var(--divisoria)' } : estiloCapa(valor, t.valor)} />
+                    {t.nome}
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+        {fotoAcoes}
+        {comFoto && <p class="texto-apagado">Com foto, ela é a capa. A cor volta se você tirar a foto.</p>}
+        {extras}
+      </div>
+    );
+  }
+
   return (
     <div class="seletor-capa">
       {comFoto ? (
-        <Capa class="capa-amostra com-foto" cor={valor} fotoId={fotoId} tag="div" />
+        <Capa class="capa-amostra com-foto" cor={valor} fotoId={fotoId} tag="div">
+          <button type="button" class="faixa-ver-foto" aria-label="Ver foto" onClick={() => setVendo(true)} />
+        </Capa>
       ) : (
         <button type="button" class="capa-amostra" style={estiloCapa(valor, textura)} aria-expanded={aberto} onClick={() => setAberto(!aberto)}>
           <span class="capa-amostra-dica">{aberto ? 'Pronto' : 'Trocar a cor'}</span>
         </button>
       )}
 
-      {aoMudarFoto && (
-        <div class="acoes-foto">
-          <button type="button" class="botao" onClick={() => arquivo.current?.click()}>
-            <Icone nome="camera" tamanho={18} />
-            {comFoto ? 'Trocar' : 'Adicionar foto'}
-          </button>
-          {comFoto && (
-            <>
-              <button type="button" class="botao" disabled={preparando} onClick={() => void ajustarAtual()}>
-                {preparando ? 'Abrindo…' : 'Ajustar'}
-              </button>
-              <button type="button" class="botao" onClick={() => aoMudarFoto(null)}>
-                Tirar
-              </button>
-            </>
-          )}
-          <input ref={arquivo} type="file" accept="image/*" hidden onChange={escolherFoto} />
-        </div>
-      )}
-      {editando && <EditorFoto foto={editando} aoCancelar={() => setEditando(null)} aoPronto={usarRecorte} />}
+      {fotoAcoes}
+      {extras}
 
       {!comFoto && aberto && <PainelCor valor={valor} aoMudar={aoMudarCor} />}
 
@@ -115,7 +185,23 @@ export function SeletorCapa({
   );
 }
 
-function PainelCor({ valor, aoMudar }: { valor: string; aoMudar: (cor: string) => void }) {
+function Amostra({ cor, ativa, aoEscolher }: { cor: string; ativa: boolean; aoEscolher: () => void }) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={ativa}
+      aria-label={cor}
+      class={'paleta-cor' + (ativa ? ' ativa' : '')}
+      style={{ background: cor, color: hexParaHsl(cor).l > 72 ? 'var(--texto)' : '#fff' }}
+      onClick={aoEscolher}
+    >
+      {ativa && <Icone nome="check" tamanho={16} espessura={3} />}
+    </button>
+  );
+}
+
+function PainelCor({ valor, aoMudar, semPaleta = false }: { valor: string; aoMudar: (cor: string) => void; semPaleta?: boolean }) {
   const [hsl, setHsl] = useState<Hsl>(() => hexParaHsl(valor));
   const escolherDaPaleta = (c: string) => {
     setHsl(hexParaHsl(c));
@@ -130,6 +216,7 @@ function PainelCor({ valor, aoMudar }: { valor: string; aoMudar: (cor: string) =
 
   return (
     <div class="painel-cor">
+      {!semPaleta && (
       <div class="paleta" role="radiogroup" aria-label="Cores">
         {PALETA.map((c) => (
           <button
@@ -146,8 +233,9 @@ function PainelCor({ valor, aoMudar }: { valor: string; aoMudar: (cor: string) =
           </button>
         ))}
       </div>
+      )}
 
-      <p class="painel-cor-titulo">Ajuste fino</p>
+      {!semPaleta && <p class="painel-cor-titulo">Ajuste fino</p>}
       <Faixa
         rotulo="Tom"
         valor={h}

@@ -1,89 +1,114 @@
-import { contaDasPesagens, estoqueDasPesagens, numeroG } from '../domain/pesagem.ts';
+import { contaDasPesagens, estoqueDasPesagens, numeroG, type Pesagens } from '../domain/pesagem.ts';
 import { formatarEstoque } from '../domain/estoque.ts';
 import { CampoInteiro } from './Campos.tsx';
 import { DescontoEmbalagem } from './DescontoEmbalagem.tsx';
 import { Icone } from './Icone.tsx';
 
-export function totalDasPesagens(pesos: number[], comEmbalagem: boolean, embalagemG: number): number {
-  return estoqueDasPesagens(pesos, comEmbalagem ? embalagemG : 0);
-}
-
 export function PesagensNovelo({
   tipo,
   gramatura,
   embalagemG,
-  pesos,
+  pesagens,
   aoMudar,
   comEmbalagem,
-  aoLigar,
-  rotuloTotal = 'Em estoque'
+  aoLigar
 }: {
   tipo: string;
   gramatura: number;
   embalagemG: number;
-  pesos: number[];
-  aoMudar: (pesos: number[]) => void;
+  pesagens: Pesagens;
+  aoMudar: (p: Pesagens) => void;
   comEmbalagem: boolean;
   aoLigar: (v: boolean) => void;
-  rotuloTotal?: string;
 }) {
-  const desconta = comEmbalagem && embalagemG > 0;
-  const emb = desconta ? embalagemG : 0;
-  const total = estoqueDasPesagens(pesos, emb);
-  const pesados = pesos.filter((p) => p > 0).length;
-  const fechado = gramatura + emb;
+  const emb = comEmbalagem && embalagemG > 0 ? embalagemG : 0;
+  const total = estoqueDasPesagens(pesagens, gramatura, emb);
+  const conta = contaDasPesagens(pesagens, gramatura, emb);
+  const f = pesagens.fechados;
+  const vazio = f === 0 && pesagens.abertos.length === 0;
 
-  const adicionar = (peso = 0) => {
-    aoMudar([...pesos, peso]);
-    if (!peso) setTimeout(() => document.getElementById(`pesagem-${pesos.length}`)?.focus(), 30);
+  const mudarFechados = (n: number) => aoMudar({ ...pesagens, fechados: Math.max(0, Math.min(999, n)) });
+  const novoAberto = () => {
+    aoMudar({ ...pesagens, abertos: [...pesagens.abertos, null] });
+    setTimeout(() => document.getElementById(`pesagem-${pesagens.abertos.length}`)?.focus(), 30);
   };
 
   return (
     <div class="pesagens">
-      <ul class="pesagens-lista">
-        {pesos.map((p, i) => (
-          <li key={i}>
-            <label class="pesagem-nome" for={`pesagem-${i}`}>
-              Novelo {i + 1}
-            </label>
-            <CampoInteiro
-              id={`pesagem-${i}`}
-              valor={p}
-              aoMudar={(v) => aoMudar(pesos.map((x, j) => (j === i ? v : x)))}
-              rotulo={`Peso do novelo ${i + 1}`}
-              sufixo="g"
-              max={99999}
-            />
-            {pesos.length > 1 ? (
-              <button type="button" class="pesagem-tirar" aria-label={`Tirar o novelo ${i + 1}`} onClick={() => aoMudar(pesos.filter((_, j) => j !== i))}>
+      {vazio && <p class="texto-apagado pesagens-vazio">Quantos novelos você tem deste fio? Fechados contam pela gramatura; os abertos você pesa.</p>}
+
+      {f > 0 && (
+        <div class="pesagem-fechados">
+          <span class="pesagem-nome">
+            {f === 1 ? 'Fechado' : 'Fechados'}
+            <small>
+              {f === 1 ? '#1' : `#1 a #${f}`} · {numeroG(gramatura)} g cada
+            </small>
+          </span>
+          <div class="stepper">
+            <button type="button" aria-label="Menos um fechado" onClick={() => mudarFechados(f - 1)}>
+              <Icone nome="menos" tamanho={18} />
+            </button>
+            <CampoInteiro valor={f} aoMudar={mudarFechados} rotulo="Novelos fechados" sufixo="" max={999} vazioQuandoZero={false} />
+            <button type="button" aria-label="Mais um fechado" onClick={() => mudarFechados(f + 1)}>
+              <Icone nome="mais" tamanho={18} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {pesagens.abertos.length > 0 && (
+        <ul class="pesagens-lista">
+          {pesagens.abertos.map((g, i) => (
+            <li key={i}>
+              <label class="pesagem-nome" for={`pesagem-${i}`}>
+                #{f + i + 1}
+                <small>aberto</small>
+              </label>
+              <CampoInteiro
+                id={`pesagem-${i}`}
+                permiteVazio
+                valor={g}
+                aoMudar={(v) => aoMudar({ ...pesagens, abertos: pesagens.abertos.map((x, j) => (j === i ? v : x)) })}
+                rotulo={`Peso do novelo aberto #${f + i + 1} na balança`}
+                sufixo="g"
+                max={99999}
+              />
+              <button
+                type="button"
+                class="pesagem-tirar"
+                aria-label={`Tirar o novelo #${f + i + 1}`}
+                onClick={() => aoMudar({ ...pesagens, abertos: pesagens.abertos.filter((_, j) => j !== i) })}
+              >
                 <Icone nome="fechar" tamanho={18} />
               </button>
-            ) : (
-              <span class="pesagem-tirar" aria-hidden="true" />
-            )}
-          </li>
-        ))}
-      </ul>
+            </li>
+          ))}
+        </ul>
+      )}
+
       <div class="pesagens-acoes">
-        <button type="button" class="botao" onClick={() => adicionar()}>
-          <Icone nome="mais" tamanho={16} /> Outro novelo
+        <button type="button" class="botao" disabled={gramatura <= 0} onClick={() => mudarFechados(f + 1)}>
+          <Icone nome="mais" tamanho={16} /> Fechado{gramatura > 0 ? ` (${numeroG(gramatura)} g)` : ''}
         </button>
-        {gramatura > 0 && (
-          <button type="button" class="botao" onClick={() => adicionar(fechado)}>
-            <Icone nome="mais" tamanho={16} /> Fechado ({numeroG(fechado)} g)
-          </button>
-        )}
+        <button type="button" class="botao" onClick={novoAberto}>
+          <Icone nome="mais" tamanho={16} /> Aberto (pesar)
+        </button>
       </div>
 
-      <DescontoEmbalagem tipo={tipo} embalagemG={embalagemG} ligado={comEmbalagem} aoLigar={aoLigar} oQue="de cada novelo" />
+      {pesagens.abertos.length > 0 && (
+        <DescontoEmbalagem tipo={tipo} embalagemG={embalagemG} ligado={comEmbalagem} aoLigar={aoLigar} oQue="de cada novelo aberto" />
+      )}
 
-      <div class="resumo-fio">
-        <span>
-          {rotuloTotal}
-          {pesados > 0 && desconta && <small class="resumo-conta">{contaDasPesagens(pesos, emb)}</small>}
-        </span>
-        <strong class="resumo-fio-valor">{formatarEstoque(total)}</strong>
-      </div>
+      {!vazio && (
+        <div class="resumo-fio">
+          <span>
+            Em estoque
+            {conta && <small class="resumo-conta">{conta}</small>}
+          </span>
+          <strong class="resumo-fio-valor">{formatarEstoque(total)}</strong>
+        </div>
+      )}
     </div>
   );
 }

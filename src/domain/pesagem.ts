@@ -1,4 +1,5 @@
 import { PREFIXO_EMBALAGEM } from './sync.ts';
+import { novaUnidade, type Unidade } from './unidades.ts';
 
 const semAcento = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -24,14 +25,43 @@ export function descontarEmbalagem(pesado: number, novelos: number, embalagemG: 
   return Math.max(0, Math.round(pesado - Math.max(0, novelos) * Math.max(0, embalagemG)));
 }
 
-export function estoqueDasPesagens(pesos: number[], embalagemG: number): number {
-  return pesos.filter((p) => p > 0).reduce((s, p) => s + descontarEmbalagem(p, 1, embalagemG), 0);
+export interface Pesagens {
+  fechados: number;
+  abertos: (number | null)[];
 }
 
-export function contaDasPesagens(pesos: number[], embalagemG: number): string {
-  const validos = pesos.filter((p) => p > 0);
-  const soma = validos.reduce((s, p) => s + p, 0);
-  return embalagemG > 0 && validos.length ? contaDaEmbalagem(soma, validos.length, embalagemG) : `${numeroG(soma)} g`;
+export const PESAGENS_VAZIAS: Pesagens = { fechados: 0, abertos: [] };
+
+const pesados = (p: Pesagens) => p.abertos.filter((g): g is number => typeof g === 'number' && g > 0);
+const qtdFechados = (p: Pesagens) => Math.max(0, Math.floor(p.fechados));
+
+export function estoqueDasPesagens(p: Pesagens, gramatura: number, embalagemG: number): number {
+  const abertos = pesados(p).reduce((s, g) => s + descontarEmbalagem(g, 1, embalagemG), 0);
+  return abertos + qtdFechados(p) * Math.max(0, gramatura);
+}
+
+export function unidadesDasPesagens(p: Pesagens, gramatura: number, embalagemG: number, novoId: () => string): Unidade[] {
+  let us: Unidade[] = [];
+  for (let i = 0; i < qtdFechados(p); i++) us = novaUnidade(us, gramatura, true, novoId());
+  for (const g of pesados(p)) {
+    const liquido = descontarEmbalagem(g, 1, embalagemG);
+    if (liquido > 0) us = novaUnidade(us, liquido, false, novoId());
+  }
+  return us;
+}
+
+export const novelosDasPesagens = (p: Pesagens) => qtdFechados(p) + pesados(p).length;
+
+export function contaDasPesagens(p: Pesagens, gramatura: number, embalagemG: number): string {
+  const partes: string[] = [];
+  const f = qtdFechados(p);
+  if (f) partes.push(`${f} ${f === 1 ? 'fechado' : 'fechados'} × ${numeroG(gramatura)} g`);
+  const ps = pesados(p);
+  if (ps.length) {
+    const soma = ps.reduce((s, g) => s + g, 0);
+    partes.push(embalagemG > 0 ? contaDaEmbalagem(soma, ps.length, embalagemG) : `${numeroG(soma)} g`);
+  }
+  return partes.join(' + ');
 }
 
 export const numeroG = (g: number) => g.toLocaleString('pt-BR', { maximumFractionDigits: 1 });

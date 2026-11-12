@@ -5,6 +5,7 @@ import { TelaCalcular } from '../screens/calculadora/TelaCalcular.tsx';
 import { Configuracoes } from '../screens/config/Configuracoes.tsx';
 import { Cronometro } from '../screens/cronometro/Cronometro.tsx';
 import { Inicio } from '../screens/inicio/Inicio.tsx';
+import { CombinarFios } from '../screens/novelos/CombinarFios.tsx';
 import { NoveloDetalhe } from '../screens/novelos/NoveloDetalhe.tsx';
 import { NoveloForm } from '../screens/novelos/NoveloForm.tsx';
 import { Novelos } from '../screens/novelos/Novelos.tsx';
@@ -28,6 +29,7 @@ export function App() {
       {rota.nome === 'projetoForm' && <ProjetoForm key={rota.id ?? 'novo'} id={rota.id} />}
       {rota.nome === 'novelos' && <Novelos />}
       {rota.nome === 'novelo' && <NoveloDetalhe key={rota.id} id={rota.id} />}
+      {rota.nome === 'combinar' && <CombinarFios ids={rota.ids} />}
       {rota.nome === 'noveloForm' && <NoveloForm key={rota.id ?? 'novo'} id={rota.id} />}
       {rota.nome === 'calcular' && <TelaCalcular projetoIdRota={rota.projetoId} />}
       {rota.nome === 'crono' && <Cronometro key={rota.projetoId ?? ''} projetoId={rota.projetoId} />}

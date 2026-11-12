@@ -15,6 +15,7 @@ import {
   lerConfig,
   lerPadroesCalculo,
   lerRascunho,
+  rascunhoDoCalculo,
   listarNovelos,
   salvarCalculoNoProjeto,
   salvarConfig,
@@ -28,6 +29,8 @@ import { formatarTotal, totalDoProjeto } from '../../domain/tempo.ts';
 import { CHAVE_SHOPEE, SHOPEE_PADRAO, type EstadoShopee } from '../vender/estado.ts';
 import { AbasCalcular, irParaAba } from './AbasCalcular.tsx';
 import { FioSheet, type FioEditado } from './FioSheet.tsx';
+import { unidadesEmUso } from '../../domain/fios.ts';
+import { rotuloUnidade } from '../../domain/unidades.ts';
 
 const CHAVE_CONTEXTO = 'calc.contexto';
 const chave = () => Math.random().toString(36).slice(2, 10);
@@ -47,21 +50,9 @@ function rascunhoInicial(projeto: Projeto | undefined, novelos: Novelo[], p: Pad
   };
 }
 
-function rascunhoDoCalculo(c: Calculo, projeto?: Projeto): Rascunho {
-  return {
-    fios: c.fios.map((f) => ({ chave: chave(), ...f })),
-    quantidade: projeto?.quantidade ?? c.quantidade ?? 1,
-    minutos: c.minutos,
-    minutosDoCrono: false,
-    valorHoraCentavos: c.valorHoraCentavos,
-    extras: c.extras.map((e) => ({ chave: chave(), ...e })),
-    margemPct: c.margemPct
-  };
-}
-
 const assinatura = (c: Omit<Calculo, 'calculadoEm'>) =>
   JSON.stringify([
-    c.fios.map((f) => [f.noveloId, f.gramas, f.precoPorGramaCentavos, f.nome ?? '', f.valorCentavos ?? null]),
+    c.fios.map((f) => [f.noveloId, f.gramas, f.precoPorGramaCentavos, f.nome ?? '', f.valorCentavos ?? null, f.unidadeId ?? null, !!f.aPesar, f.antesG ?? null]),
     pecas(c.quantidade),
     c.minutos,
     c.valorHoraCentavos,
@@ -95,8 +86,19 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
   const chaveCtx = projeto?.id ?? 'avulso';
   const pronto = !!dados && !!novelos && !!padroes && contextoSalvo !== undefined;
 
+  const ultimo = useRef<{ r: Rascunho | null; chave: string | null }>({ r: null, chave: null });
+  ultimo.current = { r, chave: rChave };
+  const gravarPendente = () => {
+    const { r: atual, chave: k } = ultimo.current;
+    if (!pendente.current || !atual || !k) return;
+    pendente.current = false;
+    void salvarRascunho(k === 'avulso' ? null : k, atual);
+  };
+  useEffect(() => gravarPendente, []);
+
   useEffect(() => {
     if (!pronto || rChave === chaveCtx) return;
+    gravarPendente();
     let vivo = true;
     void (async () => {
       const salvo = await lerRascunho(projeto?.id ?? null);
@@ -157,9 +159,16 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
   const porPeca = varias ? ' por peça' : '';
 
   const montar = (): Calculo => ({
-    fios: r.fios.map(({ noveloId, gramas, precoPorGramaCentavos, nome, valorCentavos }) =>
-      noveloId ? { noveloId, gramas, precoPorGramaCentavos } : { noveloId: null, gramas: 0, precoPorGramaCentavos: 0, nome: nome ?? '', valorCentavos: valorCentavos ?? 0 }
-    ),
+    fios: r.fios.map(({ noveloId, gramas, precoPorGramaCentavos, nome, valorCentavos, unidadeId, aPesar, antesG }) => {
+      if (!noveloId) return { noveloId: null, gramas: 0, precoPorGramaCentavos: 0, nome: nome ?? '', valorCentavos: valorCentavos ?? 0 };
+      const f: Calculo['fios'][number] = { noveloId, gramas, precoPorGramaCentavos };
+      if (unidadeId) f.unidadeId = unidadeId;
+      if (aPesar) {
+        f.aPesar = true;
+        f.antesG = antesG ?? 0;
+      }
+      return f;
+    }),
     quantidade,
     minutos,
     valorHoraCentavos: r.valorHoraCentavos,
@@ -176,17 +185,20 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
     !!salvoNoProjeto && minutosCrono !== null && minutosCrono > 0 && !r.minutosDoCrono && minutosCrono !== r.minutos;
 
   const novelo = (id: string | null) => (id ? novelos!.find((n) => n.id === id) : undefined);
-  const nomeDoFio = (f: { noveloId: string | null; nome?: string }) => {
+  const nomeDoFio = (f: { noveloId: string | null; nome?: string; unidadeId?: string | null }) => {
     if (!f.noveloId) return f.nome || 'Valor manual';
     const n = novelo(f.noveloId);
-    return n ? nomeDoNovelo(n) : 'Fio removido';
+    if (!n) return 'Fio removido';
+    const u = f.unidadeId ? n.unidades.find((x) => x.id === f.unidadeId) : undefined;
+    return u ? `${nomeDoNovelo(n)} ${rotuloUnidade(u)}` : nomeDoNovelo(n);
   };
+  const aPesar = r.fios.filter((f) => f.aPesar).length;
   const fioEditando = fioSheet?.chave ? r.fios.find((f) => f.chave === fioSheet.chave) ?? null : null;
 
   const salvarFio = (f: FioEditado) => {
     if (fioSheet?.chave) {
       const k = fioSheet.chave;
-      atualizar((a) => ({ ...a, fios: a.fios.map((x) => (x.chave === k ? { ...x, ...f } : x)) }));
+      atualizar((a) => ({ ...a, fios: a.fios.map((x) => (x.chave === k ? { chave: k, ...f } : x)) }));
     } else {
       atualizar((a) => ({ ...a, fios: [...a.fios, { chave: chave(), ...f }] }));
     }
@@ -372,9 +384,9 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
                 )}
                 <span class="linha-projeto-texto">
                   <strong>{nome}</strong>
-                  <small>{f.noveloId ? [n?.marca, `${f.gramas} g`].filter(Boolean).join(' · ') : 'valor manual'}</small>
+                  <small>{f.noveloId ? [n?.marca, f.aPesar ? 'a pesar no fim' : `${f.gramas} g`].filter(Boolean).join(' · ') : 'valor manual'}</small>
                 </span>
-                <span class="linha-fio-valor">{brl(custoDoFio(f))}</span>
+                <span class="linha-fio-valor">{f.aPesar ? '—' : brl(custoDoFio(f))}</span>
               </button>
               <button class="botao-x" aria-label={`Remover ${nome}`} onClick={() => removerFio(f.chave)}>
                 <Icone nome="fechar" tamanho={16} />
@@ -382,6 +394,12 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
             </div>
           );
         })}
+        {aPesar > 0 && (
+          <p class="nota-a-pesar">
+            {aPesar === 1 ? '1 fio ainda vai ser pesado' : `${aPesar} fios ainda vão ser pesados`} ao concluir o projeto e não entra{aPesar === 1 ? '' : 'm'} no
+            preço por enquanto.
+          </p>
+        )}
         <button class="linha-adicionar" onClick={() => setFioSheet({ chave: null })}>
           <span class="mais-redondo"><Icone nome="mais" tamanho={16} espessura={2.2} /></span>
           Adicionar fio
@@ -538,6 +556,8 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
         inicial={fioEditando}
         aoSalvar={salvarFio}
         varias={varias}
+        pesarNoFim={projeto?.status === 'fazendo'}
+        emUso={unidadesEmUso(dados!.projetos, projeto?.id)}
       />
 
       <Sheet aberta={trocando} aoFechar={() => setTrocando(false)} titulo="Calcular para">

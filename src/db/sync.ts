@@ -84,6 +84,7 @@ async function executar(tentativa = 1): Promise<ResultadoSync> {
     if (m.remotoMudou) await gravarRemoto(conexao, m.pacote, sha, nomeDoAparelho());
     await salvarConfig(CHAVES_SYNC.ultimoEm, Date.now());
     await apagarConfig(CHAVES_SYNC.erro);
+    await limparFotosOrfas().catch(() => 0);
     const p = m.paraLocal;
     return { ok: true, recebidos: p.projetos.length + p.sessoes.length + p.novelos.length + p.config.length, enviou: m.remotoMudou };
   } catch (e) {
@@ -108,6 +109,17 @@ async function enviarFotosPendentes(conexao: ConexaoGitHub): Promise<void> {
     await enviarFoto(conexao, f.id, f.blob, nomeDoAparelho());
     await db.fotos.update(f.id, { enviada: true });
   }
+}
+
+const DIA = 86_400_000;
+
+export async function limparFotosOrfas(agora = Date.now()): Promise<number> {
+  const emUso = await fotosEmUso();
+  const [projetos, novelos] = await Promise.all([db.projetos.toArray(), db.novelos.toArray()]);
+  const citadas = new Set([...projetos, ...novelos].map((r) => r.fotoId).filter((id): id is string => !!id));
+  const orfas = (await db.fotos.toArray()).filter((f) => !emUso.has(f.id) && (f.enviada || (!citadas.has(f.id) && agora - f.criadoEm > DIA)));
+  await db.fotos.bulkDelete(orfas.map((f) => f.id));
+  return orfas.length;
 }
 
 export async function guardarFoto(blob: Blob): Promise<string> {

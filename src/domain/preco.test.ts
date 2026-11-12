@@ -69,4 +69,8 @@ test('dinheiro: formatar e ler', () => {
   assert.equal(textoParaCentavos('0,5'), 50);
   assert.equal(textoParaCentavos(''), 0);
   assert.equal(textoParaCentavos('abc'), 0);
+  assert.equal(textoParaCentavos('18.50'), 1850);
+  assert.equal(textoParaCentavos('18.5'), 1850);
+  assert.equal(textoParaCentavos('1.234'), 123400);
+  assert.equal(textoParaCentavos('1.234.567'), 123456700);
 });

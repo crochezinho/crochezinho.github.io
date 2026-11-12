@@ -8,6 +8,7 @@ import { href, ir, voltar } from '../../app/router.ts';
 import { CampoInteiro } from '../../components/Campos.tsx';
 import { Icone } from '../../components/Icone.tsx';
 import { Interruptor } from '../../components/Interruptor.tsx';
+import { VerFoto } from '../../components/VerFoto.tsx';
 import { SeloPrazo } from '../../components/SeloPrazo.tsx';
 import { Sheet } from '../../components/Sheet.tsx';
 import { toast } from '../../components/toast.tsx';
@@ -21,11 +22,19 @@ import {
   marcarEntregue,
   reabrirProjeto,
   restaurarProjeto,
+  listarPesosEmbalagem,
   salvarAnotacoes,
+  salvarFiosDoProjeto,
   salvarReceita
 } from '../../db/repo.ts';
+import { FioSheet, type FioEditado } from '../calculadora/FioSheet.tsx';
+import { precoPorGrama } from '../../domain/preco.ts';
 import { lerLink, origemDoLink } from '../../domain/receita.ts';
-import type { FioUsado, Novelo, Projeto } from '../../db/types.ts';
+import { unidadesEmUso, usadoNoFim } from '../../domain/fios.ts';
+import { contaDaEmbalagem, descontarEmbalagem, pesoDaEmbalagem } from '../../domain/pesagem.ts';
+import { rotuloUnidade } from '../../domain/unidades.ts';
+import { DescontoEmbalagem } from '../../components/DescontoEmbalagem.tsx';
+import type { FioDescontado, FioUsado, Novelo, Projeto } from '../../db/types.ts';
 import { calcularDesconto, conferirEstoque, formatarEstoque } from '../../domain/estoque.ts';
 import { diaDaEntrega } from '../../domain/prazo.ts';
 import { ehEncomenda, etapa } from '../../domain/encomendas.ts';
@@ -37,10 +46,12 @@ export function ProjetoDetalhe({ id }: { id: string }) {
   const dados = useDadosCrono();
   const novelos = useLive(listarNovelos);
   const [menu, setMenu] = useState(false);
+  const [vendoFoto, setVendoFoto] = useState(false);
   const [concluindo, setConcluindo] = useState(false);
   const [reabrindo, setReabrindo] = useState(false);
   const [repetindo, setRepetindo] = useState(false);
   const [editandoReceita, setEditandoReceita] = useState(false);
+  const [fioEditando, setFioEditando] = useState<{ indice: number | null } | null>(null);
 
   const projeto = dados?.projetos.find((p) => p.id === id);
   const rodando = !!projeto && dados?.aberta?.projetoId === projeto.id;
@@ -63,7 +74,8 @@ export function ProjetoDetalhe({ id }: { id: string }) {
 
   const concluido = projeto.status === 'concluido';
   const temSessao = dados.sessoes.some((s) => s.projetoId === projeto.id && !s.ajuste);
-  const novelo = (nid: string) => novelos.find((n) => n.id === nid);
+  const temTempo = totalDoProjeto(dados.sessoes, projeto.id, agora) > 0;
+  const novelo =(nid: string) => novelos.find((n) => n.id === nid);
   const quantidade = projeto.quantidade ?? 1;
   const encomenda = ehEncomenda(projeto);
   const fase = etapa(projeto);
@@ -98,6 +110,36 @@ export function ProjetoDetalhe({ id }: { id: string }) {
     });
   };
 
+  const fioAtual = fioEditando?.indice != null ? projeto.fios[fioEditando.indice] : undefined;
+  const fioInicial = fioAtual ? { ...fioAtual, precoPorGramaCentavos: precoDoNovelo(novelo(fioAtual.noveloId)) } : null;
+  const avisoFios = (texto: string) =>
+    toast(texto, projeto.calculo ? { rotulo: 'Revisar preço', fazer: () => ir(href.calcularPara(projeto.id)) } : undefined);
+
+  const salvarFio = async (f: FioEditado) => {
+    if (!f.noveloId || !fioEditando) return;
+    const novo: FioUsado = { noveloId: f.noveloId, gramas: f.gramas };
+    if (f.unidadeId) novo.unidadeId = f.unidadeId;
+    if (f.aPesar) {
+      novo.aPesar = true;
+      novo.antesG = f.antesG ?? 0;
+    }
+    const indice = fioEditando.indice;
+    const fios = indice === null ? [...projeto.fios, novo] : projeto.fios.map((x, i) => (i === indice ? novo : x));
+    await salvarFiosDoProjeto(projeto.id, fios);
+    setFioEditando(null);
+    avisoFios(indice === null ? 'Fio adicionado' : 'Fio atualizado');
+  };
+
+  const tirarFio = async (indice: number) => {
+    const antes = projeto.fios;
+    await salvarFiosDoProjeto(
+      projeto.id,
+      antes.filter((_, i) => i !== indice)
+    );
+    setFioEditando(null);
+    toast('Fio tirado', { rotulo: 'Desfazer', fazer: () => void salvarFiosDoProjeto(projeto.id, antes) });
+  };
+
   const abrirCrono = async () => {
     if (!rodando) {
       const outro = dados.aberta && dados.projetos.find((p) => p.id === dados.aberta!.projetoId);
@@ -116,6 +158,7 @@ export function ProjetoDetalhe({ id }: { id: string }) {
         fotoId={projeto.fotoId}
         semFoto={{ background: `linear-gradient(160deg, ${corValida(projeto.capaCor)}, ${corValida(projeto.capaCor)}cc)` }}
       >
+        {projeto.fotoId && <button class="faixa-ver-foto" aria-label="Ver foto" onClick={() => setVendoFoto(true)} />}
         <button class="botao-voltar claro" aria-label="Voltar" onClick={() => voltar(href.projetos)}>
           <Icone nome="voltar" />
         </button>
@@ -162,7 +205,11 @@ export function ProjetoDetalhe({ id }: { id: string }) {
           <span class="linha-projeto-texto">
             <strong>{projeto.calculo ? 'Preço de venda' : 'Calcular preço de venda'}</strong>
             <small>
-              {projeto.calculo ? `calculado em ${diaCurto(projeto.calculo.calculadoEm)} · toque para revisar` : 'usa o tempo do cronômetro'}
+              {projeto.calculo
+                ? `calculado em ${diaCurto(projeto.calculo.calculadoEm)}${
+                    !temTempo && projeto.calculo.minutos > 0 ? ` · estimado com ${formatarTotal(projeto.calculo.minutos * 60_000)}` : ''
+                  } · toque para revisar`
+                : 'usa o tempo do cronômetro'}
             </small>
           </span>
           <Icone nome="seta" tamanho={18} />
@@ -171,8 +218,8 @@ export function ProjetoDetalhe({ id }: { id: string }) {
         <div class="secao-cabecalho">
           <h2 class="secao-titulo">Fios{quantidade > 1 ? ' por peça' : ''}</h2>
           {!concluido && (
-            <button class="link-pequeno" onClick={() => ir(href.calcularPara(projeto.id))}>
-              {projeto.fios.length ? 'editar' : 'registrar'}
+            <button class="link-pequeno" onClick={() => setFioEditando({ indice: null })}>
+              adicionar
             </button>
           )}
         </div>
@@ -180,11 +227,23 @@ export function ProjetoDetalhe({ id }: { id: string }) {
           <div class="chips">
             {projeto.fios.map((f, i) => {
               const n = novelo(f.noveloId);
-              return (
-                <span key={i} class="chip-fio">
+              const nome = n ? nomeDoFioDoProjeto(n, f) : 'Fio removido';
+              const conteudo = (
+                <>
                   {n ? <Capa tag="i" cor={n.capaCor} textura={n.textura} fotoId={n.fotoId} /> : <i style={{ background: 'var(--divisoria)' }} />}
-                  {n ? nomeDoNovelo(n) : 'Fio removido'} · {f.gramas} g
+                  {nome}
+                  {n ? ` · ${f.aPesar ? 'a pesar' : `${f.gramas} g`}` : concluido ? ` · ${f.gramas} g` : ' · toque para trocar ou tirar'}
+                </>
+              );
+              const classe = 'chip-fio' + (f.aPesar ? ' a-pesar' : '');
+              return concluido ? (
+                <span key={i} class={classe}>
+                  {conteudo}
                 </span>
+              ) : (
+                <button key={i} class={classe} aria-label={`Editar fio ${nome}`} onClick={() => setFioEditando({ indice: i })}>
+                  {conteudo}
+                </button>
               );
             })}
             {manuais.map((f, i) => (
@@ -195,7 +254,7 @@ export function ProjetoDetalhe({ id }: { id: string }) {
             ))}
           </div>
         ) : (
-          <p class="texto-apagado">Nenhum fio registrado. Os fios entram pela calculadora de preço.</p>
+          <p class="texto-apagado">Nenhum fio ainda. Toque em "adicionar" ou registre pela calculadora de preço.</p>
         )}
         {!concluido && <ResumoEstoque fios={projeto.fios} novelos={novelos} quantidade={quantidade} />}
 
@@ -283,7 +342,20 @@ export function ProjetoDetalhe({ id }: { id: string }) {
       <ConcluirSheet aberta={concluindo} aoFechar={() => setConcluindo(false)} projeto={projeto} novelos={novelos} rodando={rodando} encomenda={encomenda} />
       <ReabrirSheet aberta={reabrindo} aoFechar={() => setReabrindo(false)} projeto={projeto} novelos={novelos} />
       <FazerDeNovoSheet aberta={repetindo} aoFechar={() => setRepetindo(false)} projeto={projeto} novelos={novelos} />
+      {vendoFoto && projeto.fotoId && <VerFoto fotoId={projeto.fotoId} titulo={projeto.nome} aoFechar={() => setVendoFoto(false)} />}
       <ReceitaSheet aberta={editandoReceita} aoFechar={() => setEditandoReceita(false)} projeto={projeto} />
+      <FioSheet
+        aberta={!!fioEditando}
+        aoFechar={() => setFioEditando(null)}
+        novelos={novelos}
+        varias={quantidade > 1}
+        semManual
+        pesarNoFim
+        emUso={unidadesEmUso(dados.projetos, projeto.id)}
+        inicial={fioInicial}
+        aoSalvar={(f) => void salvarFio(f)}
+        aoTirar={fioEditando?.indice != null ? () => void tirarFio(fioEditando.indice!) : undefined}
+      />
     </main>
   );
 }
@@ -380,35 +452,58 @@ function ReceitaAberta({ aberta, aoFechar, projeto }: { aberta: boolean; aoFecha
 }
 
 function ResumoEstoque({ fios, novelos, quantidade }: { fios: FioUsado[]; novelos: Novelo[]; quantidade: number }) {
-  const itens = conferirEstoque(fios, novelos, quantidade);
-  if (!itens.length) return null;
+  const itens = conferirEstoque(
+    fios.filter((f) => !f.aPesar),
+    novelos,
+    quantidade
+  );
+  const aPesar = fios
+    .filter((f) => f.aPesar)
+    .flatMap((f) => {
+      const n = novelos.find((x) => x.id === f.noveloId);
+      return n ? [nomeDoFioDoProjeto(n, f)] : [];
+    });
+  if (!itens.length && !aPesar.length) return null;
   const faltando = itens.filter((i) => i.falta > 0);
   const pecas = quantidade > 1 ? `as ${quantidade} peças` : 'a peça';
+  const notaAPesar = aPesar.length > 0 && (
+    <p class="estoque-resumo a-pesar">
+      {aPesar.join(', ')} {aPesar.length === 1 ? 'vai ser pesado' : 'vão ser pesados'} no fim.
+    </p>
+  );
   if (!faltando.length) {
     return (
-      <p class="estoque-resumo ok">
-        <Icone nome="check" tamanho={16} espessura={2.6} /> Tem fio para {pecas}
-      </p>
+      <>
+        {itens.length > 0 && (
+          <p class="estoque-resumo ok">
+            <Icone nome="check" tamanho={16} espessura={2.6} /> {aPesar.length ? `Os fios por gramas dão para ${pecas}` : `Tem fio para ${pecas}`}
+          </p>
+        )}
+        {notaAPesar}
+      </>
     );
   }
   return (
-    <div class="estoque-resumo falta">
-      <strong>Falta fio para {pecas}</strong>
-      <ul>
-        {faltando.map((i) => {
-          const n = novelos.find((x) => x.id === i.noveloId)!;
-          return (
-            <li key={i.noveloId}>
-              <Capa tag="i" cor={n.capaCor} textura={n.textura} fotoId={n.fotoId} />
-              <span>
-                {nomeDoNovelo(n)}: precisa {i.precisa} g, tem {i.tem} g · <b>faltam {i.falta} g</b>
-                {i.novelosAComprar > 0 && ` (${i.novelosAComprar} ${i.novelosAComprar === 1 ? 'novelo' : 'novelos'})`}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+    <>
+      <div class="estoque-resumo falta">
+        <strong>Falta fio para {pecas}</strong>
+        <ul>
+          {faltando.map((i) => {
+            const n = novelos.find((x) => x.id === i.noveloId)!;
+            return (
+              <li key={i.noveloId}>
+                <Capa tag="i" cor={n.capaCor} textura={n.textura} fotoId={n.fotoId} />
+                <span>
+                  {nomeDoNovelo(n)}: precisa {i.precisa} g, tem {i.tem} g · <b>faltam {i.falta} g</b>
+                  {i.novelosAComprar > 0 && ` (${i.novelosAComprar} ${i.novelosAComprar === 1 ? 'novelo' : 'novelos'})`}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+      {notaAPesar}
+    </>
   );
 }
 
@@ -478,20 +573,103 @@ function ConcluirAberta({
   rodando: boolean;
   encomenda: boolean;
 }) {
-  const itens = calcularDesconto(projeto.fios, novelos, projeto.quantidade ?? 1);
-  const [descontar, setDescontar] = useState(itens.length > 0);
+  const q = Math.max(1, projeto.quantidade ?? 1);
+  const noveloDe = (f: FioUsado) => novelos.find((n) => n.id === f.noveloId);
+  const removidos = projeto.fios.filter((f) => !noveloDe(f)).length;
+  const itens = calcularDesconto(
+    projeto.fios.filter((f) => !f.aPesar),
+    novelos,
+    q
+  );
+  const aPesar = projeto.fios
+    .map((f, i) => ({ f, i, n: noveloDe(f) }))
+    .filter((x): x is { f: FioUsado; i: number; n: Novelo } => !!x.f.aPesar && !!x.n);
+  const pesosEmbalagem = useLive(listarPesosEmbalagem);
+  const [sobras, setSobras] = useState<Record<number, Sobra>>({});
+  const temEstoque = itens.length > 0 || aPesar.length > 0;
+  const [descontar, setDescontar] = useState(true);
+
+  const sobraDe = (i: number): Sobra => sobras[i] ?? { balanca: null, acabou: false, comEmbalagem: true };
+  const mudarSobra = (i: number, parte: Partial<Sobra>) => setSobras((a) => ({ ...a, [i]: { ...sobraDe(i), ...a[i], ...parte } }));
+  const embalagemDe = (n: Novelo) => (pesosEmbalagem ? pesoDaEmbalagem(pesosEmbalagem, n.tipo) : 0);
+  const liquidoDe = (n: Novelo, i: number): number | null => {
+    const s = sobraDe(i);
+    if (s.acabou) return 0;
+    if (s.balanca === null) return null;
+    return descontarEmbalagem(s.balanca, 1, s.comEmbalagem ? embalagemDe(n) : 0);
+  };
+  const faltaPesar = aPesar.some(({ n, i }) => liquidoDe(n, i) === null);
+  const tiradoAPesar = (noveloId: string) =>
+    aPesar.reduce((soma, { f, n, i }) => {
+      const liquido = liquidoDe(n, i);
+      const u = n.unidades.find((x) => x.id === f.unidadeId);
+      return f.noveloId === noveloId && liquido !== null && u ? soma + Math.max(0, u.pesoG - liquido) : soma;
+    }, 0);
 
   const concluir = async () => {
-    await concluirProjeto(projeto.id, descontar && itens.length > 0);
+    const pesadas: Record<number, number> = {};
+    for (const { n, i } of aPesar) pesadas[i] = liquidoDe(n, i) ?? 0;
+    await concluirProjeto(projeto.id, descontar && temEstoque, pesadas);
     aoFechar();
     toast(encomenda ? 'Encomenda pronta' : 'Projeto concluído', { rotulo: 'Desfazer', fazer: () => void reabrirProjeto(projeto.id, true) });
   };
 
   return (
     <Sheet aberta={aberta} aoFechar={aoFechar} titulo={encomenda ? 'Marcar como pronta' : 'Concluir projeto'} subtitulo={rodando ? 'O cronômetro deste projeto será pausado.' : undefined}>
-      {itens.length > 0 ? (
+      {aPesar.length > 0 && (
+        <div class="pesar-no-fim">
+          <p class="rotulo">Pese o que sobrou</p>
+          {aPesar.map(({ f, i, n }) => {
+            const s = sobraDe(i);
+            const emb = embalagemDe(n);
+            const liquido = liquidoDe(n, i);
+            const antes = f.antesG ?? 0;
+            const u = n.unidades.find((x) => x.id === f.unidadeId);
+            return (
+              <div key={i} class="sobra-fio">
+                <div class="linha-projeto">
+                  <Capa class="capa capa-p" cor={n.capaCor} textura={n.textura} fotoId={n.fotoId} />
+                  <span class="linha-projeto-texto">
+                    <strong>{nomeDoFioDoProjeto(n, f)}</strong>
+                    <small>pesava {antes} g quando começou</small>
+                  </span>
+                </div>
+                <div class="sobra-linha">
+                  <CampoInteiro
+                    id={`sobra-${i}`}
+                    permiteVazio
+                    valor={s.acabou ? 0 : s.balanca}
+                    aoMudar={(v) => mudarSobra(i, { balanca: v, acabou: false })}
+                    rotulo={`Sobrou de ${nomeDoFioDoProjeto(n, f)}, na balança`}
+                    sufixo="g"
+                  />
+                  <button type="button" class={'chip' + (s.acabou ? ' ativo' : '')} aria-pressed={s.acabou} onClick={() => mudarSobra(i, { acabou: !s.acabou })}>
+                    acabou
+                  </button>
+                </div>
+                {!s.acabou && <DescontoEmbalagem tipo={n.tipo} embalagemG={emb} ligado={s.comEmbalagem} aoLigar={(v) => mudarSobra(i, { comEmbalagem: v })} />}
+                <p class="sobra-conta">
+                  {liquido === null ? (
+                    'Pese a sobra ou marque "acabou".'
+                  ) : (
+                    <>
+                      {!s.acabou && s.comEmbalagem && emb > 0 && s.balanca !== null && `${contaDaEmbalagem(s.balanca, 1, emb)} = ${liquido} g · `}
+                      usou <b>{Math.max(0, antes - liquido)} g</b>
+                      {q > 1 ? ` (${usadoNoFim(antes, liquido, q)} g por peça)` : ''}
+                      {' · '}
+                      {u ? (liquido > 0 ? `fica ${liquido} g` : 'sai do estoque') : liquido > 0 ? `a sobra entra no estoque (${liquido} g)` : 'não sobrou nada'}
+                      {liquido > antes ? ' · a sobra pesa mais que antes; confira' : ''}
+                    </>
+                  )}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {itens.length > 0 && (
         <>
-          <Interruptor ligado={descontar} aoMudar={setDescontar} rotulo="Descontar fios do estoque" detalhe="Tira do estoque o que este projeto usou." />
+          {aPesar.length > 0 && <p class="rotulo">Fios por gramas</p>}
           <ul class={'lista-desconto' + (descontar ? '' : ' desligada')}>
             {itens.map((it) => {
               const n = novelos.find((x) => x.id === it.noveloId)!;
@@ -503,7 +681,8 @@ function ConcluirAberta({
                       {nomeDoNovelo(n)} <span class="menos">−{it.gramas} g</span>
                     </strong>
                     <small>
-                      fica {formatarEstoque(it.depois)}
+                      fica {formatarEstoque(Math.max(0, it.depois - tiradoAPesar(it.noveloId)))}
+                      {q > 1 ? ` · ${it.gramas / q} g por peça` : ''}
                       {it.faltou > 0 ? ` · faltavam ${it.faltou} g no estoque` : ''}
                     </small>
                   </span>
@@ -512,22 +691,39 @@ function ConcluirAberta({
             })}
           </ul>
         </>
-      ) : (
-        <p class="texto-apagado">Nenhum fio registrado neste projeto, então o estoque não muda.</p>
       )}
-      <button class="botao primario largo" style={{ marginTop: 18 }} onClick={() => void concluir()}>
+      {removidos > 0 && (
+        <p class="texto-apagado">
+          {removidos === 1 ? '1 fio é de um novelo excluído e não mexe' : `${removidos} fios são de novelos excluídos e não mexem`} no estoque.
+        </p>
+      )}
+      {temEstoque ? (
+        <Interruptor
+          ligado={descontar}
+          aoMudar={setDescontar}
+          rotulo="Atualizar o estoque"
+          detalhe={aPesar.length ? 'Tira o que foi usado; cada novelo pesado fica com o peso da sobra.' : 'Tira do estoque o que este projeto usou.'}
+        />
+      ) : (
+        removidos === 0 && <p class="texto-apagado">Nenhum fio registrado neste projeto, então o estoque não muda.</p>
+      )}
+      {faltaPesar && <p class="texto-apagado">Pese a sobra de cada novelo (ou marque "acabou") para concluir.</p>}
+      <button class="botao primario largo" style={{ marginTop: 18 }} disabled={faltaPesar} onClick={() => void concluir()}>
         {encomenda ? 'Marcar como pronta' : 'Concluir projeto'}
       </button>
     </Sheet>
   );
 }
 
+type Sobra = { balanca: number | null; acabou: boolean; comEmbalagem: boolean };
+
 function ReabrirSheet(props: Parameters<typeof ReabrirAberta>[0]) {
   return props.aberta ? <ReabrirAberta {...props} /> : null;
 }
 
 function ReabrirAberta({ aberta, aoFechar, projeto, novelos }: { aberta: boolean; aoFechar: () => void; projeto: Projeto; novelos: Novelo[] }) {
-  const descontado = (projeto.descontado ?? []).filter((d) => d.gramas > 0 && novelos.some((n) => n.id === d.noveloId));
+  const descontado = (projeto.descontado ?? []).filter((d) => (d.gramas > 0 || d.criada) && novelos.some((n) => n.id === d.noveloId));
+  const voltamAPesar = (projeto.fiosAntesDeConcluir ?? []).filter((f) => f.aPesar).length;
   const [devolver, setDevolver] = useState(true);
 
   const reabrir = async () => {
@@ -536,21 +732,33 @@ function ReabrirAberta({ aberta, aoFechar, projeto, novelos }: { aberta: boolean
     toast('Projeto reaberto');
   };
 
+  const descrever = (d: FioDescontado) => {
+    const n = novelos.find((x) => x.id === d.noveloId)!;
+    const nome = `${nomeDoNovelo(n)}${d.unidade ? ` ${rotuloUnidade(d.unidade)}` : ''}`;
+    return d.criada ? `${nome}: a sobra sai (${d.unidade?.pesoG ?? 0} g)` : `${nome} +${d.gramas} g`;
+  };
+
   return (
     <Sheet aberta={aberta} aoFechar={aoFechar} titulo="Reabrir projeto" subtitulo="Ele volta para os projetos em andamento.">
       {descontado.length > 0 && (
-        <Interruptor
-          ligado={devolver}
-          aoMudar={setDevolver}
-          rotulo="Devolver fios ao estoque"
-          detalhe={descontado
-            .map((d) => `${nomeDoNovelo(novelos.find((n) => n.id === d.noveloId)!)} +${d.gramas} g`)
-            .join(' · ')}
-        />
+        <Interruptor ligado={devolver} aoMudar={setDevolver} rotulo="Devolver fios ao estoque" detalhe={descontado.map(descrever).join(' · ')} />
+      )}
+      {voltamAPesar > 0 && (
+        <p class="texto-apagado">
+          {voltamAPesar === 1 ? 'O fio que era "a pesar" volta a ser pesado' : `Os ${voltamAPesar} fios que eram "a pesar" voltam a ser pesados`} quando você concluir
+          de novo.
+        </p>
       )}
       <button class="botao primario largo" style={{ marginTop: 18 }} onClick={() => void reabrir()}>
         Reabrir projeto
       </button>
     </Sheet>
   );
+}
+
+const precoDoNovelo = (n: Novelo | undefined) => (n ? precoPorGrama(n.precoCentavos, n.gramatura) : 0);
+
+function nomeDoFioDoProjeto(n: Novelo, f: FioUsado): string {
+  const u = f.unidadeId ? n.unidades.find((x) => x.id === f.unidadeId) : undefined;
+  return u ? `${nomeDoNovelo(n)} ${rotuloUnidade(u)}` : nomeDoNovelo(n);
 }

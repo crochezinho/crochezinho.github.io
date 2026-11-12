@@ -3,12 +3,14 @@ import { AGULHAS } from '../../app/constantes.ts';
 import { href, ir, voltar } from '../../app/router.ts';
 import { CampoDinheiro, CampoInteiro } from '../../components/Campos.tsx';
 import { usePesoEmbalagem } from '../../components/DescontoEmbalagem.tsx';
-import { PesagensNovelo, totalDasPesagens } from '../../components/PesagensNovelo.tsx';
+import { PesagensNovelo } from '../../components/PesagensNovelo.tsx';
+import { novoId as gerarId } from '../../db/db.ts';
+import { PESAGENS_VAZIAS, unidadesDasPesagens, type Pesagens } from '../../domain/pesagem.ts';
 import { Icone } from '../../components/Icone.tsx';
 import { SeletorCapa } from '../../components/SeletorCapa.tsx';
 import { toast } from '../../components/toast.tsx';
 import { useLive } from '../../db/hooks.ts';
-import { CAPA_PADRAO, criarNovelo, editarNovelo, listarNovelos, type CamposNovelo } from '../../db/repo.ts';
+import { criarNovelo, editarNovelo, listarNovelos, type CamposNovelo } from '../../db/repo.ts';
 import type { Novelo } from '../../db/types.ts';
 import { formatarEstoque } from '../../domain/estoque.ts';
 import { grafiaExistente, noveloRepetido, sugerirMarca } from '../../domain/novelos.ts';
@@ -21,7 +23,7 @@ const VAZIO: CamposNovelo = {
   precoCentavos: 0,
   lote: '',
   agulha: '',
-  capaCor: CAPA_PADRAO,
+  capaCor: '',
   textura: 'liso',
   fotoId: null
 };
@@ -49,23 +51,25 @@ export function NoveloForm({ id }: { id: string | null }) {
   const novelos = useLive(listarNovelos);
   const novelo = id ? novelos?.find((n) => n.id === id) : undefined;
   const [c, setC] = useState<CamposNovelo>(VAZIO);
-  const [pesos, setPesos] = useState<number[]>([0]);
+  const [pesagens, setPesagens] = useState<Pesagens>(PESAGENS_VAZIAS);
+  const [tentou, setTentou] = useState(false);
   const [carregado, setCarregado] = useState(!id);
   const [marcaAuto, setMarcaAuto] = useState(false);
   const [comEmbalagem, setComEmbalagem] = useState(true);
+  const tipoRef = useRef<HTMLInputElement>(null);
   const corRef = useRef<HTMLInputElement>(null);
   const embalagemG = usePesoEmbalagem(c.tipo);
 
   useEffect(() => {
     if (novelo && !carregado) {
-      const { id: _i, atualizadoEm: _a, excluidoEm: _e, estoqueG: _s, ...campos } = novelo;
+      const { id: _i, atualizadoEm: _a, excluidoEm: _e, estoqueG: _s, unidades: _u, ...campos } = novelo;
       setC(campos);
       setCarregado(true);
     }
   }, [novelo, carregado]);
 
   useEffect(() => {
-    if (!id) setTimeout(() => corRef.current?.focus(), 80);
+    if (!id) setTimeout(() => tipoRef.current?.focus(), 80);
   }, [id]);
 
   if (!novelos || (id && !carregado)) {
@@ -82,20 +86,29 @@ export function NoveloForm({ id }: { id: string | null }) {
     setMarcaAuto(true);
   };
   const agulhaOutra = c.agulha !== '' && !AGULHAS.includes(c.agulha);
-  const valido = c.cor.trim() !== '' && c.gramatura > 0;
-  const estoqueInicial = totalDasPesagens(pesos, comEmbalagem, embalagemG);
+  const faltando = [!c.cor.trim() && 'o nome da cor', c.gramatura <= 0 && 'a gramatura', !c.capaCor && !c.fotoId && 'a cor da capa (na paleta)'].filter(
+    (x): x is string => !!x
+  );
+  const valido = faltando.length === 0;
+  const embalagemUsada = comEmbalagem ? embalagemG : 0;
   const repetido = noveloRepetido(novelos, c.tipo, c.cor, c.marca, id);
   const temDetalhes = !!(c.lote || c.agulha);
 
   const salvar = async (e: Event) => {
     e.preventDefault();
-    if (!valido) return;
+    if (!valido) {
+      setTentou(true);
+      if (!c.cor.trim()) corRef.current?.focus();
+      else if (c.gramatura <= 0) document.getElementById('nf-gram')?.focus();
+      else document.querySelector('.seletor-capa')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     if (id) {
       await editarNovelo(id, c);
       toast('Novelo atualizado');
       voltar(href.novelo(id));
     } else {
-      const novoId = await criarNovelo({ ...c, estoqueG: estoqueInicial });
+      const novoId = await criarNovelo({ ...c, unidades: unidadesDasPesagens(pesagens, c.gramatura, embalagemUsada, gerarId) });
       toast('Novelo adicionado ao estoque');
       ir(href.novelo(novoId), true);
     }
@@ -118,6 +131,7 @@ export function NoveloForm({ id }: { id: string | null }) {
             </label>
             <input
               id="nf-tipo"
+              ref={tipoRef}
               class="campo"
               list="lista-tipos"
               value={c.tipo}
@@ -191,8 +205,24 @@ export function NoveloForm({ id }: { id: string | null }) {
           </div>
         </div>
 
-        <p class="rotulo">Capa</p>
+        {!id && (
+          <>
+            <p class="rotulo">Estoque</p>
+            <PesagensNovelo
+              tipo={c.tipo}
+              gramatura={c.gramatura}
+              embalagemG={embalagemG}
+              pesagens={pesagens}
+              aoMudar={setPesagens}
+              comEmbalagem={comEmbalagem}
+              aoLigar={setComEmbalagem}
+            />
+          </>
+        )}
+
+        <p class="rotulo">Cor da capa</p>
         <SeletorCapa
+          compacto
           cor={c.capaCor}
           aoMudarCor={(cor) => mudar({ capaCor: cor })}
           textura={c.textura}
@@ -200,21 +230,6 @@ export function NoveloForm({ id }: { id: string | null }) {
           fotoId={c.fotoId}
           aoMudarFoto={(f) => mudar({ fotoId: f })}
         />
-
-        {!id && (
-          <>
-            <p class="rotulo">Estoque · pese um novelo de cada vez</p>
-            <PesagensNovelo
-              tipo={c.tipo}
-              gramatura={c.gramatura}
-              embalagemG={embalagemG}
-              pesos={pesos}
-              aoMudar={setPesos}
-              comEmbalagem={comEmbalagem}
-              aoLigar={setComEmbalagem}
-            />
-          </>
-        )}
 
         <details class="mais-detalhes" open={temDetalhes}>
           <summary>Mais detalhes (opcional)</summary>
@@ -247,8 +262,8 @@ export function NoveloForm({ id }: { id: string | null }) {
           />
         </details>
 
-        {!valido && <p class="erro">Informe a cor e a gramatura.</p>}
-        <button type="submit" class="botao primario largo" style={{ marginTop: 24 }} disabled={!valido}>
+        {tentou && !valido && <p class="erro">Falta {faltando.join(', ').replace(/, ([^,]*)$/, ' e $1')}.</p>}
+        <button type="submit" class="botao primario largo" style={{ marginTop: 24 }}>
           {id ? 'Salvar alterações' : 'Salvar novelo'}
         </button>
       </form>

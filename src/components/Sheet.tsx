@@ -1,5 +1,6 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect } from 'preact/hooks';
+import { useVoltarFecha } from '../app/voltarFecha.ts';
 
 export function Sheet({
   aberta,
@@ -22,6 +23,7 @@ export function Sheet({
     window.addEventListener('keydown', aoTeclar);
     return () => window.removeEventListener('keydown', aoTeclar);
   }, [aberta, aoFechar]);
+  useVoltarFecha(aberta, aoFechar);
 
   if (!aberta) return null;
   return (

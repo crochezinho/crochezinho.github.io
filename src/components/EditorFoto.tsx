@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { abrirImagem, girarImagem, recortarImagem } from '../app/foto.ts';
+import { useVoltarFecha } from '../app/voltarFecha.ts';
 import { ENQUADRE_INICIAL, PROPORCAO, ZOOM_MAX, ampliar, arrastar, limitar, retangulo, type Enquadre } from '../domain/corte.ts';
 import { Icone } from './Icone.tsx';
 
@@ -16,6 +17,7 @@ export function EditorFoto({ foto, aoCancelar, aoPronto }: { foto: Blob; aoCance
   const tela = useRef<HTMLCanvasElement>(null);
   const toques = useRef(new Map<number, Ponto>());
   const pinca = useRef<number | null>(null);
+  useVoltarFecha(true, aoCancelar);
 
   useEffect(() => {
     let vivo = true;

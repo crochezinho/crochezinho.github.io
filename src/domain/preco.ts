@@ -73,8 +73,9 @@ export function centavosParaTexto(centavos: number): string {
 }
 
 export function textoParaCentavos(texto: string): number {
-  const limpo = texto.replace(/[^\d,.]/g, '');
+  let limpo = texto.replace(/[^\d,.]/g, '');
   if (!limpo) return 0;
+  if (!limpo.includes(',') && /^\d*\.\d{1,2}$/.test(limpo)) limpo = limpo.replace('.', ',');
   const [inteiro, decimal = ''] = limpo.replace(/\./g, '').split(',');
   const n = Number(`${inteiro || '0'}.${decimal.slice(0, 2).padEnd(2, '0')}`);
   return Number.isFinite(n) ? Math.round(n * 100) : 0;

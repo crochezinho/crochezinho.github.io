@@ -7,6 +7,9 @@ import {
   descontarEmbalagem,
   estoqueDasPesagens,
   lerPesos,
+  novelosDasPesagens,
+  PESAGENS_VAZIAS,
+  unidadesDasPesagens,
   pesoDaEmbalagem,
   tiposDosNovelos
 } from './pesagem.ts';
@@ -37,14 +40,26 @@ test('desconta uma embalagem por novelo pesado', () => {
   assert.equal(contaDaEmbalagem(48, 1, 2.5), '48 g − 2,5 g');
 });
 
-test('pesagens um por um: uma embalagem por novelo', () => {
-  assert.equal(estoqueDasPesagens([65, 65, 40], 15), 125);
-  assert.equal(contaDasPesagens([65, 65, 40], 15), '170 g − 3 × 15 g');
-  assert.equal(estoqueDasPesagens([65, 0, 40], 15), 75);
-  assert.equal(estoqueDasPesagens([10], 15), 0);
-  assert.equal(estoqueDasPesagens([65, 40], 0), 105);
-  assert.equal(contaDasPesagens([65, 40], 0), '105 g');
-  assert.equal(estoqueDasPesagens([], 15), 0);
+test('pesagens: fechado conta a gramatura; só o que foi pesado perde a embalagem', () => {
+  assert.equal(estoqueDasPesagens({ fechados: 2, abertos: [40] }, 50, 15), 125);
+  assert.equal(contaDasPesagens({ fechados: 2, abertos: [40] }, 50, 15), '2 fechados × 50 g + 40 g − 15 g');
+  assert.equal(estoqueDasPesagens({ fechados: 0, abertos: [65, null, 0, 40] }, 50, 15), 75);
+  assert.equal(contaDasPesagens({ fechados: 0, abertos: [65, 40] }, 50, 15), '105 g − 2 × 15 g');
+  assert.equal(estoqueDasPesagens({ fechados: 0, abertos: [10] }, 50, 15), 0);
+  assert.equal(estoqueDasPesagens({ fechados: 0, abertos: [65, 40] }, 50, 0), 105);
+  assert.equal(contaDasPesagens({ fechados: 1, abertos: [] }, 50, 15), '1 fechado × 50 g');
+  assert.equal(estoqueDasPesagens(PESAGENS_VAZIAS, 50, 15), 0);
+});
+
+test('pesagens viram novelos numerados: fechados primeiro, depois os abertos', () => {
+  let n = 0;
+  const us = unidadesDasPesagens({ fechados: 2, abertos: [40, null, 3] }, 50, 15, () => `u${++n}`);
+  assert.deepEqual(us, [
+    { id: 'u1', numero: 1, pesoG: 50, fechado: true },
+    { id: 'u2', numero: 2, pesoG: 50, fechado: true },
+    { id: 'u3', numero: 3, pesoG: 25, fechado: false }
+  ]);
+  assert.equal(novelosDasPesagens({ fechados: 2, abertos: [40, null] }), 3);
 });
 
 test('tipos dos novelos sem repetir grafias', () => {

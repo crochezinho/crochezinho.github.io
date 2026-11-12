@@ -53,7 +53,7 @@ async function chamar(c: ConexaoGitHub, caminho: string, init: RequestInit = {})
   }
   if (resp.status === 401) throw new ErroGitHub('Token inválido ou expirado. Gere um novo e conecte de novo.', 401);
   if (resp.status === 403)
-    throw new ErroGitHub('O token não tem permissão neste repositório. Confira "Contents: Read and write" e se ele foi criado na conta crochezinho.', 403);
+    throw new ErroGitHub('O token não tem permissão neste repositório. Confira se ele dá acesso a este repositório com "Contents: Read and write".', 403);
   return resp;
 }
 
@@ -73,8 +73,14 @@ export async function lerRemoto(c: ConexaoGitHub): Promise<{ pacote: Pacote | nu
   }
   if (!resp.ok) throw new ErroGitHub(`O GitHub respondeu com erro ${resp.status}.`, resp.status);
   const dados = (await resp.json()) as { content?: string; sha: string };
-  if (!dados.content) throw new ErroGitHub('O arquivo de dados ficou grande demais para a sincronização.', 413);
-  return { pacote: validarPacote(JSON.parse(base64ParaTexto(dados.content))), sha: dados.sha };
+  let conteudo = dados.content;
+  if (!conteudo) {
+    const blob = await chamar(c, `/git/blobs/${dados.sha}`);
+    if (!blob.ok) throw new ErroGitHub(`O GitHub respondeu com erro ${blob.status}.`, blob.status);
+    conteudo = ((await blob.json()) as { content?: string }).content;
+    if (!conteudo) throw new ErroGitHub('O arquivo de dados ficou grande demais para a sincronização.', 413);
+  }
+  return { pacote: validarPacote(JSON.parse(base64ParaTexto(conteudo))), sha: dados.sha };
 }
 
 export async function gravarRemoto(c: ConexaoGitHub, pacote: Pacote, sha: string | null, aparelho: string): Promise<void> {

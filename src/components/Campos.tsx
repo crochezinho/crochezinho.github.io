@@ -46,44 +46,46 @@ export function CampoDinheiro({
   );
 }
 
-export function CampoInteiro({
-  valor,
-  aoMudar,
-  rotulo,
-  sufixo,
-  max = 99999,
-  id,
-  vazioQuandoZero = true,
-  minimo
-}: {
-  valor: number;
-  aoMudar: (n: number) => void;
+interface BaseInteiro {
   rotulo: string;
   sufixo: string;
   max?: number;
   id?: string;
   vazioQuandoZero?: boolean;
   minimo?: number;
-}) {
-  const mostrarVazio = minimo !== undefined ? !valor : !valor && vazioQuandoZero;
+  autoFoco?: boolean;
+}
+
+export function CampoInteiro(
+  props: BaseInteiro &
+    ({ permiteVazio?: false; valor: number; aoMudar: (n: number) => void } | { permiteVazio: true; valor: number | null; aoMudar: (n: number | null) => void })
+) {
+  const { valor, rotulo, sufixo, max = 99999, id, vazioQuandoZero = true, minimo, autoFoco = false } = props;
+  const campo = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (autoFoco) campo.current?.focus();
+  }, []);
+  const mostrarVazio = valor === null || (props.permiteVazio ? false : minimo !== undefined ? !valor : !valor && vazioQuandoZero);
   return (
     <label class="campo-unidade">
       <input
+        ref={campo}
         id={id}
         class="campo"
         inputMode="numeric"
         pattern="[0-9]*"
-        placeholder="0"
+        placeholder={props.permiteVazio ? '–' : '0'}
         aria-label={rotulo}
         value={mostrarVazio ? '' : String(valor)}
         onBlur={() => {
-          if (minimo !== undefined && valor < minimo) aoMudar(minimo);
+          if (!props.permiteVazio && minimo !== undefined && (valor ?? 0) < minimo) props.aoMudar(minimo);
         }}
         onInput={(e) => {
           const digitos = e.currentTarget.value.replace(/\D/g, '').slice(0, 6);
           const n = Math.min(max, Number(digitos) || 0);
           e.currentTarget.value = digitos ? String(n) : '';
-          aoMudar(n);
+          if (props.permiteVazio) props.aoMudar(digitos ? n : null);
+          else props.aoMudar(n);
         }}
       />
       <span>{sufixo}</span>

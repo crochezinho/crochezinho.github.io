@@ -47,6 +47,12 @@ export class CrochezinhoDB extends Dexie {
         const projetos = await tx.table('projetos').toArray();
         await tx.table('projetos').bulkPut(projetos.map(normalizarProjeto));
       });
+    this.version(6)
+      .stores({})
+      .upgrade(async (tx) => {
+        const novelos = await tx.table('novelos').toArray();
+        await tx.table('novelos').bulkPut(novelos.map(normalizarNovelo));
+      });
   }
 }
 

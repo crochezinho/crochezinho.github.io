@@ -1,5 +1,5 @@
 import { useEffect } from 'preact/hooks';
-import { sincronizar } from '../db/sync.ts';
+import { limparFotosOrfas, sincronizar } from '../db/sync.ts';
 
 const INTERVALO_MINIMO = 20_000;
 let ultimaTentativa = 0;
@@ -12,6 +12,7 @@ export function SyncAutomatico() {
       void sincronizar();
     };
     const inicial = setTimeout(tentar, 1200);
+    void limparFotosOrfas().catch(() => 0);
     document.addEventListener('visibilitychange', tentar);
     window.addEventListener('online', tentar);
     return () => {

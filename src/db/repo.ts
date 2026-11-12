@@ -1,8 +1,10 @@
 import { db, novoId } from './db.ts';
-import { calcularDesconto } from '../domain/estoque.ts';
+import { fiosAoReabrir, fiosParaFazerDeNovo, trocarFiosDoEstoque, usadoNoFim } from '../domain/fios.ts';
+import { ajustarFechados, devolverAsUnidades, maiorNumero, novaUnidade, pesarUnidade, somaUnidades, tirarDasUnidades, type Unidade } from '../domain/unidades.ts';
+import { precoPorGrama } from '../domain/preco.ts';
 import { chaveEmbalagem, lerPesos, type PesosEmbalagem } from '../domain/pesagem.ts';
 import { PREFIXO_EMBALAGEM } from '../domain/sync.ts';
-import type { Calculo, FioUsado, Id, Novelo, Projeto, Rascunho, Sessao } from './types.ts';
+import type { Calculo, FioDescontado, FioUsado, Id, Novelo, Projeto, Rascunho, Sessao } from './types.ts';
 
 const agora = () => Date.now();
 const ativo = <T extends { excluidoEm: number | null }>(r: T) => !r.excluidoEm;
@@ -83,20 +85,20 @@ export async function duplicarProjeto(id: Id, quantidade: number): Promise<Id> {
     receitaUrl: p.receitaUrl ?? '',
     quantidade: q
   });
-  await db.projetos.update(novoProjetoId, { fios: p.fios.map((f) => ({ ...f })) });
+  await db.projetos.update(novoProjetoId, { fios: p.fios.filter((f) => !f.aPesar).map((f) => ({ noveloId: f.noveloId, gramas: f.gramas })) });
   if (p.calculo) {
     const novelos = await db.novelos.toArray();
-    const chave = () => Math.random().toString(36).slice(2, 10);
+    const precoAtual = (nid: string) => {
+      const n = novelos.find((x) => x.id === nid && !x.excluidoEm);
+      return n ? precoPorGrama(n.precoCentavos, n.gramatura) : 0;
+    };
     await salvarRascunho(novoProjetoId, {
-      fios: p.calculo.fios.map((f) => {
-        const n = f.noveloId ? novelos.find((x) => x.id === f.noveloId && !x.excluidoEm) : undefined;
-        return { ...f, chave: chave(), precoPorGramaCentavos: n && n.gramatura > 0 ? n.precoCentavos / n.gramatura : f.precoPorGramaCentavos };
-      }),
+      fios: fiosParaFazerDeNovo(p.calculo.fios, p.fios, precoAtual, novaChave),
       quantidade: q,
       minutos: 0,
       minutosDoCrono: true,
       valorHoraCentavos: p.calculo.valorHoraCentavos,
-      extras: p.calculo.extras.map((e) => ({ ...e, chave: chave() })),
+      extras: p.calculo.extras.map((e) => ({ ...e, chave: novaChave() })),
       margemPct: p.calculo.margemPct
     });
   }
@@ -108,37 +110,91 @@ async function pausarSeRodando(projetoId: Id, t: number): Promise<void> {
   for (const s of abertas) await db.sessoes.update(s.id, { fim: t, atualizadoEm: t });
 }
 
-export async function concluirProjeto(id: Id, descontar: boolean): Promise<void> {
-  await db.transaction('rw', db.projetos, db.novelos, db.sessoes, async () => {
+export async function concluirProjeto(id: Id, descontar: boolean, sobras: Record<number, number> = {}): Promise<void> {
+  await db.transaction('rw', [db.projetos, db.novelos, db.sessoes, db.config], async () => {
     const t = agora();
     const p = await db.projetos.get(id);
     if (!p || p.status === 'concluido') return;
     await pausarSeRodando(id, t);
-    const descontado: FioUsado[] = [];
+    const q = Math.max(1, p.quantidade ?? 1);
+    const novelos = new Map((await db.novelos.toArray()).filter(ativo).map((n) => [n.id, n]));
+    const antesDe = new Map([...novelos.values()].map((n) => [n.id, { unidades: n.unidades, ultimoNumero: n.ultimoNumero }]));
+    const mudados = new Set<string>();
+    const descontado: FioDescontado[] = [];
+
+    const fios = p.fios.map((f, i) => {
+      if (!f.aPesar) return f;
+      const n = novelos.get(f.noveloId);
+      if (!n) return { noveloId: f.noveloId, gramas: 0 };
+      const sobra = sobras[i];
+      if (sobra === undefined) return f;
+      const u = n.unidades.find((x) => x.id === f.unidadeId);
+      const antes = f.antesG ?? u?.pesoG ?? 0;
+      const resto = Math.max(0, sobra);
+      if (descontar && u) {
+        const tirado = Math.max(0, u.pesoG - resto);
+        n.unidades = pesarUnidade(n.unidades, u.id, Math.min(u.pesoG, resto));
+        if (tirado > 0) descontado.push({ noveloId: n.id, gramas: tirado, unidade: u });
+        mudados.add(n.id);
+      } else if (descontar && !u && resto > 0) {
+        const a = antesDe.get(n.id)!;
+        n.unidades = novaUnidade(n.unidades, resto, false, novoId(), maiorNumero([...a.unidades, ...n.unidades], a.ultimoNumero));
+        descontado.push({ noveloId: n.id, gramas: 0, unidade: n.unidades[n.unidades.length - 1], criada: true });
+        mudados.add(n.id);
+      }
+      return { ...f, aPesar: false, gramas: usadoNoFim(antes, sobra, q) };
+    });
+
     if (descontar) {
-      const novelos = (await db.novelos.toArray()).filter(ativo);
-      for (const item of calcularDesconto(p.fios, novelos, p.quantidade ?? 1)) {
-        await db.novelos.update(item.noveloId, { estoqueG: item.depois, atualizadoEm: t });
-        descontado.push({ noveloId: item.noveloId, gramas: item.antes - item.depois });
+      for (const f of p.fios) {
+        if (f.aPesar || f.gramas <= 0) continue;
+        const n = novelos.get(f.noveloId);
+        if (!n) continue;
+        const r = tirarDasUnidades(n.unidades, f.gramas * q, f.unidadeId);
+        n.unidades = r.unidades;
+        for (const x of r.retiradas) descontado.push({ noveloId: n.id, gramas: x.gramas, unidade: x.unidade });
+        mudados.add(n.id);
       }
     }
-    await db.projetos.update(id, { status: 'concluido', concluidoEm: t, descontado, atualizadoEm: t });
+    for (const nid of mudados) {
+      await db.novelos.update(nid, { ...camposDasUnidades(antesDe.get(nid)!, novelos.get(nid)!.unidades), atualizadoEm: t });
+    }
+    await db.projetos.update(id, { status: 'concluido', concluidoEm: t, descontado, fios, fiosAntesDeConcluir: p.fios, atualizadoEm: t });
+    if (fios.some((f, i) => f !== p.fios[i])) await levarFiosAoCalculo(id, fios);
   });
 }
 
 export async function reabrirProjeto(id: Id, devolver: boolean): Promise<void> {
-  await db.transaction('rw', db.projetos, db.novelos, async () => {
+  await db.transaction('rw', [db.projetos, db.novelos, db.config], async () => {
     const t = agora();
     const p = await db.projetos.get(id);
     if (!p || p.status !== 'concluido') return;
     if (devolver) {
-      for (const d of p.descontado ?? []) {
-        const n = await db.novelos.get(d.noveloId);
-        if (n && !n.excluidoEm) await db.novelos.update(n.id, { estoqueG: n.estoqueG + d.gramas, atualizadoEm: t });
+      const porNovelo = new Map<string, FioDescontado[]>();
+      for (const d of p.descontado ?? []) porNovelo.set(d.noveloId, [...(porNovelo.get(d.noveloId) ?? []), d]);
+      for (const [nid, ds] of porNovelo) {
+        const n = await db.novelos.get(nid);
+        if (!n || n.excluidoEm) continue;
+        let piso = maiorNumero(n.unidades, n.ultimoNumero);
+        const retiradas = ds
+          .filter((d) => !d.criada)
+          .map((d) => ({
+            gramas: d.gramas,
+            unidade: d.unidade ?? { id: novoId(), numero: ++piso, pesoG: d.gramas, fechado: false }
+          }));
+        const criadas = new Set(ds.filter((d) => d.criada && d.unidade).map((d) => d.unidade!.id));
+        const unidades = devolverAsUnidades(n.unidades, retiradas).filter((u) => !criadas.has(u.id));
+        await db.novelos.update(nid, { ...camposDasUnidades({ ...n, ultimoNumero: piso }, unidades), atualizadoEm: t });
       }
     }
-    await db.projetos.update(id, { status: 'fazendo', concluidoEm: null, entregueEm: null, descontado: [], atualizadoEm: t });
+    const fios = fiosAoReabrir(p);
+    await db.projetos.update(id, { status: 'fazendo', concluidoEm: null, entregueEm: null, descontado: [], fios, fiosAntesDeConcluir: [], atualizadoEm: t });
+    if (fios !== p.fios) await levarFiosAoCalculo(id, fios);
   });
+}
+
+function camposDasUnidades(n: Pick<Novelo, 'unidades' | 'ultimoNumero'>, unidades: Unidade[]): Pick<Novelo, 'unidades' | 'estoqueG' | 'ultimoNumero'> {
+  return { unidades, estoqueG: somaUnidades(unidades), ultimoNumero: maiorNumero([...n.unidades, ...unidades], n.ultimoNumero) };
 }
 
 export async function marcarEntregue(id: Id, entregue: boolean): Promise<void> {
@@ -265,7 +321,7 @@ export async function listarNovelos(): Promise<Novelo[]> {
   return todos.filter(ativo).sort((a, b) => a.marca.localeCompare(b.marca, 'pt-BR') || a.cor.localeCompare(b.cor, 'pt-BR'));
 }
 
-export type NovoNovelo = Pick<Novelo, 'cor' | 'marca' | 'tipo' | 'gramatura' | 'precoCentavos' | 'estoqueG' | 'capaCor' | 'textura'> &
+export type NovoNovelo = Pick<Novelo, 'cor' | 'marca' | 'tipo' | 'gramatura' | 'precoCentavos' | 'unidades' | 'capaCor' | 'textura'> &
   Partial<Pick<Novelo, 'lote' | 'agulha' | 'fotoId'>>;
 
 export async function criarNovelo(n: NovoNovelo): Promise<Id> {
@@ -276,6 +332,8 @@ export async function criarNovelo(n: NovoNovelo): Promise<Id> {
     lote: '',
     agulha: '',
     ...n,
+    estoqueG: somaUnidades(n.unidades),
+    ultimoNumero: maiorNumero(n.unidades),
     cor: n.cor.trim() || 'Novelo',
     marca: n.marca.trim(),
     tipo: n.tipo.trim(),
@@ -286,21 +344,40 @@ export async function criarNovelo(n: NovoNovelo): Promise<Id> {
   return novelo.id;
 }
 
-export type CamposNovelo = Omit<Novelo, 'id' | 'atualizadoEm' | 'excluidoEm' | 'estoqueG'>;
+export type CamposNovelo = Omit<Novelo, 'id' | 'atualizadoEm' | 'excluidoEm' | 'estoqueG' | 'unidades'>;
+
+export async function lerNovelo(id: Id): Promise<Novelo | undefined> {
+  return db.novelos.get(id);
+}
 
 export async function editarNovelo(id: Id, campos: CamposNovelo): Promise<void> {
-  await db.novelos.update(id, {
-    ...campos,
-    cor: campos.cor.trim() || 'Novelo',
-    marca: campos.marca.trim(),
-    tipo: campos.tipo.trim(),
-    atualizadoEm: agora()
+  await db.transaction('rw', db.novelos, async () => {
+    const atual = await db.novelos.get(id);
+    if (!atual) return;
+    const unidades = atual.gramatura !== campos.gramatura ? ajustarFechados(atual.unidades, campos.gramatura) : atual.unidades;
+    await db.novelos.update(id, {
+      ...campos,
+      unidades,
+      estoqueG: somaUnidades(unidades),
+      cor: campos.cor.trim() || 'Novelo',
+      marca: campos.marca.trim(),
+      tipo: campos.tipo.trim(),
+      atualizadoEm: agora()
+    });
   });
 }
 
-export async function definirEstoque(id: Id, gramas: number): Promise<void> {
-  await db.novelos.update(id, { estoqueG: Math.max(0, Math.round(gramas)), atualizadoEm: agora() });
+export async function mudarUnidades(id: Id, mudar: (us: Unidade[], piso: number) => Unidade[]): Promise<Unidade[] | null> {
+  return db.transaction('rw', db.novelos, async () => {
+    const n = await db.novelos.get(id);
+    if (!n) return null;
+    const unidades = mudar(n.unidades, maiorNumero(n.unidades, n.ultimoNumero));
+    await db.novelos.update(id, { ...camposDasUnidades(n, unidades), atualizadoEm: agora() });
+    return n.unidades;
+  });
 }
+
+export const definirUnidades = (id: Id, unidades: Unidade[]) => mudarUnidades(id, () => unidades);
 
 export async function excluirNovelo(id: Id): Promise<void> {
   const t = agora();
@@ -367,15 +444,56 @@ export async function descartarRascunho(projetoId: Id | null): Promise<void> {
   await apagarConfig(chaveRascunho(projetoId));
 }
 
+const novaChave = () => Math.random().toString(36).slice(2, 10);
+
+export function rascunhoDoCalculo(c: Calculo, projeto?: Pick<Projeto, 'quantidade'>): Rascunho {
+  return {
+    fios: c.fios.map((f) => ({ chave: novaChave(), ...f })),
+    quantidade: projeto?.quantidade ?? c.quantidade ?? 1,
+    minutos: c.minutos,
+    minutosDoCrono: false,
+    valorHoraCentavos: c.valorHoraCentavos,
+    extras: c.extras.map((e) => ({ chave: novaChave(), ...e })),
+    margemPct: c.margemPct
+  };
+}
+
+export async function salvarFiosDoProjeto(id: Id, fios: FioUsado[]): Promise<void> {
+  await db.transaction('rw', db.projetos, db.novelos, db.config, async () => {
+    const p = await db.projetos.get(id);
+    if (!p) return;
+    await db.projetos.update(id, { fios, atualizadoEm: agora() });
+    await levarFiosAoCalculo(id, fios);
+  });
+}
+
+async function levarFiosAoCalculo(id: Id, fios: FioUsado[]): Promise<void> {
+  const p = await db.projetos.get(id);
+  if (!p) return;
+  const base = (await lerRascunho(id)) ?? (p.calculo ? rascunhoDoCalculo(p.calculo, p) : null);
+  if (!base) return;
+  const novelos = await db.novelos.toArray();
+  const preco = (nid: string) => {
+    const n = novelos.find((x) => x.id === nid);
+    return n ? precoPorGrama(n.precoCentavos, n.gramatura) : 0;
+  };
+  await salvarRascunho(id, { ...base, fios: trocarFiosDoEstoque(base.fios, fios, preco, novaChave) });
+}
+
 export async function salvarCalculoNoProjeto(projetoId: Id, calculo: Calculo, precoPorPecaCentavos: number): Promise<void> {
   await db.transaction('rw', db.projetos, db.config, async () => {
+    const p = await db.projetos.get(projetoId);
+    if (!p) return;
     const fios: FioUsado[] = [];
-    for (const { noveloId, gramas } of calculo.fios) if (noveloId) fios.push({ noveloId, gramas });
+    for (const { noveloId, gramas, unidadeId, aPesar, antesG } of calculo.fios) {
+      if (!noveloId) continue;
+      fios.push(aPesar ? { noveloId, gramas: 0, unidadeId: unidadeId ?? null, aPesar: true, antesG } : unidadeId ? { noveloId, gramas, unidadeId } : { noveloId, gramas });
+    }
+    const concluido = p.status === 'concluido';
     await db.projetos.update(projetoId, {
       calculo,
       precoCentavos: precoPorPecaCentavos,
-      quantidade: Math.max(1, calculo.quantidade ?? 1),
-      fios,
+      ...(concluido ? {} : { quantidade: Math.max(1, calculo.quantidade ?? 1), fios }),
       atualizadoEm: agora()
     });
     await db.config.delete(chaveRascunho(projetoId));

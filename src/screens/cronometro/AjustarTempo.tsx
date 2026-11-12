@@ -4,7 +4,7 @@ import { Sheet } from '../../components/Sheet.tsx';
 import { toast } from '../../components/toast.tsx';
 import { ajustarTempo, editarSessao, excluirSessao, restaurarSessao } from '../../db/repo.ts';
 import type { Sessao } from '../../db/types.ts';
-import { duracao, formatarTotal, hmParaMs } from '../../domain/tempo.ts';
+import { duracao, formatarTotal, hmParaMs, totalDoProjeto } from '../../domain/tempo.ts';
 
 const MAX_SESSOES = 15;
 
@@ -35,6 +35,8 @@ function AjustarTempoAberto({
     .slice(0, MAX_SESSOES);
 
   const quantidade = hmParaMs(Number(horas) || 0, Number(minutos) || 0);
+  const total = totalDoProjeto(sessoes, projetoId, agora);
+  const tiraDemais = quantidade > total;
 
   const aplicar = async (sinal: 1 | -1) => {
     const id = await ajustarTempo(projetoId, sinal * quantidade);
@@ -83,13 +85,14 @@ function AjustarTempoAberto({
           </label>
         </div>
         <div class="ajuste-botoes">
-          <button class="botao" disabled={!quantidade} onClick={() => void aplicar(-1)}>
+          <button class="botao" disabled={!quantidade || tiraDemais} onClick={() => void aplicar(-1)}>
             − Tirar
           </button>
           <button class="botao primario" disabled={!quantidade} onClick={() => void aplicar(1)}>
             + Somar
           </button>
         </div>
+        {tiraDemais && total > 0 && <p class="texto-apagado">O projeto tem {formatarTotal(total)}: dá para tirar até isso.</p>}
       </div>
 
       <h3 class="secao-titulo">Sessões</h3>
