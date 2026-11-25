@@ -200,7 +200,7 @@ function camposDasUnidades(n: Pick<Novelo, 'unidades' | 'ultimoNumero'>, unidade
   return { unidades, estoqueG: somaUnidades(unidades), ultimoNumero: maiorNumero([...n.unidades, ...unidades], n.ultimoNumero) };
 }
 
-/** Na entrega, congela o tempo, o valor da hora e o material: é o que conta como salário daquele mês. */
+/** Na entrega, congela o tempo, o valor da hora e o material: é o que conta como ganhos daquele mês. */
 export async function marcarEntregue(id: Id, entregue: boolean): Promise<Divisao | null> {
   return db.transaction('rw', [db.projetos, db.sessoes, db.novelos, db.config], async () => {
     const t = agora();

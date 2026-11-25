@@ -56,7 +56,7 @@ function AjustarTempoAberto({
   };
 
   return (
-    <Sheet aberta={aberta} aoFechar={aoFechar} titulo="Ajustar tempo" subtitulo="Some ou tire tempo, ou corrija uma sessão.">
+    <Sheet aberta={aberta} aoFechar={aoFechar} titulo="Ajustar tempo">
       <div class="ajuste-caixa">
         <div class="ajuste-campos">
           <label class="campo-unidade">

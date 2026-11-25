@@ -7,6 +7,7 @@ export type Rota =
   | { nome: 'projeto'; id: string }
   | { nome: 'projetoForm'; id: string | null; cliente?: string }
   | { nome: 'cliente'; chave: string }
+  | { nome: 'orcamento'; projetoId: string | null; valor: number | null }
   | { nome: 'novelos' }
   | { nome: 'novelo'; id: string }
   | { nome: 'noveloForm'; id: string | null }
@@ -40,6 +41,10 @@ export function lerRota(hash: string = location.hash): Rota {
       return { nome: 'crono', projetoId: partes[1] ?? null };
     case 'dicas':
       return { nome: 'dicasShopee' };
+    case 'orcamento': {
+      const valor = Number(partes[2]);
+      return { nome: 'orcamento', projetoId: partes[1] && partes[1] !== 'avulso' ? partes[1] : null, valor: Number.isFinite(valor) && partes[2] ? valor : null };
+    }
     case 'clientes':
       return partes[1] ? { nome: 'cliente', chave: decodeURIComponent(partes[1]) } : { nome: 'projetos' };
     case 'financeiro':
@@ -58,6 +63,7 @@ export const href = {
   novoProjeto: '#/projetos/novo',
   novaEncomendaPara: (cliente: string) => `#/projetos/novo/para/${encodeURIComponent(cliente)}`,
   cliente: (chave: string) => `#/clientes/${encodeURIComponent(chave)}`,
+  orcamento: (projetoId: string | null, valor?: number) => `#/orcamento/${projetoId ?? 'avulso'}${valor != null ? `/${Math.round(valor)}` : ''}`,
   editarProjeto: (id: string) => `#/projetos/${id}/editar`,
   novelos: '#/novelos',
   novelo: (id: string) => `#/novelos/${id}`,

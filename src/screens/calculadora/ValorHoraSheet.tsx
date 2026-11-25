@@ -34,7 +34,7 @@ function ValorHoraAberta({ aberta, aoFechar, sessoes, agora, aoUsar, inicial }: 
   };
 
   return (
-    <Sheet aberta={aberta} aoFechar={aoFechar} titulo="Meu valor por hora" subtitulo="Quanto cada hora de crochê precisa valer para fechar o mês.">
+    <Sheet aberta={aberta} aoFechar={aoFechar} titulo="Meu valor por hora">
       <label class="rotulo" for="vh-ganho">
         Quanto você quer tirar por mês
       </label>
@@ -44,16 +44,14 @@ function ValorHoraAberta({ aberta, aoFechar, sessoes, agora, aoUsar, inicial }: 
         Contas fixas do mês <span class="opcional">opcional</span>
       </label>
       <CampoDinheiro id="vh-custos" centavos={e.custosCentavos} aoMudar={(v) => mudar({ custosCentavos: v })} rotulo="Contas fixas do mês" />
-      <p class="dica-campo">MEI, internet, luz, as ferramentas que você repõe…</p>
 
       <label class="rotulo" for="vh-horas">
         Horas de crochê por semana
       </label>
       <CampoDecimal id="vh-horas" valor={e.horasSemana} aoMudar={(v) => mudar({ horasSemana: v })} rotulo="Horas de crochê por semana" sufixo="h" />
-      <p class="dica-campo">Só as horas com a agulha na mão. O tempo de atender, fotografar e embalar já entra no valor da hora.</p>
       {media > 0 && media !== e.horasSemana && (
         <button type="button" class="link-pequeno" onClick={() => mudar({ horasSemana: media })}>
-          usar a média do cronômetro ({horasTexto(media)} h por semana nas últimas 4 semanas)
+          usar a média do cronômetro ({horasTexto(media)} h por semana)
         </button>
       )}
 
@@ -61,7 +59,7 @@ function ValorHoraAberta({ aberta, aoFechar, sessoes, agora, aoUsar, inicial }: 
         <span>
           {valor
             ? `${brl(e.ganhoCentavos + e.custosCentavos)} por mês ÷ ${horasTexto(horasMes)} h de crochê`
-            : 'Preencha quanto quer tirar e as horas por semana.'}
+            : ''}
         </span>
         <strong>{valor ? `${brl(valor)}/h` : '—'}</strong>
       </div>

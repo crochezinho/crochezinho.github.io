@@ -25,14 +25,12 @@ import {
   listarPesosEmbalagem,
   salvarAnotacoes,
   salvarFiosDoProjeto,
-  salvarReceita,
-  salvarVenda
+  salvarReceita
 } from '../../db/repo.ts';
 import { divisaoDe, useBaseFinanceira } from '../../app/financeiro.ts';
 import { vendaDe } from '../../domain/financeiro.ts';
 import { chaveDoNome } from '../../domain/clientes.ts';
 import { CartaoDivisao, CartaoVenda, VendaSheet } from './Venda.tsx';
-import { OrcamentoSheet } from './OrcamentoSheet.tsx';
 import { FioSheet, type FioEditado } from '../calculadora/FioSheet.tsx';
 import { precoPorGrama } from '../../domain/preco.ts';
 import { lerLink, origemDoLink } from '../../domain/receita.ts';
@@ -61,7 +59,6 @@ export function ProjetoDetalhe({ id }: { id: string }) {
   const [editandoReceita, setEditandoReceita] = useState(false);
   const [fioEditando, setFioEditando] = useState<{ indice: number | null } | null>(null);
   const [editandoVenda, setEditandoVenda] = useState(false);
-  const [orcando, setOrcando] = useState(false);
   const base = useBaseFinanceira();
 
   const projeto = dados?.projetos.find((p) => p.id === id);
@@ -119,7 +116,7 @@ export function ProjetoDetalhe({ id }: { id: string }) {
 
   const entregar = async (sim: boolean) => {
     const d = await marcarEntregue(projeto.id, sim);
-    toast(!sim ? 'Voltou para "pronta"' : d && d.cobrado > 0 ? `Entregue! Guarde ${brl(d.salario)} de salário` : `Entregue${projeto.cliente ? ` para ${projeto.cliente}` : ''}`, {
+    toast(!sim ? 'Voltou para "pronta"' : d && d.cobrado > 0 ? `Entregue! Seus ganhos: ${brl(d.ganhos)}` : `Entregue${projeto.cliente ? ` para ${projeto.cliente}` : ''}`, {
       rotulo: 'Desfazer',
       fazer: () => void marcarEntregue(projeto.id, !sim)
     });
@@ -236,8 +233,8 @@ export function ProjetoDetalhe({ id }: { id: string }) {
               {projeto.calculo
                 ? `calculado em ${diaCurto(projeto.calculo.calculadoEm)}${projeto.calculo.comShopee ? ', com as taxas da Shopee' : ''}${
                     !temTempo && projeto.calculo.minutos > 0 ? ` · estimado com ${formatarTotal(projeto.calculo.minutos * 60_000)}` : ''
-                  } · toque para revisar`
-                : 'usa o tempo do cronômetro'}
+                  }`
+                : 'com o tempo do cronômetro'}
             </small>
           </span>
           <Icone nome="seta" tamanho={18} />
@@ -250,7 +247,7 @@ export function ProjetoDetalhe({ id }: { id: string }) {
             divisao={fase === 'entregue' ? divisaoDe(projeto, dados.sessoes, base, agora) : null}
             regras={base.regras}
             aoEditar={() => setEditandoVenda(true)}
-            aoOrcar={() => setOrcando(true)}
+            aoOrcar={() => ir(href.orcamento(projeto.id))}
           />
         )}
 
@@ -271,7 +268,7 @@ export function ProjetoDetalhe({ id }: { id: string }) {
                 <>
                   {n ? <Capa tag="i" cor={n.capaCor} textura={n.textura} fotoId={n.fotoId} /> : <i style={{ background: 'var(--divisoria)' }} />}
                   {nome}
-                  {n ? ` · ${f.aPesar ? 'a pesar' : `${f.gramas} g`}` : concluido ? ` · ${f.gramas} g` : ' · toque para trocar ou tirar'}
+                  {n ? ` · ${f.aPesar ? 'a pesar' : `${f.gramas} g`}` : concluido ? ` · ${f.gramas} g` : ''}
                 </>
               );
               const classe = 'chip-fio' + (f.aPesar ? ' a-pesar' : '');
@@ -293,7 +290,7 @@ export function ProjetoDetalhe({ id }: { id: string }) {
             ))}
           </div>
         ) : (
-          <p class="texto-apagado">Nenhum fio ainda. Toque em "adicionar" ou registre pela calculadora de preço.</p>
+          <p class="texto-apagado">Nenhum fio ainda.</p>
         )}
         {!concluido && <ResumoEstoque fios={projeto.fios} novelos={novelos} quantidade={quantidade} />}
 
@@ -383,25 +380,6 @@ export function ProjetoDetalhe({ id }: { id: string }) {
       <FazerDeNovoSheet aberta={repetindo} aoFechar={() => setRepetindo(false)} projeto={projeto} novelos={novelos} />
       {vendoFoto && projeto.fotoId && <VerFoto fotoId={projeto.fotoId} titulo={projeto.nome} aoFechar={() => setVendoFoto(false)} />}
       {base && <VendaSheet aberta={editandoVenda} aoFechar={() => setEditandoVenda(false)} projeto={projeto} regras={base.regras} />}
-      <OrcamentoSheet
-        aberta={orcando}
-        aoFechar={() => setOrcando(false)}
-        inicial={{
-          titulo: projeto.nome,
-          quantidade,
-          valorCentavos: vendaDe(projeto).valorCentavos,
-          freteCentavos: vendaDe(projeto).freteCentavos,
-          entregaEm: projeto.entregaEm,
-          fotoId: projeto.fotoId
-        }}
-        aoEnviar={(valorCentavos, freteCentavos) => {
-          const v = vendaDe(projeto);
-          if (v.canal === 'direto' && (v.valorCentavos !== valorCentavos || v.freteCentavos !== freteCentavos || !projeto.venda)) {
-            void salvarVenda(projeto.id, { ...v, valorCentavos, freteCentavos });
-            toast('Valor e frete anotados na encomenda');
-          }
-        }}
-      />
       <ReceitaSheet aberta={editandoReceita} aoFechar={() => setEditandoReceita(false)} projeto={projeto} />
       <FioSheet
         aberta={!!fioEditando}
@@ -454,7 +432,7 @@ function ValorDaEncomenda({
           </span>
           <span class="linha-projeto-texto">
             <strong>Anotar o valor combinado</strong>
-            <small>{semValor ? 'valor, frete e sinal' : `pelo cálculo, ${brl(venda.valorCentavos)}${venda.canal === 'shopee' ? ' na Shopee' : ''}`}</small>
+            {!semValor && <small>pelo cálculo, {brl(venda.valorCentavos)}</small>}
           </span>
           <Icone nome="mais" tamanho={18} />
         </button>
@@ -471,7 +449,6 @@ function ValorDaEncomenda({
           </span>
           <span class="linha-projeto-texto">
             <strong>Imagem do orçamento</strong>
-            <small>valor, frete e prazo, para mandar à cliente</small>
           </span>
           <Icone nome="seta" tamanho={18} />
         </button>
@@ -547,7 +524,7 @@ function ReceitaAberta({ aberta, aoFechar, projeto }: { aberta: boolean; aoFecha
   };
 
   return (
-    <Sheet aberta={aberta} aoFechar={aoFechar} titulo="Link da receita" subtitulo="No Drive: Compartilhar → Copiar link. O PDF abre no app do Drive.">
+    <Sheet aberta={aberta} aoFechar={aoFechar} titulo="Link da receita">
       <input
         class="campo"
         type="url"
@@ -645,7 +622,7 @@ function FazerDeNovoAberta({ aberta, aoFechar, projeto, novelos }: { aberta: boo
   };
 
   return (
-    <Sheet aberta={aberta} aoFechar={aoFechar} titulo="Fazer de novo" subtitulo="Um projeto novo com os mesmos fios, custos e capa. O cronômetro começa do zero.">
+    <Sheet aberta={aberta} aoFechar={aoFechar} titulo="Fazer de novo">
       <div class="cartao-lista">
         <div class="linha-campo">
           <div class="linha-campo-texto">
@@ -822,10 +799,9 @@ function ConcluirAberta({
           ligado={descontar}
           aoMudar={setDescontar}
           rotulo="Atualizar o estoque"
-          detalhe={aPesar.length ? 'Tira o que foi usado; cada novelo pesado fica com o peso da sobra.' : 'Tira do estoque o que este projeto usou.'}
         />
       ) : (
-        removidos === 0 && <p class="texto-apagado">Nenhum fio registrado neste projeto, então o estoque não muda.</p>
+        removidos === 0 && <p class="texto-apagado">Nenhum fio registrado neste projeto.</p>
       )}
       {faltaPesar && <p class="texto-apagado">Pese a sobra de cada novelo (ou marque "acabou") para concluir.</p>}
       <button class="botao primario largo" style={{ marginTop: 18 }} disabled={faltaPesar} onClick={() => void concluir()}>
@@ -859,7 +835,7 @@ function ReabrirAberta({ aberta, aoFechar, projeto, novelos }: { aberta: boolean
   };
 
   return (
-    <Sheet aberta={aberta} aoFechar={aoFechar} titulo="Reabrir projeto" subtitulo="Ele volta para os projetos em andamento.">
+    <Sheet aberta={aberta} aoFechar={aoFechar} titulo="Reabrir projeto">
       {descontado.length > 0 && (
         <Interruptor ligado={devolver} aoMudar={setDevolver} rotulo="Devolver fios ao estoque" detalhe={descontado.map(descrever).join(' · ')} />
       )}

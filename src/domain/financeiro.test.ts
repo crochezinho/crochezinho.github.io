@@ -2,11 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { dividir, faltaReceber, materialDoProjeto, mesDe, mesVizinho, nomeDoMes, somar, taxasDaShopee, VENDA_VAZIA } from './financeiro.ts';
 
-test('divide a venda em material, salário e lucro', () => {
+test('divide a venda em material, ganhos e lucro', () => {
   const d = dividir({ ...VENDA_VAZIA, valorCentavos: 12000, freteCentavos: 2200 }, { minutos: 180, valorHoraCentavos: 2500, materialCentavos: 1800, taxasCentavos: 999 });
   assert.equal(d.taxas, 0, 'taxa só conta na Shopee');
   assert.equal(d.recebido, 12000, 'o frete não entra');
-  assert.equal(d.salario, 7500);
+  assert.equal(d.ganhos, 7500);
   assert.equal(d.lucro, 12000 - 1800 - 7500);
   assert.equal(d.horaReal, Math.round((12000 - 1800) / 3));
 });
@@ -70,5 +70,5 @@ test('meses', () => {
 test('soma o mês', () => {
   const f = { minutos: 60, valorHoraCentavos: 1000, materialCentavos: 500, taxasCentavos: 0 };
   const r = somar([dividir({ ...VENDA_VAZIA, valorCentavos: 3000 }, f), dividir({ ...VENDA_VAZIA, valorCentavos: 2000 }, f)]);
-  assert.deepEqual(r, { entregas: 2, cobrado: 5000, taxas: 0, recebido: 5000, material: 1000, salario: 2000, lucro: 2000 });
+  assert.deepEqual(r, { entregas: 2, cobrado: 5000, taxas: 0, recebido: 5000, material: 1000, ganhos: 2000, lucro: 2000 });
 });

@@ -65,7 +65,6 @@ export function ClienteDetalhe({ chave }: { chave: string }) {
           <div class="linha-campo">
             <span class="linha-campo-texto">
               <strong>Já comprou</strong>
-              <small>{cliente.entregues === 1 ? 'em 1 encomenda entregue' : `em ${cliente.entregues} encomendas entregues`}</small>
             </span>
             <span class="linha-valor">{brl(cliente.totalCentavos)}</span>
           </div>
@@ -97,7 +96,6 @@ export function ClienteDetalhe({ chave }: { chave: string }) {
           </span>
           <span class="linha-projeto-texto">
             <strong>Anotar contato</strong>
-            <small>WhatsApp, Instagram, endereço, do que a pessoa gosta</small>
           </span>
         </button>
       )}
@@ -161,7 +159,6 @@ function FichaAberta({ aberta, aoFechar, chave, nome: nomeAtual, ficha }: PropsF
           Nome
         </label>
         <input id="cl-nome" class="campo" value={nome} onInput={(e) => setNome(e.currentTarget.value)} autocomplete="off" />
-        {trocouNome && <p class="dica-campo">O nome muda em todas as encomendas com esse nome.</p>}
 
         <label class="rotulo" for="cl-contato">
           Contato <span class="opcional">opcional</span>

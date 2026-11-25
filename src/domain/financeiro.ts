@@ -24,7 +24,7 @@ export interface Divisao {
   taxas: number;
   recebido: number;
   material: number;
-  salario: number;
+  ganhos: number;
   lucro: number;
   minutos: number;
   valorHora: number;
@@ -39,14 +39,14 @@ export function dividir(venda: Venda, f: Fechamento): Divisao {
   const taxas = venda.canal === 'shopee' ? Math.max(0, f.taxasCentavos) : 0;
   const recebido = cobrado - taxas;
   const material = Math.max(0, f.materialCentavos);
-  const salario = Math.round((Math.max(0, f.minutos) / 60) * Math.max(0, f.valorHoraCentavos));
+  const ganhos = Math.round((Math.max(0, f.minutos) / 60) * Math.max(0, f.valorHoraCentavos));
   return {
     cobrado,
     taxas,
     recebido,
     material,
-    salario,
-    lucro: recebido - material - salario,
+    ganhos,
+    lucro: recebido - material - ganhos,
     minutos: f.minutos,
     valorHora: f.valorHoraCentavos,
     horaReal: f.minutos > 0 ? Math.round((recebido - material) / (f.minutos / 60)) : null
@@ -125,18 +125,18 @@ export interface Resumo {
   taxas: number;
   recebido: number;
   material: number;
-  salario: number;
+  ganhos: number;
   lucro: number;
 }
 
 export function somar(divisoes: Divisao[]): Resumo {
-  const r: Resumo = { entregas: divisoes.length, cobrado: 0, taxas: 0, recebido: 0, material: 0, salario: 0, lucro: 0 };
+  const r: Resumo = { entregas: divisoes.length, cobrado: 0, taxas: 0, recebido: 0, material: 0, ganhos: 0, lucro: 0 };
   for (const d of divisoes) {
     r.cobrado += d.cobrado;
     r.taxas += d.taxas;
     r.recebido += d.recebido;
     r.material += d.material;
-    r.salario += d.salario;
+    r.ganhos += d.ganhos;
     r.lucro += d.lucro;
   }
   return r;

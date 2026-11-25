@@ -43,7 +43,6 @@ export function Novelos() {
       {novelos.length === 0 ? (
         <div class="vazio">
           <h2>Nenhum novelo ainda</h2>
-          <p>Toque no + para cadastrar o primeiro.</p>
         </div>
       ) : (
         <>
@@ -73,7 +72,7 @@ export function Novelos() {
               </button>
             )}
           </div>
-          {escolhidos && <p class="combinar-dica">Toque em até {MAX_COMBINAR} fios para ver lado a lado.</p>}
+          {escolhidos && <p class="combinar-dica">Escolha até {MAX_COMBINAR} fios.</p>}
 
           {visiveis.length === 0 ? (
             <div class="vazio">

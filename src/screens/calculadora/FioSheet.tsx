@@ -117,7 +117,7 @@ function FioSheetAberta({
 
   if (passo === 'manual') {
     return (
-      <Sheet aberta={aberta} aoFechar={aoFechar} titulo={titulo} subtitulo={`Um valor qualquer${porPeca}, sem mexer no estoque.`}>
+      <Sheet aberta={aberta} aoFechar={aoFechar} titulo={titulo}>
         <FioManual
           inicial={ehManual ? inicial : null}
           porPeca={porPeca}
@@ -130,7 +130,7 @@ function FioSheetAberta({
 
   if (passo === 'novo') {
     return (
-      <Sheet aberta={aberta} aoFechar={aoFechar} titulo="Novo novelo" subtitulo="Cadastro rápido. Os outros detalhes ficam na aba Novelos.">
+      <Sheet aberta={aberta} aoFechar={aoFechar} titulo="Novo novelo">
         <NovoNovelo novelos={novelos} aoCancelar={() => setPasso('escolher')} aoCriar={escolher} />
       </Sheet>
     );
@@ -165,7 +165,7 @@ function FioSheetAberta({
   if (!novelo) {
     const filtrados = [...filtrar(novelos, busca)].sort(porNome);
     return (
-      <Sheet aberta={aberta} aoFechar={aoFechar} titulo={titulo} subtitulo="Escolha o novelo do estoque.">
+      <Sheet aberta={aberta} aoFechar={aoFechar} titulo={titulo}>
         {noveloExcluido && <p class="aviso-uso">O novelo deste fio foi excluído. Escolha outro do estoque ou tire o fio.</p>}
         <div class="opcoes-fio">
           {!semManual && (

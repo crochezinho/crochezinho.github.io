@@ -46,15 +46,14 @@ export function Financeiro({ mes: mesRota }: { mes: string | null }) {
       {comValor.length === 0 ? (
         <section class="cartao-vazio">
           <h2>Nenhuma venda em {nomeDoMes(mes)}</h2>
-          <p>Quando você marcar uma encomenda como entregue, ela entra no mês da entrega.</p>
         </section>
       ) : (
         <>
           <section class="cartao-guardar">
             <p class="sobretitulo">Para guardar</p>
             <div class="guardar-linha">
-              <span>Salário</span>
-              <strong>{brl(r.salario)}</strong>
+              <span>Ganhos</span>
+              <strong>{brl(r.ganhos)}</strong>
             </div>
             <div class="guardar-linha">
               <span>Material</span>
@@ -76,7 +75,6 @@ export function Financeiro({ mes: mesRota }: { mes: string | null }) {
             <div class={'linha-campo linha-total' + (r.lucro < 0 ? ' negativo' : '')}>
               <span class="linha-campo-texto">
                 <strong>Lucro</strong>
-                <small>o que sobrou depois do material e do salário</small>
               </span>
               <span class="linha-valor">{brl(r.lucro)}</span>
             </div>
@@ -104,8 +102,8 @@ export function Financeiro({ mes: mesRota }: { mes: string | null }) {
                       <dd>{brl(d.material)}</dd>
                     </div>
                     <div>
-                      <dt>Salário</dt>
-                      <dd>{brl(d.salario)}</dd>
+                      <dt>Ganhos</dt>
+                      <dd>{brl(d.ganhos)}</dd>
                     </div>
                     <div class={d.lucro < 0 ? 'negativo' : ''}>
                       <dt>Lucro</dt>
@@ -113,22 +111,19 @@ export function Financeiro({ mes: mesRota }: { mes: string | null }) {
                     </div>
                   </dl>
                 ) : (
-                  <p class="texto-apagado">Sem valor anotado. Toque para anotar.</p>
+                  <p class="texto-apagado">Sem valor anotado</p>
                 )}
               </li>
             ))}
           </ul>
           {semValor > 0 && (
             <p class="texto-apagado">
-              {semValor === 1 ? '1 encomenda está sem valor e não entra na conta.' : `${semValor} encomendas estão sem valor e não entram na conta.`}
+              {semValor === 1 ? '1 encomenda sem valor ficou fora da conta.' : `${semValor} encomendas sem valor ficaram fora da conta.`}
             </p>
           )}
         </section>
       )}
 
-      <p class="dica-campo financeiro-nota">
-        Cada encomenda conta no mês em que foi entregue, com o sinal junto. O salário é o tempo do cronômetro vezes o seu valor por hora no dia da entrega.
-      </p>
     </main>
   );
 }

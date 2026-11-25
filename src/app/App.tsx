@@ -15,6 +15,7 @@ import { Projetos } from '../screens/projetos/Projetos.tsx';
 import { DicasShopee } from '../screens/vender/DicasShopee.tsx';
 import { Financeiro } from '../screens/financeiro/Financeiro.tsx';
 import { ClienteDetalhe } from '../screens/clientes/ClienteDetalhe.tsx';
+import { Orcamento } from '../screens/orcamento/Orcamento.tsx';
 import { AindaCrochetando } from './AindaCrochetando.tsx';
 import { SyncAutomatico } from './SyncAutomatico.tsx';
 import { ABAS, useRota, type Aba } from './router.ts';
@@ -30,6 +31,7 @@ export function App() {
       {rota.nome === 'projeto' && <ProjetoDetalhe key={rota.id} id={rota.id} />}
       {rota.nome === 'projetoForm' && <ProjetoForm key={rota.id ?? `novo-${rota.cliente ?? ''}`} id={rota.id} cliente={rota.cliente} />}
       {rota.nome === 'cliente' && <ClienteDetalhe key={rota.chave} chave={rota.chave} />}
+      {rota.nome === 'orcamento' && <Orcamento key={`${rota.projetoId}-${rota.valor}`} projetoId={rota.projetoId} valor={rota.valor} />}
       {rota.nome === 'novelos' && <Novelos />}
       {rota.nome === 'novelo' && <NoveloDetalhe key={rota.id} id={rota.id} />}
       {rota.nome === 'combinar' && <CombinarFios ids={rota.ids} />}

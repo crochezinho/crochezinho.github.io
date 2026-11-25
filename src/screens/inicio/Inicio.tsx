@@ -99,13 +99,7 @@ export function Inicio() {
           <p class="sobretitulo">{rodando(daVez.id) ? 'Em andamento' : daVezNaFila ? 'Na fila' : 'Pausado'}</p>
           <h2 class="cartao-crono-nome">{daVez.nome}</h2>
           <p class="cartao-crono-tempo">{formatarTotal(totalDoProjeto(sessoes, daVez.id, agora))}</p>
-          <p class="cartao-crono-sub">
-            {rodando(daVez.id) && aberta
-              ? `esta sessão: ${formatarSessao(duracao(aberta, agora))}`
-              : daVezNaFila
-                ? 'toque no ▶ para começar'
-                : 'toque no ▶ para continuar'}
-          </p>
+          {rodando(daVez.id) && aberta && <p class="cartao-crono-sub">esta sessão: {formatarSessao(duracao(aberta, agora))}</p>}
           <button
             class="cartao-crono-botao"
             aria-label={rodando(daVez.id) ? 'Pausar' : 'Continuar'}
@@ -120,7 +114,6 @@ export function Inicio() {
       ) : (
         <section class="cartao-vazio">
           <h2>Comece um projeto</h2>
-          <p>Crie um projeto para cronometrar o tempo de crochê.</p>
           <button class="botao primario" onClick={() => ir(href.novoProjeto)}>
             Novo projeto
           </button>
@@ -170,7 +163,7 @@ export function Inicio() {
   );
 }
 
-/** Aparece depois da primeira entrega: quanto separar de salário e de material neste mês. */
+/** Aparece depois da primeira entrega: quanto separar de ganhos e de material neste mês. */
 function CartaoDoMes({ projetos, sessoes, base, agora }: { projetos: Projeto[]; sessoes: Sessao[]; base: BaseFinanceira; agora: number }) {
   if (!projetos.some((p) => p.entregueEm)) return null;
   const mes = mesDe(agora);
@@ -187,10 +180,9 @@ function CartaoDoMes({ projetos, sessoes, base, agora }: { projetos: Projeto[]; 
       <span class="linha-projeto-texto">
         {r.entregas > 0 ? (
           <>
-            <strong>Guardar {brl(r.salario)} de salário</strong>
+            <strong>Ganhos de {nomeDoMes(mes)}: {brl(r.ganhos)}</strong>
             <small>
-              {r.material > 0 && `e ${brl(r.material)} de material · `}
-              {r.entregas === 1 ? '1 entrega' : `${r.entregas} entregas`} em {nomeDoMes(mes)}
+              {[r.material > 0 && `material ${brl(r.material)}`, r.entregas === 1 ? '1 entrega' : `${r.entregas} entregas`].filter(Boolean).join(' · ')}
             </small>
           </>
         ) : (

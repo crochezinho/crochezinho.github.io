@@ -92,7 +92,6 @@ export function Projetos() {
       {projetos.length === 0 ? (
         <div class="vazio">
           <h2>Nenhum projeto ainda</h2>
-          <p>Toque no + para criar o primeiro.</p>
         </div>
       ) : (
         <>
@@ -119,7 +118,6 @@ export function Projetos() {
                 ) : (
                   <>
                     <h2>Nenhum cliente ainda</h2>
-                    <p>Quem aparece em "Para quem" numa encomenda entra aqui.</p>
                   </>
                 )}
               </div>
@@ -154,7 +152,6 @@ export function Projetos() {
                 ) : (
                   <>
                     <h2>Nenhuma encomenda</h2>
-                    <p>Um projeto vira encomenda quando tem "Para quem" ou "Entrega" preenchido.</p>
                   </>
                 )}
               </div>

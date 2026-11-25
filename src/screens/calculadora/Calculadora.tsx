@@ -31,7 +31,6 @@ import { CHAVE_SHOPEE, SHOPEE_PADRAO, type EstadoShopee } from '../vender/estado
 import { AbasCalcular, irParaAba } from './AbasCalcular.tsx';
 import { FioSheet, type FioEditado } from './FioSheet.tsx';
 import { ValorHoraSheet } from './ValorHoraSheet.tsx';
-import { OrcamentoSheet } from '../projetos/OrcamentoSheet.tsx';
 import { Interruptor } from '../../components/Interruptor.tsx';
 import { calcShopee, precoParaReceber } from '../../domain/vendas/shopee.ts';
 import { unidadesEmUso } from '../../domain/fios.ts';
@@ -82,7 +81,6 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
   const [trocando, setTrocando] = useState(false);
   const [criando, setCriando] = useState(false);
   const [contaHora, setContaHora] = useState(false);
-  const [orcando, setOrcando] = useState(false);
   const cartao = useRef<HTMLElement>(null);
   const [totalFixo, setTotalFixo] = useState(false);
 
@@ -593,7 +591,7 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
       </div>
       {res.porPeca > 0 && (
         <div class="links-calc">
-          <button class="link-pequeno" onClick={() => setOrcando(true)}>
+          <button class="link-pequeno" onClick={() => ir(href.orcamento(projeto?.id ?? null, res.total))}>
             Fazer a imagem do orçamento →
           </button>
           <button class="link-pequeno" onClick={() => void verNaShopee()}>
@@ -640,18 +638,6 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
 
       <CriarProjetoSheet aberta={criando} aoFechar={() => setCriando(false)} aoCriar={(nome) => void criarComCalculo(nome)} total={precoPorPeca} />
 
-      <OrcamentoSheet
-        aberta={orcando}
-        aoFechar={() => setOrcando(false)}
-        inicial={{
-          titulo: projeto?.nome ?? '',
-          quantidade,
-          valorCentavos: res.total,
-          freteCentavos: projeto?.venda?.freteCentavos ?? 0,
-          entregaEm: projeto?.entregaEm ?? null,
-          fotoId: projeto?.fotoId ?? null
-        }}
-      />
 
       <ValorHoraSheet
         aberta={contaHora}

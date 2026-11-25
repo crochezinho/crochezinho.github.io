@@ -1,6 +1,6 @@
 export const VERSAO_PACOTE = 3;
 
-export const CONFIG_SINCRONIZADA = ['nome', 'valorHoraCentavos', 'margemPct', 'calc.comShopee', 'valorHora.conta', 'orcamento.assinatura'];
+export const CONFIG_SINCRONIZADA = ['nome', 'valorHoraCentavos', 'margemPct', 'calc.comShopee', 'valorHora.conta', 'orcamento.estilo'];
 
 export const PREFIXO_EMBALAGEM = 'embalagem.';
 export const PREFIXO_CLIENTE = 'cliente.';

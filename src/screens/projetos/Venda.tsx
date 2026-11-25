@@ -49,21 +49,17 @@ export function CartaoDivisao({ d }: { d: Divisao }) {
   return (
     <>
       <div class="cartao-lista">
-        <Linha rotulo="Recebido" detalhe={d.taxas ? `${brl(d.cobrado)} menos ${brl(d.taxas)} de taxas da Shopee` : 'sem o frete'} valor={brl(d.recebido)} />
-        <Linha rotulo="Material" detalhe="fios e outros custos" valor={brl(d.material)} classe="linha-guardar" />
+        <Linha rotulo="Recebido" detalhe={d.taxas ? `${brl(d.taxas)} de taxas da Shopee` : undefined} valor={brl(d.recebido)} />
+        <Linha rotulo="Material" valor={brl(d.material)} classe="linha-guardar" />
         <Linha
-          rotulo="Salário"
-          detalhe={d.minutos > 0 ? `${formatarTotal(d.minutos * 60_000)} × ${brl(d.valorHora)}/h` : 'sem tempo no cronômetro'}
-          valor={brl(d.salario)}
+          rotulo="Ganhos"
+          detalhe={d.minutos > 0 ? `${formatarTotal(d.minutos * 60_000)} × ${brl(d.valorHora)}/h` : undefined}
+          valor={brl(d.ganhos)}
           classe="linha-guardar"
         />
         <Linha rotulo="Lucro" valor={brl(d.lucro)} classe={'linha-total' + (d.lucro < 0 ? ' negativo' : '')} />
       </div>
-      {d.lucro < 0 && d.horaReal !== null && (
-        <p class="nota-divisao">
-          Esta encomenda rendeu {brl(Math.max(0, d.horaReal))} por hora, abaixo dos seus {brl(d.valorHora)}. Vale subir o preço da próxima.
-        </p>
-      )}
+      {d.lucro < 0 && d.horaReal !== null && <p class="nota-divisao">Rendeu {brl(Math.max(0, d.horaReal))} por hora.</p>}
     </>
   );
 }
@@ -98,16 +94,13 @@ function VendaAberta({ aberta, aoFechar, projeto, regras }: PropsVenda) {
         <button type="button" class="link-pequeno" onClick={() => mudar({ valorCentavos: calculado })}>
           usar o preço calculado ({brl(calculado)})
         </button>
-      ) : (
-        !shopee && <p class="dica-campo">Sem o frete.</p>
-      )}
+      ) : null}
 
       <div class="interruptor-shopee">
         <Interruptor
           ligado={shopee}
           aoMudar={(s) => mudar({ canal: s ? 'shopee' : 'direto' })}
           rotulo="Venda pela Shopee"
-          detalhe="As taxas saem do valor. Não tem frete nem sinal."
         />
       </div>
 
@@ -129,10 +122,9 @@ function VendaAberta({ aberta, aoFechar, projeto, regras }: PropsVenda) {
       )}
 
       <div class="resumo-hora">
-        <span>{shopee ? `Você recebe, depois de ${brl(taxas)} de taxas` : v.freteCentavos > 0 || v.sinalCentavos > 0 ? 'Falta receber, com o frete e sem o sinal' : 'Falta receber'}</span>
+        <span>{shopee ? `Você recebe (taxas: ${brl(taxas)})` : 'Falta receber'}</span>
         <strong>{shopee ? brl(v.valorCentavos - taxas) : brl(faltaReceber(v))}</strong>
       </div>
-      {v.sinalCentavos > 0 && <p class="dica-campo">O sinal não entra no salário agora. A encomenda inteira conta no mês em que for entregue.</p>}
 
       <button class="botao primario largo" style={{ marginTop: 16 }} onClick={() => void salvar()}>
         Salvar
