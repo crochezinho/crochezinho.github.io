@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { agrupar, contarUso, filtrar, grafiaExistente, nomeDoNovelo, noveloRepetido, novelosInteiros, sugerirMarca, type NoveloLista } from './novelos.ts';
+import { agrupar, contarUso, filtrar, grafiaExistente, nomeDoNovelo, noveloRepetido, novelosInteiros, sugerirMarca, sugerirPreco, type NoveloLista } from './novelos.ts';
 
 const n = (id: string, cor: string, marca: string, tipo: string, gramatura: number, estoqueG: number): NoveloLista => ({
   id,
@@ -100,4 +100,15 @@ test('dentro do subgrupo, os mais usados primeiro', () => {
   assert.deepEqual([...uso.entries()].sort(), [['3', 1], ['4', 2]]);
   const chenille = agrupar(lista, 'tipo', uso).find((g) => g.nome === 'Chenille')!;
   assert.deepEqual(chenille.sub[0].itens.map((i) => i.cor), ['Terracota', 'Mel']);
+});
+
+test('sugere o preço do mesmo tipo, de preferência da mesma marca e o mais recente', () => {
+  const c = (id: string, tipo: string, marca: string, precoCentavos: number, atualizadoEm: number) => ({ ...n(id, 'x', marca, tipo, 100, 0), precoCentavos, atualizadoEm });
+  const todos = [c('a', 'Chenille', 'Círculo', 1200, 1), c('b', 'Chenille', 'Pingouin', 1500, 5), c('c', 'chenille ', 'circulo', 1300, 3), c('d', 'Amigurumi', 'Círculo', 0, 9)];
+  assert.equal(sugerirPreco(todos, 'Chenille', 'Círculo')?.id, 'c');
+  assert.equal(sugerirPreco(todos, 'Chenille', '')?.id, 'b');
+  assert.equal(sugerirPreco(todos, 'Chenille', 'Outra')?.id, 'b');
+  assert.equal(sugerirPreco(todos, 'Amigurumi', 'Círculo'), undefined);
+  assert.equal(sugerirPreco(todos, 'Chenille', 'Círculo', 'c')?.id, 'a');
+  assert.equal(sugerirPreco(todos, '', 'Círculo'), undefined);
 });

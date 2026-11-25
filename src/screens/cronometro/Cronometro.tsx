@@ -98,7 +98,7 @@ export function Cronometro({ projetoId }: { projetoId: string | null }) {
                 <span class="linha-projeto-texto">
                   <strong>{p.nome}</strong>
                   <small>
-                    {formatarTotal(totalDoProjeto(sessoes, p.id, agora))}
+                    {dados.comTempo.has(p.id) ? formatarTotal(totalDoProjeto(sessoes, p.id, agora)) : 'na fila'}
                     {aberta?.projetoId === p.id ? ' · rodando' : ''}
                   </small>
                 </span>

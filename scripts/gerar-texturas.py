@@ -36,28 +36,41 @@ for i in range(9):
     corpo.append(f"<circle cx='{x}' cy='{y}' r='{r*2.2:.1f}' fill='url(#h)' opacity='.55'/><circle cx='{x+.4}' cy='{y+.5}' r='{r}' fill='#5a3a30' fill-opacity='.15'/><circle cx='{x}' cy='{y}' r='{r}' fill='{cor}'/>")
 BRILHO = ladrilho(W, halo, ''.join(corpo))
 
-random.seed(21)
-W = 40
-corpo = []
-bolinhas = []
-for i in range(400):
-    x, y = random.uniform(0, W), random.uniform(0, W)
-    r = random.uniform(2.6, 3.6)
-    if all(min(abs(x-a), W-abs(x-a))**2 + min(abs(y-b), W-abs(y-b))**2 >= (r+rb-1.2)**2 for a, b, rb in bolinhas):
-        bolinhas.append((x, y, r))
-for x, y, r in bolinhas:
-    corpo.append(f"<circle cx='{x+.7:.1f}' cy='{y+.9:.1f}' r='{r:.1f}' fill='#5a3a30' fill-opacity='.1'/>")
-for x, y, r in bolinhas:
-    corpo.append(f"<circle cx='{x:.1f}' cy='{y:.1f}' r='{r*.92:.1f}' fill='url(#b)'/>")
-bola = "<radialGradient id='b' cx='.38' cy='.34' r='.7'><stop offset='0' stop-color='#fff' stop-opacity='.42'/><stop offset='.6' stop-color='#fff' stop-opacity='.1'/><stop offset='1' stop-color='#fff' stop-opacity='0'/></radialGradient>"
-FELPUDO = ladrilho(W, bola, ''.join(corpo), filtro="<filter id='f' x='-10%' y='-10%' width='120%' height='120%'><feGaussianBlur stdDeviation='.6'/></filter>")
-print('bolinhas', len(bolinhas))
+def cachinhos(seed, W, raio, op, op_sombra, blur, larg):
+    """Felpudo: cachinhos de pelúcia (arcos abertos), com sombra de leve embaixo, tudo desfocado."""
+    random.seed(seed)
+    pts, luz, sombra = [], [], []
+    for _ in range(3000):
+        x, y, r = random.uniform(0, W), random.uniform(0, W), random.uniform(*raio)
+        if all(min(abs(x-a), W-abs(x-a))**2 + min(abs(y-b), W-abs(y-b))**2 >= (r+rb-.6)**2 for a, b, rb in pts):
+            pts.append((x, y, r))
+    for x, y, r in pts:
+        a0, ext = random.uniform(0, 360), random.uniform(220, 320)
+        def arco(cx, cy):
+            a1, a2 = math.radians(a0), math.radians(a0 + ext)
+            return (f"M{cx+r*math.cos(a1):.1f} {cy+r*math.sin(a1):.1f}"
+                    f"A{r:.1f} {r:.1f} 0 1 1 {cx+r*math.cos(a2):.1f} {cy+r*math.sin(a2):.1f}")
+        sombra.append(f"<path d='{arco(x+.5, y+.8)}' stroke='#5a3a30' stroke-opacity='{op_sombra}' stroke-width='{larg*1.2:.2f}' fill='none' stroke-linecap='round'/>")
+        luz.append(f"<path d='{arco(x, y)}' stroke='#fff' stroke-opacity='{op*random.uniform(.6,1):.2f}' stroke-width='{larg*random.uniform(.8,1.15):.2f}' fill='none' stroke-linecap='round'/>")
+    filtro = f"<filter id='f' x='-10%' y='-10%' width='120%' height='120%'><feGaussianBlur stdDeviation='{blur}'/></filter>"
+    return ladrilho(W, '', ''.join(sombra) + ''.join(luz), filtro=filtro)
+
+def volume(seed, W, n, raio, op, blur):
+    """Manchas de luz grandes e bem desfocadas, que dão a sensação de fofura por baixo dos cachinhos."""
+    random.seed(seed)
+    corpo = ''.join(f"<circle cx='{random.uniform(0, W):.1f}' cy='{random.uniform(0, W):.1f}' r='{random.uniform(*raio):.1f}' fill='#fff' fill-opacity='{op}'/>" for _ in range(n))
+    filtro = f"<filter id='f' x='-50%' y='-50%' width='200%' height='200%'><feGaussianBlur stdDeviation='{blur}'/></filter>"
+    return ladrilho(W, '', corpo, filtro=filtro)
+
+FELPUDO = cachinhos(13, 48, (2.2, 3.4), .42, .1, .6, 1.4)
+FELPUDO_VOLUME = volume(2, 64, 7, (6, 10), .15, 3.2)
 
 saida = sys.argv[1]
 open(saida, 'w', encoding='utf-8', newline='\n').write(
     '// Gerado por scripts/gerar-texturas.py (ladrilhos SVG com posições aleatórias fixas). Não editar à mão.\n'
     '// brilho: estrelinhas de 4 pontas arredondadas e bolinhas com halo, poucas e espalhadas;\n'
-    '// felpudo: bolinhas de pelúcia/bouclé, cada uma com sombra embaixo e luz em cima.\n'
+    '// felpudo: cachinhos de pelúcia desfocados (48 px) sobre manchas de luz bem suaves (64 px).\n'
     f'export const BRILHO = "{BRILHO}";\n\n'
-    f'export const FELPUDO = "{FELPUDO}";\n')
-print(len(BRILHO), len(FELPUDO))
+    f'export const FELPUDO = "{FELPUDO}";\n\n'
+    f'export const FELPUDO_VOLUME = "{FELPUDO_VOLUME}";\n')
+print(len(BRILHO), len(FELPUDO), len(FELPUDO_VOLUME))

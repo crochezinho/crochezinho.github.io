@@ -6,7 +6,7 @@ import type { Modalidade, Nivel, TipoProduto } from '../../domain/vendas/embalag
 export const CHAVE_ABA = 'calc.aba';
 export type AbaCalc = 'preco' | 'shopee' | 'embalagem';
 
-export const CHAVE_SHOPEE = 'vender.shopee';
+export { CHAVE_SHOPEE } from '../../db/repo.ts';
 export interface EstadoShopee {
   precoCentavos: number;
   custoCentavos: number;

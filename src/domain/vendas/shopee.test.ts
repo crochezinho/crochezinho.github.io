@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { avisosShopee, calcShopee, degrausShopee, equilibrioShopee } from './shopee.ts';
+import { avisosShopee, calcShopee, degrausShopee, equilibrioShopee, precoParaReceber } from './shopee.ts';
 
 const perto = (a: number, b: number, nome: string) => assert.ok(Math.abs(a - b) < 1e-9, `${nome}: esperado ${b}, obtido ${a}`);
 
@@ -51,4 +51,16 @@ test('Shopee: avisos', () => {
   assert.ok(avisosShopee(prejuizo, calcShopee(prejuizo)).some((a) => a.nivel === 'alerta'), 'prejuízo');
   const ok = { preco: 50, custo: 10 };
   assert.deepEqual(avisosShopee(ok, calcShopee(ok)), []);
+});
+
+test('precoParaReceber: menor preço que deixa o valor pedido depois das taxas', () => {
+  assert.equal(precoParaReceber(50), 68.12);
+  assert.equal(calcShopee({ preco: 68.12 }).item.recebe, 50);
+  assert.ok(calcShopee({ preco: 68.11 }).item.recebe < 50);
+  const p = precoParaReceber(60)!;
+  assert.ok(p >= 80, 'abaixo de R$ 80 nunca sobra R$ 60');
+  assert.ok(calcShopee({ preco: p }).item.recebe >= 60 && calcShopee({ preco: p - 0.01 }).item.recebe < 60);
+  assert.ok(precoParaReceber(50, { mais450: true })! > 68.12);
+  assert.equal(precoParaReceber(0), 0);
+  assert.equal(precoParaReceber(50, { campanhaPct: 100 }), null);
 });

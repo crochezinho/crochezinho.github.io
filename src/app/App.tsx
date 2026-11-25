@@ -13,6 +13,8 @@ import { ProjetoDetalhe } from '../screens/projetos/ProjetoDetalhe.tsx';
 import { ProjetoForm } from '../screens/projetos/ProjetoForm.tsx';
 import { Projetos } from '../screens/projetos/Projetos.tsx';
 import { DicasShopee } from '../screens/vender/DicasShopee.tsx';
+import { Financeiro } from '../screens/financeiro/Financeiro.tsx';
+import { ClienteDetalhe } from '../screens/clientes/ClienteDetalhe.tsx';
 import { AindaCrochetando } from './AindaCrochetando.tsx';
 import { SyncAutomatico } from './SyncAutomatico.tsx';
 import { ABAS, useRota, type Aba } from './router.ts';
@@ -26,7 +28,8 @@ export function App() {
       {rota.nome === 'inicio' && <Inicio />}
       {rota.nome === 'projetos' && <Projetos />}
       {rota.nome === 'projeto' && <ProjetoDetalhe key={rota.id} id={rota.id} />}
-      {rota.nome === 'projetoForm' && <ProjetoForm key={rota.id ?? 'novo'} id={rota.id} />}
+      {rota.nome === 'projetoForm' && <ProjetoForm key={rota.id ?? `novo-${rota.cliente ?? ''}`} id={rota.id} cliente={rota.cliente} />}
+      {rota.nome === 'cliente' && <ClienteDetalhe key={rota.chave} chave={rota.chave} />}
       {rota.nome === 'novelos' && <Novelos />}
       {rota.nome === 'novelo' && <NoveloDetalhe key={rota.id} id={rota.id} />}
       {rota.nome === 'combinar' && <CombinarFios ids={rota.ids} />}
@@ -34,6 +37,7 @@ export function App() {
       {rota.nome === 'calcular' && <TelaCalcular projetoIdRota={rota.projetoId} />}
       {rota.nome === 'crono' && <Cronometro key={rota.projetoId ?? ''} projetoId={rota.projetoId} />}
       {rota.nome === 'dicasShopee' && <DicasShopee />}
+      {rota.nome === 'financeiro' && <Financeiro mes={rota.mes} />}
       {rota.nome === 'config' && <Configuracoes />}
 
       {(ABAS as readonly string[]).includes(rota.nome) && <BottomNav atual={rota.nome as Aba} />}

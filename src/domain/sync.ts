@@ -1,11 +1,12 @@
 export const VERSAO_PACOTE = 3;
 
-export const CONFIG_SINCRONIZADA = ['nome', 'valorHoraCentavos', 'margemPct'];
+export const CONFIG_SINCRONIZADA = ['nome', 'valorHoraCentavos', 'margemPct', 'calc.comShopee', 'valorHora.conta', 'orcamento.assinatura'];
 
 export const PREFIXO_EMBALAGEM = 'embalagem.';
+export const PREFIXO_CLIENTE = 'cliente.';
 
 export function ehConfigSincronizada(chave: string): boolean {
-  return CONFIG_SINCRONIZADA.includes(chave) || chave.startsWith(PREFIXO_EMBALAGEM);
+  return CONFIG_SINCRONIZADA.includes(chave) || chave.startsWith(PREFIXO_EMBALAGEM) || chave.startsWith(PREFIXO_CLIENTE);
 }
 
 interface ComData {

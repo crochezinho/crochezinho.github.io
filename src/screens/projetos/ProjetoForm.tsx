@@ -7,11 +7,12 @@ import { href, ir, voltar } from '../../app/router.ts';
 import { Icone } from '../../components/Icone.tsx';
 import { toast } from '../../components/toast.tsx';
 import { CAPA_PADRAO, criarProjeto, editarProjeto, type CamposProjeto } from '../../db/repo.ts';
+import { agruparClientes, grafiaDaCliente } from '../../domain/clientes.ts';
 
-export function ProjetoForm({ id }: { id: string | null }) {
+export function ProjetoForm({ id, cliente: clienteInicial }: { id: string | null; cliente?: string }) {
   const dados = useDadosCrono();
   const projeto = id ? dados?.projetos.find((p) => p.id === id) : undefined;
-  const [campos, setCampos] = useState<CamposProjeto>({ nome: '', tipo: TIPOS[0], agulha: '', capaCor: CAPA_PADRAO, quantidade: 1, cliente: '', entregaEm: null, fotoId: null });
+  const [campos, setCampos] = useState<CamposProjeto>({ nome: '', tipo: TIPOS[0], agulha: '', capaCor: CAPA_PADRAO, quantidade: 1, cliente: clienteInicial ?? '', entregaEm: null, fotoId: null });
   const [carregado, setCarregado] = useState(!id);
   const nomeRef = useRef<HTMLInputElement>(null);
 
@@ -42,14 +43,18 @@ export function ProjetoForm({ id }: { id: string | null }) {
   const mudar = (parte: Partial<CamposProjeto>) => setCampos((c) => ({ ...c, ...parte }));
   const agulhaOutra = campos.agulha !== '' && !AGULHAS.includes(campos.agulha);
 
+  const outros = (dados?.projetos ?? []).filter((p) => p.id !== id);
+  const nomesDeClientes = agruparClientes(outros, () => 0).map((c) => c.nome);
+
   const salvar = async (e: Event) => {
     e.preventDefault();
+    const final = { ...campos, cliente: grafiaDaCliente(outros, campos.cliente) };
     if (id) {
-      await editarProjeto(id, campos);
+      await editarProjeto(id, final);
       toast('Projeto atualizado');
       voltar(href.projeto(id));
     } else {
-      const novoId = await criarProjeto(campos.nome, campos);
+      const novoId = await criarProjeto(final.nome, final);
       toast('Projeto criado');
       ir(href.projeto(novoId), true);
     }
@@ -61,7 +66,7 @@ export function ProjetoForm({ id }: { id: string | null }) {
         <button class="botao-voltar" aria-label="Voltar" onClick={() => voltar(id ? href.projeto(id) : href.projetos)}>
           <Icone nome="voltar" />
         </button>
-        <h1>{id ? 'Editar projeto' : 'Novo projeto'}</h1>
+        <h1>{id ? 'Editar projeto' : clienteInicial ? `Encomenda para ${clienteInicial}` : 'Novo projeto'}</h1>
       </header>
 
       <form onSubmit={salvar}>
@@ -104,7 +109,13 @@ export function ProjetoForm({ id }: { id: string | null }) {
               onInput={(e) => mudar({ cliente: e.currentTarget.value })}
               placeholder="ex: Júlia"
               autocomplete="off"
+              list="pf-clientes"
             />
+            <datalist id="pf-clientes">
+              {nomesDeClientes.map((n) => (
+                <option key={n} value={n} />
+              ))}
+            </datalist>
           </div>
           <div>
             <label class="rotulo" for="pf-entrega">

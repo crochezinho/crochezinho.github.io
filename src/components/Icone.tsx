@@ -47,6 +47,13 @@ const caminhos = {
       <circle cx="12" cy="12" r="6.5" />
     </>
   ),
+  dinheiro: (
+    <>
+      <rect x="3" y="6" width="18" height="12" rx="2.5" />
+      <circle cx="12" cy="12" r="2.6" />
+      <path d="M6.5 9.5v5M17.5 9.5v5" />
+    </>
+  ),
   compartilhar: (
     <>
       <path d="M12 3v12M8 7l4-4 4 4" />

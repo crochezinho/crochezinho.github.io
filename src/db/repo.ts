@@ -2,8 +2,11 @@ import { db, novoId } from './db.ts';
 import { fiosAoReabrir, fiosParaFazerDeNovo, trocarFiosDoEstoque, usadoNoFim } from '../domain/fios.ts';
 import { ajustarFechados, devolverAsUnidades, maiorNumero, novaUnidade, pesarUnidade, somaUnidades, tirarDasUnidades, type Unidade } from '../domain/unidades.ts';
 import { precoPorGrama } from '../domain/preco.ts';
+import { dividir, fechar, vendaDe, type Divisao, type Venda } from '../domain/financeiro.ts';
+import { totalDoProjeto } from '../domain/tempo.ts';
 import { chaveEmbalagem, lerPesos, type PesosEmbalagem } from '../domain/pesagem.ts';
-import { PREFIXO_EMBALAGEM } from '../domain/sync.ts';
+import { PREFIXO_CLIENTE, PREFIXO_EMBALAGEM } from '../domain/sync.ts';
+import { chaveDaFicha, chaveDoNome, lerFichas, type Ficha } from '../domain/clientes.ts';
 import type { Calculo, FioDescontado, FioUsado, Id, Novelo, Projeto, Rascunho, Sessao } from './types.ts';
 
 const agora = () => Date.now();
@@ -188,7 +191,7 @@ export async function reabrirProjeto(id: Id, devolver: boolean): Promise<void> {
       }
     }
     const fios = fiosAoReabrir(p);
-    await db.projetos.update(id, { status: 'fazendo', concluidoEm: null, entregueEm: null, descontado: [], fios, fiosAntesDeConcluir: [], atualizadoEm: t });
+    await db.projetos.update(id, { status: 'fazendo', concluidoEm: null, entregueEm: null, fechamento: null, descontado: [], fios, fiosAntesDeConcluir: [], atualizadoEm: t });
     if (fios !== p.fios) await levarFiosAoCalculo(id, fios);
   });
 }
@@ -197,9 +200,60 @@ function camposDasUnidades(n: Pick<Novelo, 'unidades' | 'ultimoNumero'>, unidade
   return { unidades, estoqueG: somaUnidades(unidades), ultimoNumero: maiorNumero([...n.unidades, ...unidades], n.ultimoNumero) };
 }
 
-export async function marcarEntregue(id: Id, entregue: boolean): Promise<void> {
-  const t = agora();
-  await db.projetos.update(id, { entregueEm: entregue ? t : null, atualizadoEm: t });
+/** Na entrega, congela o tempo, o valor da hora e o material: é o que conta como salário daquele mês. */
+export async function marcarEntregue(id: Id, entregue: boolean): Promise<Divisao | null> {
+  return db.transaction('rw', [db.projetos, db.sessoes, db.novelos, db.config], async () => {
+    const t = agora();
+    const p = await db.projetos.get(id);
+    if (!p) return null;
+    if (!entregue) {
+      await db.projetos.update(id, { entregueEm: null, fechamento: null, atualizadoEm: t });
+      return null;
+    }
+    const base = await baseFinanceira();
+    const sessoes = (await db.sessoes.where('projetoId').equals(id).toArray()).filter(ativo);
+    const venda = vendaDe(p);
+    const fechamento = fechar({ ...p, venda }, totalDoProjeto(sessoes, id, t) / 60_000, base.valorHoraCentavos, base.novelos, base.regras);
+    await db.projetos.update(id, { entregueEm: t, venda, fechamento, atualizadoEm: t });
+    return dividir(venda, fechamento);
+  });
+}
+
+export const CHAVE_SHOPEE = 'vender.shopee';
+
+export interface BaseFinanceira {
+  novelos: Novelo[];
+  valorHoraCentavos: number;
+  regras: { mais450: boolean; campanhaPct: number };
+}
+
+export async function baseFinanceira(): Promise<BaseFinanceira> {
+  const regras = await lerConfig<{ mais450?: boolean; campanhaPct?: number } | null>(CHAVE_SHOPEE, null);
+  return {
+    novelos: (await db.novelos.toArray()).filter(ativo),
+    valorHoraCentavos: await lerConfig('valorHoraCentavos', PADRAO_VALOR_HORA),
+    regras: { mais450: !!regras?.mais450, campanhaPct: regras?.campanhaPct ?? 0 }
+  };
+}
+
+/** Salva o valor combinado. Se a encomenda já foi entregue, refaz as taxas com o valor novo. */
+export async function salvarVenda(id: Id, venda: Venda): Promise<void> {
+  await db.transaction('rw', [db.projetos, db.novelos, db.config], async () => {
+    const p = await db.projetos.get(id);
+    if (!p) return;
+    const limpa: Venda = {
+      valorCentavos: Math.max(0, venda.valorCentavos),
+      freteCentavos: venda.canal === 'shopee' ? 0 : Math.max(0, venda.freteCentavos),
+      sinalCentavos: venda.canal === 'shopee' ? 0 : Math.max(0, venda.sinalCentavos),
+      canal: venda.canal
+    };
+    let fechamento = p.fechamento ?? null;
+    if (fechamento) {
+      const base = await baseFinanceira();
+      fechamento = { ...fechamento, taxasCentavos: fechar({ ...p, venda: limpa }, fechamento.minutos, fechamento.valorHoraCentavos, base.novelos, base.regras).taxasCentavos };
+    }
+    await db.projetos.update(id, { venda: limpa, fechamento, atualizadoEm: agora() });
+  });
 }
 
 export async function excluirProjeto(id: Id): Promise<void> {
@@ -301,18 +355,44 @@ export async function salvarPesoEmbalagem(tipo: string, gramas: number): Promise
   await salvarConfig(chaveEmbalagem(tipo), Math.max(0, gramas));
 }
 
+export async function listarFichas(): Promise<Map<string, Ficha>> {
+  return lerFichas(await db.config.where('chave').startsWith(PREFIXO_CLIENTE).toArray());
+}
+
+/**
+ * Salva contato e anotações e, se o nome mudou, troca o "Para quem" de todas as encomendas dela.
+ * A ficha antiga vira null (e não é apagada) para a sincronização não trazê-la de volta.
+ */
+export async function salvarCliente(chaveAntiga: string, nome: string, ficha: Ficha): Promise<string> {
+  const novoNome = nome.trim();
+  const novaChave = chaveDoNome(novoNome);
+  if (!novaChave) return chaveAntiga;
+  await db.transaction('rw', db.projetos, db.config, async () => {
+    const t = agora();
+    const delas = (await db.projetos.toArray()).filter((p) => chaveDoNome(p.cliente ?? '') === chaveAntiga);
+    for (const p of delas) if (p.cliente !== novoNome) await db.projetos.update(p.id, { cliente: novoNome, atualizadoEm: t });
+    if (novaChave !== chaveAntiga) await db.config.put({ chave: chaveDaFicha(chaveAntiga), valor: null, atualizadoEm: t });
+    await db.config.put({ chave: chaveDaFicha(novaChave), valor: { contato: ficha.contato.trim(), anotacoes: ficha.anotacoes.trim() }, atualizadoEm: t });
+  });
+  return novaChave;
+}
+
 export const PADRAO_VALOR_HORA = 800;
 export const PADRAO_MARGEM = 40;
 
 export interface PadroesCalculo {
   valorHoraCentavos: number;
   margemPct: number;
+  comShopee: boolean;
 }
+
+export const CHAVE_COM_SHOPEE = 'calc.comShopee';
 
 export async function lerPadroesCalculo(): Promise<PadroesCalculo> {
   return {
     valorHoraCentavos: await lerConfig('valorHoraCentavos', PADRAO_VALOR_HORA),
-    margemPct: await lerConfig('margemPct', PADRAO_MARGEM)
+    margemPct: await lerConfig('margemPct', PADRAO_MARGEM),
+    comShopee: await lerConfig(CHAVE_COM_SHOPEE, false)
   };
 }
 
@@ -364,6 +444,13 @@ export async function editarNovelo(id: Id, campos: CamposNovelo): Promise<void> 
       tipo: campos.tipo.trim(),
       atualizadoEm: agora()
     });
+  });
+}
+
+export async function mudarPrecoDosNovelos(ids: Id[], precoCentavos: number): Promise<void> {
+  const t = agora();
+  await db.transaction('rw', db.novelos, async () => {
+    for (const id of ids) await db.novelos.update(id, { precoCentavos, atualizadoEm: t });
   });
 }
 
@@ -454,7 +541,8 @@ export function rascunhoDoCalculo(c: Calculo, projeto?: Pick<Projeto, 'quantidad
     minutosDoCrono: false,
     valorHoraCentavos: c.valorHoraCentavos,
     extras: c.extras.map((e) => ({ chave: novaChave(), ...e })),
-    margemPct: c.margemPct
+    margemPct: c.margemPct,
+    comShopee: !!c.comShopee
   };
 }
 

@@ -56,16 +56,20 @@ export function gramasUsadas(pesoAntes: number, sobrou: number): number {
   return Math.max(0, pesoAntes - sobrou);
 }
 
-export function composicao(r: Pick<ResultadoCalculo, 'fios' | 'trabalho' | 'outros' | 'lucro'>): Record<'fios' | 'trabalho' | 'outros' | 'lucro', number> {
-  const soma = r.fios + r.trabalho + r.outros + r.lucro;
+type Parte = 'fios' | 'trabalho' | 'outros' | 'lucro' | 'taxas';
+
+export function composicao(r: Pick<ResultadoCalculo, 'fios' | 'trabalho' | 'outros' | 'lucro'> & { taxas?: number }): Record<Parte, number> {
+  const taxas = Math.max(0, r.taxas ?? 0);
+  const soma = r.fios + r.trabalho + r.outros + r.lucro + taxas;
   const f = (v: number) => (soma > 0 ? v / soma : 0);
-  return { fios: f(r.fios), trabalho: f(r.trabalho), outros: f(r.outros), lucro: f(r.lucro) };
+  return { fios: f(r.fios), trabalho: f(r.trabalho), outros: f(r.outros), lucro: f(r.lucro), taxas: f(taxas) };
 }
 
 const fmt = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function brl(centavos: number): string {
-  return 'R$ ' + fmt.format(Math.round(centavos) / 100);
+  const c = Math.round(centavos);
+  return (c < 0 ? '-R$ ' : 'R$ ') + fmt.format(Math.abs(c) / 100);
 }
 
 export function centavosParaTexto(centavos: number): string {

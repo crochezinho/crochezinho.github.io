@@ -20,6 +20,7 @@ import {
   salvarCalculoNoProjeto,
   salvarConfig,
   salvarRascunho,
+  CHAVE_COM_SHOPEE,
   type PadroesCalculo
 } from '../../db/repo.ts';
 import type { Calculo, Novelo, Projeto, Rascunho } from '../../db/types.ts';
@@ -29,6 +30,10 @@ import { formatarTotal, totalDoProjeto } from '../../domain/tempo.ts';
 import { CHAVE_SHOPEE, SHOPEE_PADRAO, type EstadoShopee } from '../vender/estado.ts';
 import { AbasCalcular, irParaAba } from './AbasCalcular.tsx';
 import { FioSheet, type FioEditado } from './FioSheet.tsx';
+import { ValorHoraSheet } from './ValorHoraSheet.tsx';
+import { OrcamentoSheet } from '../projetos/OrcamentoSheet.tsx';
+import { Interruptor } from '../../components/Interruptor.tsx';
+import { calcShopee, precoParaReceber } from '../../domain/vendas/shopee.ts';
 import { unidadesEmUso } from '../../domain/fios.ts';
 import { rotuloUnidade } from '../../domain/unidades.ts';
 
@@ -46,7 +51,8 @@ function rascunhoInicial(projeto: Projeto | undefined, novelos: Novelo[], p: Pad
     minutosDoCrono: !!projeto,
     valorHoraCentavos: p.valorHoraCentavos,
     extras: [],
-    margemPct: p.margemPct
+    margemPct: p.margemPct,
+    comShopee: p.comShopee
   };
 }
 
@@ -57,7 +63,8 @@ const assinatura = (c: Omit<Calculo, 'calculadoEm'>) =>
     c.minutos,
     c.valorHoraCentavos,
     c.extras.map((e) => [e.nome, e.valorCentavos]),
-    c.margemPct
+    c.margemPct,
+    !!c.comShopee
   ]);
 
 export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null }) {
@@ -65,6 +72,7 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
   const novelos = useLive(listarNovelos);
   const padroes = useLive(lerPadroesCalculo);
   const contextoSalvo = useLive(() => lerConfig<string | null>(CHAVE_CONTEXTO, null));
+  const regrasShopee = useLive(() => lerConfig<EstadoShopee | null>(CHAVE_SHOPEE, null));
   const agora = useAgora(!!dados?.aberta, 30_000);
 
   const [r, setR] = useState<Rascunho | null>(null);
@@ -73,6 +81,8 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
   const [fioSheet, setFioSheet] = useState<{ chave: string | null } | null>(null);
   const [trocando, setTrocando] = useState(false);
   const [criando, setCriando] = useState(false);
+  const [contaHora, setContaHora] = useState(false);
+  const [orcando, setOrcando] = useState(false);
   const cartao = useRef<HTMLElement>(null);
   const [totalFixo, setTotalFixo] = useState(false);
 
@@ -84,7 +94,7 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
   const ctxId = projetoIdRota ?? contextoSalvo;
   const projeto = ctxId && dados ? dados.projetos.find((p) => p.id === ctxId) : undefined;
   const chaveCtx = projeto?.id ?? 'avulso';
-  const pronto = !!dados && !!novelos && !!padroes && contextoSalvo !== undefined;
+  const pronto = !!dados && !!novelos && !!padroes && contextoSalvo !== undefined && regrasShopee !== undefined;
 
   const ultimo = useRef<{ r: Rascunho | null; chave: string | null }>({ r: null, chave: null });
   ultimo.current = { r, chave: rChave };
@@ -153,7 +163,13 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
     margemPct: r.margemPct,
     quantidade
   });
-  const comp = composicao(res);
+  const comShopee = !!r.comShopee;
+  const paramsShopee = { mais450: !!regrasShopee?.mais450, campanhaPct: regrasShopee?.campanhaPct ?? 0 };
+  const anuncio = comShopee && res.porPeca > 0 ? precoParaReceber(res.porPeca / 100, paramsShopee) : null;
+  const precoPorPeca = anuncio !== null ? Math.round(anuncio * 100) : res.porPeca;
+  const taxasPorPeca = anuncio !== null ? Math.round(calcShopee({ ...paramsShopee, preco: anuncio }).item.totalTaxas * 100) : 0;
+  const precoTotal = anuncio !== null ? precoPorPeca * quantidade : res.total;
+  const comp = composicao({ ...res, taxas: taxasPorPeca * quantidade });
   const fiosPorPeca = r.fios.reduce((s, f) => s + custoDoFio(f), 0);
   const outrosPorPeca = r.extras.reduce((s, e) => s + Math.max(0, e.valorCentavos), 0);
   const porPeca = varias ? ' por peça' : '';
@@ -174,7 +190,8 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
     valorHoraCentavos: r.valorHoraCentavos,
     extras: r.extras.map(({ nome, valorCentavos }) => ({ nome: nome.trim(), valorCentavos })),
     margemPct: r.margemPct,
-    totalCentavos: res.total,
+    ...(comShopee ? { comShopee: true } : {}),
+    totalCentavos: precoTotal,
     calculadoEm: Date.now()
   });
 
@@ -215,18 +232,18 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
   const verNaShopee = async () => {
     const atual = await lerConfig<EstadoShopee | null>(CHAVE_SHOPEE, null);
     const custo = Math.round((res.fios + res.trabalho + res.outros) / quantidade);
-    await salvarConfig(CHAVE_SHOPEE, { ...SHOPEE_PADRAO, ...(atual ?? {}), precoCentavos: res.porPeca, custoCentavos: custo });
+    await salvarConfig(CHAVE_SHOPEE, { ...SHOPEE_PADRAO, ...(atual ?? {}), precoCentavos: precoPorPeca, custoCentavos: custo });
     await irParaAba('shopee');
   };
 
   const copiar = async () => {
-    const valor = brl(res.porPeca);
+    const valor = brl(precoPorPeca);
     toast((await copiarTexto(valor)) ? `Copiado: ${valor}` : 'Não foi possível copiar');
   };
 
   const salvarNoProjeto = async () => {
     if (!projeto) return;
-    await salvarCalculoNoProjeto(projeto.id, montar(), res.porPeca);
+    await salvarCalculoNoProjeto(projeto.id, montar(), precoPorPeca);
     substituir({ ...r, minutos, minutosDoCrono: false });
     pendente.current = false;
     toast(`Preço salvo em ${projeto.nome}`);
@@ -255,7 +272,7 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
   const criarComCalculo = async (nome: string) => {
     const calculo = montar();
     const id = await criarProjeto(nome, { quantidade });
-    await salvarCalculoNoProjeto(id, calculo, res.porPeca);
+    await salvarCalculoNoProjeto(id, calculo, precoPorPeca);
     await descartarRascunho(null);
     setCriando(false);
     await salvarConfig(CHAVE_CONTEXTO, id);
@@ -268,10 +285,10 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
       {totalFixo && (
         <div class="total-fixo" aria-hidden="true">
           <span>
-            {projeto ? projeto.nome : 'Preço sugerido'}
+            {projeto ? projeto.nome : comShopee ? 'Preço na Shopee' : 'Preço sugerido'}
             {porPeca}
           </span>
-          <strong>{brl(res.porPeca)}</strong>
+          <strong>{brl(precoPorPeca)}</strong>
         </div>
       )}
 
@@ -300,11 +317,19 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
       </button>
 
       <section class="cartao-preco" ref={cartao}>
-        <p class="sobretitulo">Preço sugerido{porPeca}</p>
-        <p class="cartao-preco-valor">{brl(res.porPeca)}</p>
+        <p class="sobretitulo">
+          {comShopee ? 'Preço na Shopee' : 'Preço sugerido'}
+          {porPeca}
+        </p>
+        <p class="cartao-preco-valor">{brl(precoPorPeca)}</p>
+        {anuncio !== null && (
+          <p class="cartao-preco-sub">
+            você recebe {brl(res.porPeca)} · taxas {brl(taxasPorPeca)}
+          </p>
+        )}
         {varias && (
           <p class="cartao-preco-sub">
-            {quantidade} peças: <strong>{brl(res.total)}</strong>
+            {quantidade} peças: <strong>{brl(precoTotal)}</strong>
           </p>
         )}
         {projeto && (
@@ -341,12 +366,14 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
           <span class="seg trabalho" style={{ width: `${comp.trabalho * 100}%` }} />
           <span class="seg outros" style={{ width: `${comp.outros * 100}%` }} />
           <span class="seg lucro" style={{ width: `${comp.lucro * 100}%` }} />
+          <span class="seg taxas" style={{ width: `${comp.taxas * 100}%` }} />
         </div>
         <ul class="legenda">
           <li><i class="fios" />Fios <strong>{brl(res.fios)}</strong></li>
           <li><i class="trabalho" />Trabalho <strong>{brl(res.trabalho)}</strong></li>
           <li><i class="outros" />Outros <strong>{brl(res.outros)}</strong></li>
           <li><i class="lucro" />Lucro <strong>{brl(res.lucro)}</strong></li>
+          {anuncio !== null && <li><i class="taxas" />Taxas <strong>{brl(taxasPorPeca * quantidade)}</strong></li>}
         </ul>
         {varias && <p class="composicao-nota">Valores das {quantidade} peças juntas.</p>}
       </section>
@@ -442,6 +469,9 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
         <div class="linha-campo">
           <div class="linha-campo-texto">
             <strong>Valor por hora</strong>
+            <button class="link-pequeno" onClick={() => setContaHora(true)}>
+              quanto cobrar por hora?
+            </button>
             <Padrao
               ehPadrao={r.valorHoraCentavos === padroes!.valorHoraCentavos}
               aoSalvar={() => {
@@ -529,6 +559,24 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
         </div>
       </div>
 
+      <div class="interruptor-shopee">
+        <Interruptor
+          ligado={comShopee}
+          aoMudar={(v) => {
+            atualizar({ comShopee: v });
+            void salvarConfig(CHAVE_COM_SHOPEE, v);
+          }}
+          rotulo="Somar as taxas da Shopee"
+          detalhe={
+            comShopee && anuncio === null && res.porPeca > 0
+              ? 'Com essa campanha, as taxas passam do preço.'
+              : ['comissão e taxa fixa de vendedor CPF', paramsShopee.mais450 && '+450 pedidos', paramsShopee.campanhaPct > 0 && `campanha de ${paramsShopee.campanhaPct}%`]
+                  .filter(Boolean)
+                  .join(', ')
+          }
+        />
+      </div>
+
       <div class="acoes-calc">
         <button class="botao" onClick={() => void copiar()}>
           Copiar valor
@@ -544,9 +592,14 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
         )}
       </div>
       {res.porPeca > 0 && (
-        <button class="link-pequeno link-shopee" onClick={() => void verNaShopee()}>
-          Quanto sobra vendendo na Shopee? →
-        </button>
+        <div class="links-calc">
+          <button class="link-pequeno" onClick={() => setOrcando(true)}>
+            Fazer a imagem do orçamento →
+          </button>
+          <button class="link-pequeno" onClick={() => void verNaShopee()}>
+            Quanto sobra vendendo na Shopee? →
+          </button>
+        </div>
       )}
 
       <FioSheet
@@ -585,7 +638,33 @@ export function Calculadora({ projetoIdRota }: { projetoIdRota: string | null })
         </ul>
       </Sheet>
 
-      <CriarProjetoSheet aberta={criando} aoFechar={() => setCriando(false)} aoCriar={(nome) => void criarComCalculo(nome)} total={res.porPeca} />
+      <CriarProjetoSheet aberta={criando} aoFechar={() => setCriando(false)} aoCriar={(nome) => void criarComCalculo(nome)} total={precoPorPeca} />
+
+      <OrcamentoSheet
+        aberta={orcando}
+        aoFechar={() => setOrcando(false)}
+        inicial={{
+          titulo: projeto?.nome ?? '',
+          quantidade,
+          valorCentavos: res.total,
+          freteCentavos: projeto?.venda?.freteCentavos ?? 0,
+          entregaEm: projeto?.entregaEm ?? null,
+          fotoId: projeto?.fotoId ?? null
+        }}
+      />
+
+      <ValorHoraSheet
+        aberta={contaHora}
+        aoFechar={() => setContaHora(false)}
+        sessoes={dados!.sessoes}
+        agora={agora}
+        aoUsar={(v) => {
+          atualizar({ valorHoraCentavos: v });
+          void salvarConfig('valorHoraCentavos', v);
+          setContaHora(false);
+          toast(`${brl(v)}/h é o seu novo valor por hora`);
+        }}
+      />
     </main>
   );
 }

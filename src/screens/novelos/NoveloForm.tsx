@@ -10,10 +10,11 @@ import { Icone } from '../../components/Icone.tsx';
 import { SeletorCapa } from '../../components/SeletorCapa.tsx';
 import { toast } from '../../components/toast.tsx';
 import { useLive } from '../../db/hooks.ts';
-import { criarNovelo, editarNovelo, listarNovelos, type CamposNovelo } from '../../db/repo.ts';
+import { criarNovelo, editarNovelo, listarNovelos, mudarPrecoDosNovelos, type CamposNovelo } from '../../db/repo.ts';
 import type { Novelo } from '../../db/types.ts';
 import { formatarEstoque } from '../../domain/estoque.ts';
-import { grafiaExistente, noveloRepetido, sugerirMarca } from '../../domain/novelos.ts';
+import { grafiaExistente, mesmoTipoEMarca, nomeDoNovelo, noveloRepetido, sugerirMarca, sugerirPreco } from '../../domain/novelos.ts';
+import { brl } from '../../domain/preco.ts';
 
 const VAZIO: CamposNovelo = {
   cor: '',
@@ -56,6 +57,8 @@ export function NoveloForm({ id }: { id: string | null }) {
   const [carregado, setCarregado] = useState(!id);
   const [marcaAuto, setMarcaAuto] = useState(false);
   const [comEmbalagem, setComEmbalagem] = useState(true);
+  const [precoAuto, setPrecoAuto] = useState(!id);
+  const [gramAuto, setGramAuto] = useState(!id);
   const tipoRef = useRef<HTMLInputElement>(null);
   const corRef = useRef<HTMLInputElement>(null);
   const embalagemG = usePesoEmbalagem(c.tipo);
@@ -77,12 +80,22 @@ export function NoveloForm({ id }: { id: string | null }) {
   }
 
   const mudar = (parte: Partial<CamposNovelo>) => setC((a) => ({ ...a, ...parte }));
+  const origemPreco = id ? undefined : sugerirPreco(novelos, c.tipo, c.marca);
+  const comPrecoSugerido = (parte: Partial<CamposNovelo>) => {
+    const prox = { ...c, ...parte };
+    const s = id ? undefined : sugerirPreco(novelos, prox.tipo, prox.marca);
+    mudar({
+      ...parte,
+      ...(precoAuto ? { precoCentavos: s?.precoCentavos ?? 0 } : {}),
+      ...(gramAuto ? { gramatura: s?.gramatura ?? VAZIO.gramatura } : {})
+    });
+  };
   const mudarTipoCor = (parte: Pick<Partial<CamposNovelo>, 'tipo' | 'cor'>) => {
     const tipo = parte.tipo ?? c.tipo;
     const cor = parte.cor ?? c.cor;
-    if (c.marca.trim() && !marcaAuto) return mudar(parte);
+    if (c.marca.trim() && !marcaAuto) return comPrecoSugerido(parte);
     const outros = novelos.filter((n) => n.id !== id);
-    mudar({ ...parte, marca: sugerirMarca(outros, tipo, cor) });
+    comPrecoSugerido({ ...parte, marca: sugerirMarca(outros, tipo, cor) });
     setMarcaAuto(true);
   };
   const agulhaOutra = c.agulha !== '' && !AGULHAS.includes(c.agulha);
@@ -105,7 +118,24 @@ export function NoveloForm({ id }: { id: string | null }) {
     }
     if (id) {
       await editarNovelo(id, c);
-      toast('Novelo atualizado');
+      const precoMudou = !!novelo && novelo.precoCentavos !== c.precoCentavos && c.precoCentavos > 0;
+      const outros = precoMudou ? mesmoTipoEMarca(novelos, { id, tipo: c.tipo, marca: c.marca }).filter((n) => n.precoCentavos !== c.precoCentavos) : [];
+      if (outros.length) {
+        const nome = [c.tipo.trim(), c.marca.trim()].filter(Boolean).join(' ');
+        toast(
+          outros.length === 1
+            ? `Novelo atualizado. Quer usar ${brl(c.precoCentavos)} no outro ${nome} também?`
+            : `Novelo atualizado. Quer usar ${brl(c.precoCentavos)} nos outros ${outros.length} ${nome} também?`,
+          {
+            rotulo: 'Usar',
+            fazer: () =>
+              void mudarPrecoDosNovelos(
+                outros.map((n) => n.id),
+                c.precoCentavos
+              ).then(() => toast('Preço atualizado'))
+          }
+        );
+      } else toast('Novelo atualizado');
       voltar(href.novelo(id));
     } else {
       const novoId = await criarNovelo({ ...c, unidades: unidadesDasPesagens(pesagens, c.gramatura, embalagemUsada, gerarId) });
@@ -169,7 +199,7 @@ export function NoveloForm({ id }: { id: string | null }) {
           list="lista-marcas"
           value={c.marca}
           onInput={(e) => {
-            mudar({ marca: e.currentTarget.value });
+            comPrecoSugerido({ marca: e.currentTarget.value });
             setMarcaAuto(false);
           }}
           onBlur={() => {
@@ -195,15 +225,38 @@ export function NoveloForm({ id }: { id: string | null }) {
             <label class="rotulo" for="nf-gram">
               Gramatura
             </label>
-            <CampoInteiro id="nf-gram" valor={c.gramatura} aoMudar={(v) => mudar({ gramatura: v })} rotulo="Gramatura" sufixo="g" />
+            <CampoInteiro
+              id="nf-gram"
+              valor={c.gramatura}
+              aoMudar={(v) => {
+                setGramAuto(false);
+                mudar({ gramatura: v });
+              }}
+              rotulo="Gramatura"
+              sufixo="g"
+            />
           </div>
           <div>
             <label class="rotulo" for="nf-preco">
               Preço do novelo
             </label>
-            <CampoDinheiro id="nf-preco" centavos={c.precoCentavos} aoMudar={(v) => mudar({ precoCentavos: v })} rotulo="Preço do novelo" />
+            <CampoDinheiro
+              id="nf-preco"
+              centavos={c.precoCentavos}
+              aoMudar={(v) => {
+                setPrecoAuto(false);
+                mudar({ precoCentavos: v });
+              }}
+              rotulo="Preço do novelo"
+            />
           </div>
         </div>
+        {origemPreco && precoAuto && c.precoCentavos === origemPreco.precoCentavos && (
+          <p class="dica-campo">
+            Mesmo preço{gramAuto ? ' e gramatura' : ''} do {nomeDoNovelo(origemPreco)}
+            {origemPreco.marca && !c.marca.trim() ? ` (${origemPreco.marca})` : ''} que você já tem.
+          </p>
+        )}
 
         {!id && (
           <>

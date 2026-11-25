@@ -57,12 +57,13 @@ test('gramas usadas pelo que sobrou', () => {
 test('composição soma 1', () => {
   const c = composicao({ fios: 3870, trabalho: 4800, outros: 1000, lucro: 3868, total: 13538 });
   assert.ok(Math.abs(c.fios + c.trabalho + c.outros + c.lucro - 1) < 1e-9);
-  assert.deepEqual(composicao({ fios: 0, trabalho: 0, outros: 0, lucro: 0, total: 0 }), { fios: 0, trabalho: 0, outros: 0, lucro: 0 });
+  assert.deepEqual(composicao({ fios: 0, trabalho: 0, outros: 0, lucro: 0, total: 0 }), { fios: 0, trabalho: 0, outros: 0, lucro: 0, taxas: 0 });
 });
 
 test('dinheiro: formatar e ler', () => {
   assert.equal(brl(13538), 'R$ 135,38');
   assert.equal(brl(123456), 'R$ 1.234,56');
+  assert.equal(brl(-2490), '-R$ 24,90');
   assert.equal(textoParaCentavos('135,38'), 13538);
   assert.equal(textoParaCentavos('18'), 1800);
   assert.equal(textoParaCentavos('1.234,5'), 123450);

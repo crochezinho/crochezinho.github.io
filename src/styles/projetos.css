@@ -361,6 +361,10 @@
 .vista-projetos {
   margin: -6px 0 18px;
 }
+.chip-status.fila {
+  background: var(--divisoria);
+  color: var(--texto-2);
+}
 .chip-status.pronta {
   background: var(--rosa-selecao);
   color: var(--rosa-escuro);

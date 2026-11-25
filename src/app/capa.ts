@@ -1,6 +1,6 @@
 import type { JSX } from 'preact';
 import type { Textura } from '../db/types.ts';
-import { BRILHO, FELPUDO } from './texturas.ts';
+import { BRILHO, FELPUDO, FELPUDO_VOLUME } from './texturas.ts';
 
 export const TEXTURAS: { valor: Textura; nome: string }[] = [
   { valor: 'liso', nome: 'Liso' },
@@ -64,7 +64,7 @@ export function hslParaHex({ h, s, l }: Hsl): string {
 const CAMADAS: Record<Textura, string> = {
   liso: '',
   brilho: `url("${BRILHO}") 0 0 / 64px 64px, `,
-  felpudo: `url("${FELPUDO}") 0 0 / 68px 68px, `
+  felpudo: `url("${FELPUDO}") 0 0 / 48px 48px, url("${FELPUDO_VOLUME}") 0 0 / 64px 64px, `
 };
 
 export function estiloCapa(cor: string, textura: Textura = 'liso'): JSX.CSSProperties {

@@ -5,7 +5,8 @@ export type Rota =
   | { nome: 'inicio' }
   | { nome: 'projetos' }
   | { nome: 'projeto'; id: string }
-  | { nome: 'projetoForm'; id: string | null }
+  | { nome: 'projetoForm'; id: string | null; cliente?: string }
+  | { nome: 'cliente'; chave: string }
   | { nome: 'novelos' }
   | { nome: 'novelo'; id: string }
   | { nome: 'noveloForm'; id: string | null }
@@ -13,6 +14,7 @@ export type Rota =
   | { nome: 'calcular'; projetoId: string | null }
   | { nome: 'crono'; projetoId: string | null }
   | { nome: 'dicasShopee' }
+  | { nome: 'financeiro'; mes: string | null }
   | { nome: 'config' };
 
 export const ABAS = ['inicio', 'projetos', 'novelos', 'calcular'] as const;
@@ -22,7 +24,7 @@ export function lerRota(hash: string = location.hash): Rota {
   const partes = hash.replace(/^#\/?/, '').split('/').filter(Boolean);
   switch (partes[0]) {
     case 'projetos':
-      if (partes[1] === 'novo') return { nome: 'projetoForm', id: null };
+      if (partes[1] === 'novo') return { nome: 'projetoForm', id: null, cliente: partes[2] === 'para' && partes[3] ? decodeURIComponent(partes[3]) : undefined };
       if (partes[1] && partes[2] === 'editar') return { nome: 'projetoForm', id: partes[1] };
       if (partes[1]) return { nome: 'projeto', id: partes[1] };
       return { nome: 'projetos' };
@@ -38,6 +40,10 @@ export function lerRota(hash: string = location.hash): Rota {
       return { nome: 'crono', projetoId: partes[1] ?? null };
     case 'dicas':
       return { nome: 'dicasShopee' };
+    case 'clientes':
+      return partes[1] ? { nome: 'cliente', chave: decodeURIComponent(partes[1]) } : { nome: 'projetos' };
+    case 'financeiro':
+      return { nome: 'financeiro', mes: partes[1] ?? null };
     case 'config':
       return { nome: 'config' };
     default:
@@ -50,6 +56,8 @@ export const href = {
   projetos: '#/projetos',
   projeto: (id: string) => `#/projetos/${id}`,
   novoProjeto: '#/projetos/novo',
+  novaEncomendaPara: (cliente: string) => `#/projetos/novo/para/${encodeURIComponent(cliente)}`,
+  cliente: (chave: string) => `#/clientes/${encodeURIComponent(chave)}`,
   editarProjeto: (id: string) => `#/projetos/${id}/editar`,
   novelos: '#/novelos',
   novelo: (id: string) => `#/novelos/${id}`,
@@ -60,6 +68,7 @@ export const href = {
   calcularPara: (projetoId: string) => `#/calcular/${projetoId}`,
   crono: (projetoId?: string) => (projetoId ? `#/crono/${projetoId}` : '#/crono'),
   dicasShopee: '#/dicas/shopee',
+  financeiro: (mes?: string) => (mes ? `#/financeiro/${mes}` : '#/financeiro'),
   config: '#/config'
 };
 

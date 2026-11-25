@@ -1,4 +1,5 @@
 import type { Unidade } from '../domain/unidades.ts';
+import type { Fechamento, Venda } from '../domain/financeiro.ts';
 
 export type { Unidade };
 
@@ -50,6 +51,8 @@ export interface Calculo {
   extras: CustoExtra[];
   margemPct: number;
   quantidade?: number;
+  /** O preço já soma as taxas da Shopee: totalCentavos é o preço de anúncio. */
+  comShopee?: boolean;
   totalCentavos: number;
   calculadoEm: number;
 }
@@ -74,6 +77,10 @@ export interface Projeto extends Registro {
   concluidoEm: number | null;
   descontado?: FioDescontado[];
   fiosAntesDeConcluir?: FioUsado[];
+  /** Valor combinado, frete e sinal (encomendas). */
+  venda?: Venda | null;
+  /** Tempo, valor da hora e material congelados no dia da entrega. */
+  fechamento?: Fechamento | null;
 }
 
 export interface Sessao extends Registro {
@@ -110,6 +117,7 @@ export interface Rascunho {
   valorHoraCentavos: number;
   extras: (CustoExtra & { chave: string })[];
   margemPct: number;
+  comShopee?: boolean;
 }
 
 export interface Foto {

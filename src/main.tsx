@@ -18,6 +18,7 @@ import './styles/projetos.css';
 import './styles/novelos.css';
 import './styles/config.css';
 import './styles/vender.css';
+import './styles/financeiro.css';
 
 import { App } from './app/App';
 import { reportarErro } from './app/erros';

@@ -12,7 +12,7 @@ import { ordenarUnidades, rotuloUnidade, type Unidade } from '../../domain/unida
 import type { Novelo, Textura } from '../../db/types.ts';
 import type { UsoDaUnidade } from '../../domain/fios.ts';
 import { formatarEstoque } from '../../domain/estoque.ts';
-import { filtrar, nomeDoNovelo, noveloRepetido } from '../../domain/novelos.ts';
+import { filtrar, nomeDoNovelo, noveloRepetido, sugerirMarca, sugerirPreco } from '../../domain/novelos.ts';
 import { descontarEmbalagem, PESAGENS_VAZIAS, unidadesDasPesagens, type Pesagens } from '../../domain/pesagem.ts';
 import { brl, custoDoFio, precoPorGrama } from '../../domain/preco.ts';
 import { ListasNovelo } from '../novelos/NoveloForm.tsx';
@@ -457,8 +457,24 @@ function NovoNovelo({ novelos, aoCancelar, aoCriar }: { novelos: Novelo[]; aoCan
   const [capa, setCapa] = useState('');
   const [textura, setTextura] = useState<Textura>('liso');
   const [tentou, setTentou] = useState(false);
+  const [auto, setAuto] = useState({ marca: true, preco: true, gramatura: true });
   const embalagemG = usePesoEmbalagem(tipo);
   const repetido = noveloRepetido(novelos, tipo, cor, marca);
+  const origemPreco = sugerirPreco(novelos, tipo, marca);
+
+  const mudarIdentidade = (parte: { tipo?: string; cor?: string; marca?: string }) => {
+    const t = parte.tipo ?? tipo;
+    const c = parte.cor ?? cor;
+    const marcaAuto = parte.marca === undefined && auto.marca;
+    const m = parte.marca ?? (marcaAuto ? sugerirMarca(novelos, t, c) : marca);
+    const s = sugerirPreco(novelos, t, m);
+    setTipo(t);
+    setCor(c);
+    setMarca(m);
+    if (parte.marca !== undefined) setAuto((a) => ({ ...a, marca: false }));
+    if (auto.preco) setPreco(s?.precoCentavos ?? 0);
+    if (auto.gramatura) setGramatura(s?.gramatura ?? 100);
+  };
   const faltando = [!cor.trim() && 'o nome da cor', gramatura <= 0 && 'a gramatura', !capa && 'a cor da capa'].filter((x): x is string => !!x);
 
   const salvar = async (e: Event) => {
@@ -477,19 +493,19 @@ function NovoNovelo({ novelos, aoCancelar, aoCriar }: { novelos: Novelo[]; aoCan
           <label class="rotulo" for="nn-tipo">
             Tipo
           </label>
-          <input id="nn-tipo" class="campo" list="lista-tipos" value={tipo} onInput={(e) => setTipo(e.currentTarget.value)} placeholder="ex: Chenille" autocomplete="off" />
+          <input id="nn-tipo" class="campo" list="lista-tipos" value={tipo} onInput={(e) => mudarIdentidade({ tipo: e.currentTarget.value })} placeholder="ex: Chenille" autocomplete="off" />
         </div>
         <div>
           <label class="rotulo" for="nn-cor">
             Cor
           </label>
-          <input id="nn-cor" class="campo" value={cor} onInput={(e) => setCor(e.currentTarget.value)} placeholder="ex: Rosa Chá" autocomplete="off" />
+          <input id="nn-cor" class="campo" value={cor} onInput={(e) => mudarIdentidade({ cor: e.currentTarget.value })} placeholder="ex: Rosa Chá" autocomplete="off" />
         </div>
       </div>
       <label class="rotulo" for="nn-marca">
         Marca <span class="opcional">opcional</span>
       </label>
-      <input id="nn-marca" class="campo" list="lista-marcas" value={marca} onInput={(e) => setMarca(e.currentTarget.value)} placeholder="ex: Círculo" autocomplete="off" />
+      <input id="nn-marca" class="campo" list="lista-marcas" value={marca} onInput={(e) => mudarIdentidade({ marca: e.currentTarget.value })} placeholder="ex: Círculo" autocomplete="off" />
       {repetido && (
         <div class="aviso-repetido" role="status">
           <span>Você já tem esse novelo{repetido.estoqueG > 0 ? ` (${formatarEstoque(repetido.estoqueG)})` : ''}.</span>
@@ -503,15 +519,37 @@ function NovoNovelo({ novelos, aoCancelar, aoCriar }: { novelos: Novelo[]; aoCan
           <label class="rotulo" for="nn-gram">
             Gramatura
           </label>
-          <CampoInteiro id="nn-gram" valor={gramatura} aoMudar={setGramatura} rotulo="Gramatura do novelo" sufixo="g" />
+          <CampoInteiro
+            id="nn-gram"
+            valor={gramatura}
+            aoMudar={(v) => {
+              setAuto((a) => ({ ...a, gramatura: false }));
+              setGramatura(v);
+            }}
+            rotulo="Gramatura do novelo"
+            sufixo="g"
+          />
         </div>
         <div>
           <label class="rotulo" for="nn-preco">
             Preço <span class="opcional">opcional</span>
           </label>
-          <CampoDinheiro id="nn-preco" centavos={preco} aoMudar={setPreco} rotulo="Preço do novelo" />
+          <CampoDinheiro
+            id="nn-preco"
+            centavos={preco}
+            aoMudar={(v) => {
+              setAuto((a) => ({ ...a, preco: false }));
+              setPreco(v);
+            }}
+            rotulo="Preço do novelo"
+          />
         </div>
       </div>
+      {origemPreco && auto.preco && preco === origemPreco.precoCentavos && (
+        <p class="dica-campo">
+          Mesmo preço{auto.gramatura ? ' e gramatura' : ''} do {nomeDoNovelo(origemPreco)} que você já tem.
+        </p>
+      )}
       <p class="rotulo">Estoque</p>
       <PesagensNovelo
         tipo={tipo}

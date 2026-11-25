@@ -180,3 +180,15 @@ export function avisosShopee(p: ParamsShopee, r: ResultadoShopee): AvisoShopee[]
   if (r.subsidioPix) a.push({ nivel: 'nota', texto: 'No Pix, o comprador ganha 5% a 8% de desconto em itens a partir de R$ 80, mas quem paga é a Shopee. Você recebe o mesmo valor.' });
   return a;
 }
+
+/**
+ * Menor preço de anúncio que, depois das taxas, deixa pelo menos `alvo` (em reais) na mão.
+ * Percorre centavo a centavo porque o que se recebe não cresce sempre junto com o preço (a taxa fixa sobe em degraus).
+ */
+export function precoParaReceber(alvo: number, p: Pick<ParamsShopee, 'mais450' | 'campanhaPct'> = {}): number | null {
+  const alvoC = Math.round(alvo * 100);
+  if (alvoC <= 0) return 0;
+  const recebeC = (c: number) => Math.round(calcShopee({ ...p, preco: c / 100, qtd: 1 }).item.recebe * 100);
+  for (let c = alvoC; c <= alvoC * 4 + 10_000; c++) if (recebeC(c) >= alvoC) return c / 100;
+  return null;
+}

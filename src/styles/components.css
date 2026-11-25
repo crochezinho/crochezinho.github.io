@@ -304,6 +304,9 @@
   gap: 10px;
   margin-top: 14px;
 }
+.stats-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
 .stat {
   padding: 14px;
   border-radius: var(--raio-l);
@@ -606,4 +609,10 @@ body:has(.sheet-fundo) .toast {
 }
 .caixa-parou .botao {
   margin-top: 12px;
+}
+
+.dica-campo {
+  margin: 6px 2px 0;
+  font-size: 13px;
+  color: var(--texto-apagado);
 }

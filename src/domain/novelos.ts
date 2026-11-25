@@ -104,3 +104,18 @@ export function agrupar<T extends NoveloLista>(novelos: T[], por: Agrupamento, u
       return { nome, sub, totalG };
     });
 }
+
+type NoveloComPreco = Pick<NoveloLista, 'id' | 'tipo' | 'cor' | 'marca' | 'gramatura'> & { precoCentavos: number; atualizadoEm?: number };
+
+export function sugerirPreco<T extends NoveloComPreco>(novelos: T[], tipo: string, marca: string, excetoId: string | null = null): T | undefined {
+  if (!tipo.trim()) return undefined;
+  const doTipo = novelos.filter((n) => n.id !== excetoId && n.precoCentavos > 0 && igual(n.tipo, tipo));
+  const daMarca = marca.trim() ? doTipo.filter((n) => igual(n.marca, marca)) : [];
+  const base = daMarca.length ? daMarca : doTipo;
+  return [...base].sort((a, b) => (b.atualizadoEm ?? 0) - (a.atualizadoEm ?? 0))[0];
+}
+
+export function mesmoTipoEMarca<T extends NoveloLista>(novelos: T[], ref: Pick<NoveloLista, 'id' | 'tipo' | 'marca'>): T[] {
+  if (!ref.tipo.trim()) return [];
+  return novelos.filter((n) => n.id !== ref.id && igual(n.tipo, ref.tipo) && igual(n.marca, ref.marca));
+}

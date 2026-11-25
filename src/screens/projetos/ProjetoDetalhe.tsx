@@ -25,8 +25,14 @@ import {
   listarPesosEmbalagem,
   salvarAnotacoes,
   salvarFiosDoProjeto,
-  salvarReceita
+  salvarReceita,
+  salvarVenda
 } from '../../db/repo.ts';
+import { divisaoDe, useBaseFinanceira } from '../../app/financeiro.ts';
+import { vendaDe } from '../../domain/financeiro.ts';
+import { chaveDoNome } from '../../domain/clientes.ts';
+import { CartaoDivisao, CartaoVenda, VendaSheet } from './Venda.tsx';
+import { OrcamentoSheet } from './OrcamentoSheet.tsx';
 import { FioSheet, type FioEditado } from '../calculadora/FioSheet.tsx';
 import { precoPorGrama } from '../../domain/preco.ts';
 import { lerLink, origemDoLink } from '../../domain/receita.ts';
@@ -35,9 +41,11 @@ import { contaDaEmbalagem, descontarEmbalagem, pesoDaEmbalagem } from '../../dom
 import { rotuloUnidade } from '../../domain/unidades.ts';
 import { DescontoEmbalagem } from '../../components/DescontoEmbalagem.tsx';
 import type { FioDescontado, FioUsado, Novelo, Projeto } from '../../db/types.ts';
+import type { BaseFinanceira } from '../../db/repo.ts';
+import type { Divisao } from '../../domain/financeiro.ts';
 import { calcularDesconto, conferirEstoque, formatarEstoque } from '../../domain/estoque.ts';
 import { diaDaEntrega } from '../../domain/prazo.ts';
-import { ehEncomenda, etapa } from '../../domain/encomendas.ts';
+import { ehEncomenda, etapa, NOME_ETAPA } from '../../domain/encomendas.ts';
 import { nomeDoNovelo } from '../../domain/novelos.ts';
 import { brl } from '../../domain/preco.ts';
 import { formatarTotal, totalDoProjeto } from '../../domain/tempo.ts';
@@ -52,6 +60,9 @@ export function ProjetoDetalhe({ id }: { id: string }) {
   const [repetindo, setRepetindo] = useState(false);
   const [editandoReceita, setEditandoReceita] = useState(false);
   const [fioEditando, setFioEditando] = useState<{ indice: number | null } | null>(null);
+  const [editandoVenda, setEditandoVenda] = useState(false);
+  const [orcando, setOrcando] = useState(false);
+  const base = useBaseFinanceira();
 
   const projeto = dados?.projetos.find((p) => p.id === id);
   const rodando = !!projeto && dados?.aberta?.projetoId === projeto.id;
@@ -78,10 +89,10 @@ export function ProjetoDetalhe({ id }: { id: string }) {
   const novelo =(nid: string) => novelos.find((n) => n.id === nid);
   const quantidade = projeto.quantidade ?? 1;
   const encomenda = ehEncomenda(projeto);
-  const fase = etapa(projeto);
+  const fase = etapa(projeto, dados.comTempo);
+  const primeiraSessao = dados.sessoes.filter((s) => s.projetoId === projeto.id).reduce<number | null>((m, s) => (m === null || s.inicio < m ? s.inicio : m), null);
   const manuais = (projeto.calculo?.fios ?? []).filter((f) => !f.noveloId);
   const detalhes = [
-    projeto.cliente ? `para ${projeto.cliente}` : '',
     projeto.tipo,
     quantidade > 1 ? `${quantidade} peças` : '',
     projeto.agulha,
@@ -90,7 +101,11 @@ export function ProjetoDetalhe({ id }: { id: string }) {
       : projeto.entregaEm
         ? `entrega ${diaDaEntrega(projeto.entregaEm)}`
         : '',
-    concluido && projeto.concluidoEm ? `${encomenda ? 'pronta' : 'concluído'} em ${diaCurto(projeto.concluidoEm)}` : `iniciado em ${diaCurto(projeto.criadoEm)}`
+    concluido && projeto.concluidoEm
+      ? `${encomenda ? 'pronta' : 'concluído'} em ${diaCurto(projeto.concluidoEm)}`
+      : fase === 'fila'
+        ? `na fila desde ${diaCurto(projeto.criadoEm)}`
+        : `iniciado em ${diaCurto(primeiraSessao ?? projeto.criadoEm)}`
   ]
     .filter(Boolean)
     .join(' · ');
@@ -103,8 +118,8 @@ export function ProjetoDetalhe({ id }: { id: string }) {
   };
 
   const entregar = async (sim: boolean) => {
-    await marcarEntregue(projeto.id, sim);
-    toast(sim ? `Entregue${projeto.cliente ? ` para ${projeto.cliente}` : ''}` : 'Voltou para "pronta"', {
+    const d = await marcarEntregue(projeto.id, sim);
+    toast(!sim ? 'Voltou para "pronta"' : d && d.cobrado > 0 ? `Entregue! Guarde ${brl(d.salario)} de salário` : `Entregue${projeto.cliente ? ` para ${projeto.cliente}` : ''}`, {
       rotulo: 'Desfazer',
       fazer: () => void marcarEntregue(projeto.id, !sim)
     });
@@ -172,11 +187,21 @@ export function ProjetoDetalhe({ id }: { id: string }) {
           <div class="detalhe-titulo">
             <div>
               <h1>{projeto.nome}</h1>
-              <p>{detalhes}</p>
+              <p>
+                {projeto.cliente && (
+                  <>
+                    <button class="link-cliente" onClick={() => ir(href.cliente(chaveDoNome(projeto.cliente)))}>
+                      para {projeto.cliente}
+                    </button>
+                    {' · '}
+                  </>
+                )}
+                {detalhes}
+              </p>
               {fase !== 'entregue' && <SeloPrazo entregaEm={projeto.entregaEm} agora={agora} />}
             </div>
-            <span class={'chip-status ' + (encomenda ? fase : projeto.status)}>
-              {rodando ? 'rodando' : encomenda ? fase : concluido ? 'concluído' : 'fazendo'}
+            <span class={'chip-status ' + (encomenda || fase === 'fila' ? fase : projeto.status)}>
+              {rodando ? 'rodando' : encomenda || fase === 'fila' ? NOME_ETAPA[fase] : concluido ? 'concluído' : 'fazendo'}
             </span>
           </div>
           <div class="detalhe-stats">
@@ -186,7 +211,10 @@ export function ProjetoDetalhe({ id }: { id: string }) {
             </div>
             <div>
               <strong class="preco">{projeto.precoCentavos !== null ? brl(projeto.precoCentavos) : '—'}</strong>
-              <span>{quantidade > 1 ? 'por peça' : 'preço'}</span>
+              <span>
+                {quantidade > 1 ? 'por peça' : 'preço'}
+                {projeto.calculo?.comShopee ? ' na Shopee' : ''}
+              </span>
             </div>
           </div>
         </section>
@@ -206,7 +234,7 @@ export function ProjetoDetalhe({ id }: { id: string }) {
             <strong>{projeto.calculo ? 'Preço de venda' : 'Calcular preço de venda'}</strong>
             <small>
               {projeto.calculo
-                ? `calculado em ${diaCurto(projeto.calculo.calculadoEm)}${
+                ? `calculado em ${diaCurto(projeto.calculo.calculadoEm)}${projeto.calculo.comShopee ? ', com as taxas da Shopee' : ''}${
                     !temTempo && projeto.calculo.minutos > 0 ? ` · estimado com ${formatarTotal(projeto.calculo.minutos * 60_000)}` : ''
                   } · toque para revisar`
                 : 'usa o tempo do cronômetro'}
@@ -214,6 +242,17 @@ export function ProjetoDetalhe({ id }: { id: string }) {
           </span>
           <Icone nome="seta" tamanho={18} />
         </button>
+
+        {encomenda && base && (
+          <ValorDaEncomenda
+            projeto={projeto}
+            entregue={fase === 'entregue'}
+            divisao={fase === 'entregue' ? divisaoDe(projeto, dados.sessoes, base, agora) : null}
+            regras={base.regras}
+            aoEditar={() => setEditandoVenda(true)}
+            aoOrcar={() => setOrcando(true)}
+          />
+        )}
 
         <div class="secao-cabecalho">
           <h2 class="secao-titulo">Fios{quantidade > 1 ? ' por peça' : ''}</h2>
@@ -343,6 +382,26 @@ export function ProjetoDetalhe({ id }: { id: string }) {
       <ReabrirSheet aberta={reabrindo} aoFechar={() => setReabrindo(false)} projeto={projeto} novelos={novelos} />
       <FazerDeNovoSheet aberta={repetindo} aoFechar={() => setRepetindo(false)} projeto={projeto} novelos={novelos} />
       {vendoFoto && projeto.fotoId && <VerFoto fotoId={projeto.fotoId} titulo={projeto.nome} aoFechar={() => setVendoFoto(false)} />}
+      {base && <VendaSheet aberta={editandoVenda} aoFechar={() => setEditandoVenda(false)} projeto={projeto} regras={base.regras} />}
+      <OrcamentoSheet
+        aberta={orcando}
+        aoFechar={() => setOrcando(false)}
+        inicial={{
+          titulo: projeto.nome,
+          quantidade,
+          valorCentavos: vendaDe(projeto).valorCentavos,
+          freteCentavos: vendaDe(projeto).freteCentavos,
+          entregaEm: projeto.entregaEm,
+          fotoId: projeto.fotoId
+        }}
+        aoEnviar={(valorCentavos, freteCentavos) => {
+          const v = vendaDe(projeto);
+          if (v.canal === 'direto' && (v.valorCentavos !== valorCentavos || v.freteCentavos !== freteCentavos || !projeto.venda)) {
+            void salvarVenda(projeto.id, { ...v, valorCentavos, freteCentavos });
+            toast('Valor e frete anotados na encomenda');
+          }
+        }}
+      />
       <ReceitaSheet aberta={editandoReceita} aoFechar={() => setEditandoReceita(false)} projeto={projeto} />
       <FioSheet
         aberta={!!fioEditando}
@@ -357,6 +416,67 @@ export function ProjetoDetalhe({ id }: { id: string }) {
         aoTirar={fioEditando?.indice != null ? () => void tirarFio(fioEditando.indice!) : undefined}
       />
     </main>
+  );
+}
+
+function ValorDaEncomenda({
+  projeto,
+  entregue,
+  divisao,
+  regras,
+  aoEditar,
+  aoOrcar
+}: {
+  projeto: Projeto;
+  entregue: boolean;
+  divisao: Divisao | null;
+  regras: BaseFinanceira['regras'];
+  aoEditar: () => void;
+  aoOrcar: () => void;
+}) {
+  const venda = vendaDe(projeto);
+  const quantidade = projeto.quantidade ?? 1;
+  const semValor = venda.valorCentavos <= 0;
+  return (
+    <>
+      <div class="secao-cabecalho">
+        <h2 class="secao-titulo">{entregue ? 'Para onde foi o dinheiro' : 'Valor da encomenda'}</h2>
+        {projeto.venda && (
+          <button class="link-pequeno" onClick={aoEditar}>
+            editar
+          </button>
+        )}
+      </div>
+      {!projeto.venda ? (
+        <button class="cartao-acao vazio-tracejado" onClick={aoEditar}>
+          <span class="cartao-acao-icone">
+            <Icone nome="dinheiro" />
+          </span>
+          <span class="linha-projeto-texto">
+            <strong>Anotar o valor combinado</strong>
+            <small>{semValor ? 'valor, frete e sinal' : `pelo cálculo, ${brl(venda.valorCentavos)}${venda.canal === 'shopee' ? ' na Shopee' : ''}`}</small>
+          </span>
+          <Icone nome="mais" tamanho={18} />
+        </button>
+      ) : divisao ? (
+        <CartaoDivisao d={divisao} />
+      ) : (
+        <CartaoVenda venda={venda} quantidade={quantidade} regras={regras} />
+      )}
+      {entregue && !projeto.venda && divisao && !semValor && <CartaoDivisao d={divisao} />}
+      {!entregue && venda.canal === 'direto' && (
+        <button class="cartao-acao" onClick={aoOrcar}>
+          <span class="cartao-acao-icone">
+            <Icone nome="compartilhar" />
+          </span>
+          <span class="linha-projeto-texto">
+            <strong>Imagem do orçamento</strong>
+            <small>valor, frete e prazo, para mandar à cliente</small>
+          </span>
+          <Icone nome="seta" tamanho={18} />
+        </button>
+      )}
+    </>
   );
 }
 
